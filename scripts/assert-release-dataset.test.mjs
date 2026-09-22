@@ -4,6 +4,7 @@ import crypto from 'node:crypto'
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.mjs'
 
 function fingerprint(value) { return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex') }
 function fixture() {
@@ -21,49 +22,27 @@ function fixture() {
     recipesByOutput: { '10': ['cook'], '11': ['alch'] },
   }
 }
-
 function setup() {
   const dir = mkdtempSync(join(tmpdir(), 'bdo-release-gate-'))
   const datasetFile = join(dir, 'dataset.json'), reportFile = join(dir, 'report.json')
-  writeFileSync(datasetFile, JSON.stringify(fixture()))
-  writeFileSync(reportFile, JSON.stringify({ status: 'ZERO_UNEXPLAINED_DIFF', unresolved: [], clientRecipeGroups: 2 }))
+  const source = fixture()
+  writeFileSync(datasetFile, JSON.stringify(source))
+  writeFileSync(reportFile, JSON.stringify({ status: 'ZERO_UNEXPLAINED_DIFF', unresolved: [], clientRecipeGroups: 2, datasetFingerprint: reconciliationDatasetFingerprint(source) }))
   const promoted = spawnSync(process.execPath, ['scripts/promote-release-dataset.mjs', datasetFile, reportFile], { cwd: process.cwd(), encoding: 'utf8' })
   expect(promoted.status).toBe(0)
   return { datasetFile, reportFile }
 }
-
-function gate(datasetFile, reportFile) {
-  return spawnSync(process.execPath, ['scripts/assert-release-dataset.mjs', datasetFile, reportFile], { cwd: process.cwd(), encoding: 'utf8' })
-}
+function gate(datasetFile, reportFile) { return spawnSync(process.execPath, ['scripts/assert-release-dataset.mjs', datasetFile, reportFile], { cwd: process.cwd(), encoding: 'utf8' }) }
 
 describe('final release gate', () => {
-  it('accepts a promoted structurally valid dataset', () => {
-    const { datasetFile, reportFile } = setup()
-    expect(gate(datasetFile, reportFile).status).toBe(0)
-  })
-
+  it('accepts a promoted structurally valid dataset', () => { const { datasetFile, reportFile } = setup(); expect(gate(datasetFile, reportFile).status).toBe(0) })
   it('rejects structural corruption even when fingerprint is recomputed', () => {
-    const { datasetFile, reportFile } = setup()
-    const dataset = JSON.parse(readFileSync(datasetFile, 'utf8'))
-    dataset.recipesByOutput['10'] = ['alch']
-    delete dataset.metadata.fingerprint
-    dataset.metadata.fingerprint = fingerprint(dataset)
-    writeFileSync(datasetFile, JSON.stringify(dataset))
-    const result = gate(datasetFile, reportFile)
-    expect(result.status).toBe(1)
-    expect(result.stderr).toContain('structural validation failed')
+    const { datasetFile, reportFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); dataset.recipesByOutput['10'] = ['alch']; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile); expect(result.status).toBe(1); expect(result.stderr).toContain('structural validation failed')
   })
-
   it('rejects a canonical local icon path when the installed asset is missing', () => {
-    const { datasetFile, reportFile } = setup()
-    const dataset = JSON.parse(readFileSync(datasetFile, 'utf8'))
-    dataset.items['20'].iconPath = 'icons/20.webp'
-    delete dataset.items['20'].iconUrl
-    delete dataset.metadata.fingerprint
-    dataset.metadata.fingerprint = fingerprint(dataset)
-    writeFileSync(datasetFile, JSON.stringify(dataset))
-    const result = gate(datasetFile, reportFile)
-    expect(result.status).toBe(1)
-    expect(result.stderr).toContain('canonical local icon assets are missing')
+    const { datasetFile, reportFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); dataset.items['20'].iconPath = 'icons/20.webp'; delete dataset.items['20'].iconUrl; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile); expect(result.status).toBe(1); expect(result.stderr).toContain('canonical local icon assets are missing')
+  })
+  it('rejects ZERO_UNEXPLAINED_DIFF evidence generated for different dataset content', () => {
+    const { datasetFile, reportFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); dataset.items['20'].nameKo = '변경된 재료'; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile); expect(result.status).toBe(1); expect(result.stderr).toContain('reconciliation report belongs to different dataset content')
   })
 })
