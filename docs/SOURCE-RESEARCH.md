@@ -9,25 +9,53 @@ The strongest available structural source is the installed Black Desert client. 
 BDO Codex KR remains a valuable independent reconciliation/enrichment source:
 - Cooking catalog: https://bdocodex.com/kr/recipes/culinary/
 - Alchemy catalog: https://bdocodex.com/kr/recipes/alchemy/
-- detail pages expose recipe ID, Korean title, skill type/level, ingredient quantities, base-product ranges, and additional/random products.
+- detail pages expose source-local recipe page ID, Korean title, skill type/level, ingredient quantities, base-product ranges, additional/random products, substitution guidance, and links to ingredient/output item pages.
 
 Important: BDO Codex also indexes recipes explicitly marked unavailable in game. Therefore "all Codex pages" is not the same thing as "all live recipes". Reconciliation must preserve an availability flag and treat disabled/retired pages separately instead of forcing them into the live dataset.
+
+## Identity rules — do not key by Codex recipe page ID
+
+Fresh cross-locale checks show that the same logical recipe can have different BDO Codex recipe-page IDs in different locale/region datasets. Therefore a Codex page ID is provenance, not canonical recipe identity.
+
+More importantly, Codex recipe detail links expose the linked item page IDs for ingredients and outputs (for example a KR recipe page can link its base output to `/kr/item/<itemId>/`). Those item IDs are much stronger reconciliation keys than the locale-specific recipe-page ID.
+
+Canonical/reconciliation priority:
+1. client output item ID, matched to Codex linked output item ID where available;
+2. client recipe type + output item ID + normalized ingredient-ID/count signature for variants, matched to Codex linked ingredient item IDs/counts;
+3. independent Codex Korean output title + normalized Korean ingredient/count signature only when linked item IDs are unavailable;
+4. explicit reviewed mapping for any residual ambiguity.
+
+Never declare a recipe missing merely because a Codex locale page ID differs.
+
+## Korean localization
+
+The currently documented extractor CLI localization flag is not Korean-first. Structural extraction and display localization must therefore stay separate:
+- client IDs/recipe graph remain canonical structural evidence;
+- do not label an English extractor item name as `nameKo` in a release dataset;
+- Korean display names must be enriched from a proven Korean source (BDO Codex KR or Korean client localization when independently extracted);
+- reconciliation should retain both `nameKo` and `nameEn` where available.
 
 ## Completeness strategy
 
 1. Import live client extraction.
 2. Build canonical item-id / output-id recipe graph.
 3. Preserve every alternative recipe block.
-4. Generate normalized Korean-name signatures for independent reconciliation.
-5. Build/refresh a Codex manifest with recipe page id, skill, title, availability, ingredient names/counts, and base output range.
-6. Compare:
-   - live output titles absent from Codex;
-   - available Codex titles absent from client import;
+4. Generate normalized Korean-name/signature evidence for independent reconciliation.
+5. Build/refresh a Codex manifest with source-local page id, linked output/ingredient item IDs, skill, Korean title, availability, ingredient counts, and base output range.
+6. Compare primarily by canonical linked item IDs/signatures rather than Codex recipe page ID:
+   - live outputs absent from Codex evidence;
+   - available Codex outputs absent from client import;
    - variant/signature differences;
-   - unresolved ingredient names;
+   - unresolved Korean ingredient names;
    - yield metadata differences.
 7. Every difference must be either resolved or explicitly reviewed with a reason.
 8. Only zero **unexplained** differences may promote a dataset to `COMPLETE_VERIFIED`.
+
+## Acquisition caveat
+
+BDO Codex category pages currently render the table shell and report "Loading data from server"; the complete row set is not present in the static category HTML. A bulk collector must identify/use the site's data/query route or another controlled enumeration path. Search-engine discovery of individual pages is useful evidence but is not a completeness proof.
+
+Once recipe detail URLs are enumerated, their linked item IDs provide a deterministic bridge back to the client graph; the remaining hard problem is exhaustive enumeration, not entity identity.
 
 ## Licensing / provenance
 
