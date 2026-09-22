@@ -10,6 +10,7 @@ export interface SingleTargetSessionInput {
   cookingPreparationPolicy?: CookingPreparationPolicy
   craftIntermediateItemIds: ReadonlySet<ItemId>
   intermediateRecipeIdByItemId: Readonly<Record<string, RecipeId>>
+  selectedSubstitutionItemIdByGroupId?: Readonly<Record<string, ItemId>>
 }
 
 /** Snapshot the low-ceremony primary UI into the durable multi-target session schema. */
@@ -26,6 +27,6 @@ export function singleTargetSession(input: SingleTargetSessionInput): PlanSessio
     craftIntermediateItemIds: [...input.craftIntermediateItemIds].sort((a, b) => a - b),
     intermediateRecipeIdByItemId: { ...input.intermediateRecipeIdByItemId },
     variantIdByRecipeId: input.variantId ? { [input.recipeId]: input.variantId } : {},
-    selectedSubstitutionItemIdByGroupId: {},
+    selectedSubstitutionItemIdByGroupId: { ...input.selectedSubstitutionItemIdByGroupId },
   }
 }
