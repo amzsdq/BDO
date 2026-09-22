@@ -12,7 +12,8 @@
         "type": "object",
         "required": ["recipeId", "skill", "titleKo", "available", "ingredients"],
         "properties": {
-          "recipeId": { "type": ["integer", "string"] },
+          "recipeId": { "type": ["integer", "string"], "description": "BDO Codex page id; provenance only, not canonical recipe identity" },
+          "outputItemId": { "type": "integer", "minimum": 0, "description": "Linked canonical BDO output item id when available; preferred reconciliation identity" },
           "skill": { "enum": ["cooking", "alchemy"] },
           "titleKo": { "type": "string", "minLength": 1 },
           "available": { "type": "boolean" },
@@ -30,6 +31,7 @@
               "type": "object",
               "required": ["name", "count"],
               "properties": {
+                "itemId": { "type": "integer", "minimum": 0, "description": "Linked canonical BDO ingredient item id when available; preferred over name matching" },
                 "name": { "type": "string", "minLength": 1 },
                 "count": { "type": "number", "exclusiveMinimum": 0 }
               }
