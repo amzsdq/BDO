@@ -17,6 +17,10 @@ describe('persisted plan target resolution', () => {
     expect(resolvePlanTarget(sampleDataset, { recipeId: 'sample-cooking', mode: 'durability', amount: 100 }, { cookingMastery: 1500 }).error).toContain('policy is required')
   })
 
+  it('rejects fractional utensil durability uses', () => {
+    expect(resolvePlanTarget(sampleDataset, { ...cooking, amount: 1.5 }, { cookingMastery: 1500 }).error).toContain('positive integer')
+  })
+
   it('keeps recipe servings exact', () => {
     expect(resolvePlanTarget(sampleDataset, { recipeId: 'sample-cooking', mode: 'servings', amount: 25 }, {}).target).toMatchObject({ mode: 'attempts', amount: 25 })
   })
