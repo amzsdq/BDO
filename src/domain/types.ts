@@ -46,6 +46,11 @@ export interface RecipeDataset {
     status?: string
     fingerprint?: string
     counts?: { cooking: number; alchemy: number }
+    verifiedAt?: string
+    reconciliationStatus?: string
+    itemScope?: string
+    importedItemCount?: number
+    scopedItemCount?: number
   }
 }
 
