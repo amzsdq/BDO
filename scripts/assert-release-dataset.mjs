@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import crypto from 'node:crypto'
+import { spawnSync } from 'node:child_process'
 
 function fail(message) { console.error(`release blocked: ${message}`); process.exit(1) }
 function fingerprint(value) { return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex') }
@@ -7,6 +8,10 @@ function fingerprint(value) { return crypto.createHash('sha256').update(JSON.str
 const [file, reconciliationFile] = process.argv.slice(2)
 if (!file) fail('usage: node scripts/assert-release-dataset.mjs <dataset.json> [reconciliation-report.json]')
 if (!fs.existsSync(file)) fail(`dataset not found: ${file}`)
+
+const structural = spawnSync(process.execPath, ['scripts/validate-dataset.mjs', file], { cwd: process.cwd(), encoding: 'utf8' })
+if (structural.status !== 0) fail(`structural validation failed:\n${(structural.stderr || structural.stdout || 'unknown validator failure').trim()}`)
+
 const dataset = JSON.parse(fs.readFileSync(file, 'utf8'))
 const metadata = dataset.metadata || {}, items = dataset.items || {}, recipes = dataset.recipes || {}
 
