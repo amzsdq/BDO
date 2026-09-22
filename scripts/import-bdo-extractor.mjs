@@ -37,6 +37,16 @@ function normalizeType(value) {
   return null
 }
 
+function normalizeWeight(item) {
+  // Extractor versions may expose weight under slightly different field names.
+  // Keep unknown distinct from zero: planners must never silently treat missing
+  // weight evidence as weightless material.
+  const raw = item.weight ?? item.weightLT ?? item.weightLt
+  if (raw == null || raw === '') return undefined
+  const value = Number(raw)
+  return Number.isFinite(value) && value >= 0 ? value : undefined
+}
+
 function fingerprint(value) {
   return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex')
 }
@@ -55,6 +65,7 @@ for (const item of itemsRaw) {
   items[String(id)] = {
     id,
     nameKo: String(item.name || '').trim() || `아이템 #${id}`,
+    weightLT: normalizeWeight(item),
     iconPath: item.icon ? String(item.icon) : undefined,
     marketable: item.marketable === true,
   }
@@ -79,11 +90,7 @@ for (const source of recipesRaw) {
     .join('|')
   const groupKey = `${skill}:${outputItemId}`
   const variants = grouped.get(groupKey) || []
-  variants.push({
-    signature,
-    inputs,
-    byproductOf,
-  })
+  variants.push({ signature, inputs, byproductOf })
   grouped.set(groupKey, variants)
 }
 
@@ -99,26 +106,17 @@ for (const [groupKey, rawVariants] of grouped) {
   for (const candidate of rawVariants) {
     if (seen.has(candidate.signature)) continue
     seen.add(candidate.signature)
-    variants.push({
-      id: `v${variants.length + 1}`,
-      inputs: candidate.inputs,
-      byproductOf: candidate.byproductOf || undefined,
-    })
+    variants.push({ id: `v${variants.length + 1}`, inputs: candidate.inputs, byproductOf: candidate.byproductOf || undefined })
   }
 
   const normalVariants = variants.filter((variant) => !variant.byproductOf)
   const byproductVariants = variants.filter((variant) => variant.byproductOf)
-
   if (byproductVariants.length) {
     byproducts[String(outputItemId)] = {
       outputItemId,
       producedWhileCraftingItemIds: [...new Set(byproductVariants.map((variant) => variant.byproductOf))],
     }
   }
-
-  // Extractor marks duplicated ingredient signatures on higher-grade/random
-  // product pages with byproductOf. Those are outcomes, not directly craftable
-  // target recipes, so never expose them as a normal planner target.
   if (!normalVariants.length) continue
 
   const id = `${skill}:${outputItemId}`
@@ -126,16 +124,10 @@ for (const [groupKey, rawVariants] of grouped) {
     id,
     skill,
     outputItemId,
-    // Recipe XML is authoritative for ingredient consumption but server-side
-    // variable output distribution is not encoded here. Keep yield conservative
-    // until a separately proven yield source enriches it.
     yield: { min: 1, max: 1, provenance: 'unknown-server-yield' },
     variants: normalVariants.map(({ byproductOf: _byproductOf, ...variant }) => variant),
   }
-  recipesByOutput[String(outputItemId)] = [
-    ...(recipesByOutput[String(outputItemId)] || []),
-    id,
-  ]
+  recipesByOutput[String(outputItemId)] = [...(recipesByOutput[String(outputItemId)] || []), id]
 }
 
 const missingItemRefs = []
@@ -159,10 +151,7 @@ const payloadWithoutHash = {
     generatedAt: new Date().toISOString(),
     supportedRegion: 'KR',
     status: 'CLIENT_IMPORTED_UNRECONCILED',
-    sources: [
-      'bdo-data-extractor:items.json',
-      'bdo-data-extractor:recipes.json',
-    ],
+    sources: ['bdo-data-extractor:items.json', 'bdo-data-extractor:recipes.json'],
     counts,
   },
   items,
@@ -172,10 +161,7 @@ const payloadWithoutHash = {
 }
 const payload = {
   ...payloadWithoutHash,
-  metadata: {
-    ...payloadWithoutHash.metadata,
-    fingerprint: fingerprint(payloadWithoutHash),
-  },
+  metadata: { ...payloadWithoutHash.metadata, fingerprint: fingerprint(payloadWithoutHash) },
 }
 
 fs.mkdirSync(path.dirname(args.out), { recursive: true })

@@ -7,6 +7,8 @@ export interface Item {
   id: ItemId
   nameKo: string
   nameEn?: string
+  /** Canonical in-game item weight in LT. Undefined means not yet verified. */
+  weightLT?: number
   iconUrl?: string
   iconPath?: string
   marketable?: boolean
