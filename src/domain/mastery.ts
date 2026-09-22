@@ -21,73 +21,9 @@ export const COOKING_MASTERY_SOURCE: MasterySourceMeta = {
   verifiedAt: '2026-09-23',
 }
 
-/**
- * Complete 50-point Cooking mastery breakpoints published by Pearl Abyss KR.
- * Values are transcribed from the source table; off-grid mastery values are not
- * interpolated because the product must distinguish verified data from inference.
- */
+/** Complete source-verified 50-point Cooking mastery breakpoints. */
 export const COOKING_MASTERY_ROWS: readonly CookingMasteryRow[] = [
-  { mastery: 0, massCookingProbability: 0 },
-  { mastery: 50, massCookingProbability: 0.1089 },
-  { mastery: 100, massCookingProbability: 0.1176 },
-  { mastery: 150, massCookingProbability: 0.1267 },
-  { mastery: 200, massCookingProbability: 0.1362 },
-  { mastery: 250, massCookingProbability: 0.1459 },
-  { mastery: 300, massCookingProbability: 0.156 },
-  { mastery: 350, massCookingProbability: 0.1665 },
-  { mastery: 400, massCookingProbability: 0.1772 },
-  { mastery: 450, massCookingProbability: 0.1884 },
-  { mastery: 500, massCookingProbability: 0.1998 },
-  { mastery: 550, massCookingProbability: 0.2116 },
-  { mastery: 600, massCookingProbability: 0.2237 },
-  { mastery: 650, massCookingProbability: 0.2362 },
-  { mastery: 700, massCookingProbability: 0.249 },
-  { mastery: 750, massCookingProbability: 0.2621 },
-  { mastery: 800, massCookingProbability: 0.2756 },
-  { mastery: 850, massCookingProbability: 0.2894 },
-  { mastery: 900, massCookingProbability: 0.3058 },
-  { mastery: 950, massCookingProbability: 0.3226 },
-  { mastery: 1000, massCookingProbability: 0.3399 },
-  { mastery: 1050, massCookingProbability: 0.3576 },
-  { mastery: 1100, massCookingProbability: 0.3758 },
-  { mastery: 1150, massCookingProbability: 0.3944 },
-  { mastery: 1200, massCookingProbability: 0.4134 },
-  { mastery: 1250, massCookingProbability: 0.4422 },
-  { mastery: 1300, massCookingProbability: 0.472 },
-  { mastery: 1350, massCookingProbability: 0.5027 },
-  { mastery: 1400, massCookingProbability: 0.5344 },
-  { mastery: 1450, massCookingProbability: 0.567 },
-  { mastery: 1500, massCookingProbability: 0.6006 },
-  { mastery: 1550, massCookingProbability: 0.6352 },
-  { mastery: 1600, massCookingProbability: 0.6708 },
-  { mastery: 1650, massCookingProbability: 0.7073 },
-  { mastery: 1700, massCookingProbability: 0.7448 },
-  { mastery: 1750, massCookingProbability: 0.7832 },
-  { mastery: 1800, massCookingProbability: 0.8226 },
-  { mastery: 1850, massCookingProbability: 0.863 },
-  { mastery: 1900, massCookingProbability: 0.9044 },
-  { mastery: 1950, massCookingProbability: 0.995 },
-  { mastery: 2000, massCookingProbability: 1 },
-  { mastery: 2050, massCookingProbability: 1 },
-  { mastery: 2100, massCookingProbability: 1 },
-  { mastery: 2150, massCookingProbability: 1 },
-  { mastery: 2200, massCookingProbability: 1 },
-  { mastery: 2250, massCookingProbability: 1 },
-  { mastery: 2300, massCookingProbability: 1 },
-  { mastery: 2350, massCookingProbability: 1 },
-  { mastery: 2400, massCookingProbability: 1 },
-  { mastery: 2450, massCookingProbability: 1 },
-  { mastery: 2500, massCookingProbability: 1 },
-  { mastery: 2550, massCookingProbability: 1 },
-  { mastery: 2600, massCookingProbability: 1 },
-  { mastery: 2650, massCookingProbability: 1 },
-  { mastery: 2700, massCookingProbability: 1 },
-  { mastery: 2750, massCookingProbability: 1 },
-  { mastery: 2800, massCookingProbability: 1 },
-  { mastery: 2850, massCookingProbability: 1 },
-  { mastery: 2900, massCookingProbability: 1 },
-  { mastery: 2950, massCookingProbability: 1 },
-  { mastery: 3000, massCookingProbability: 1 },
+  { mastery: 0, massCookingProbability: 0 }, { mastery: 50, massCookingProbability: 0.1089 }, { mastery: 100, massCookingProbability: 0.1176 }, { mastery: 150, massCookingProbability: 0.1267 }, { mastery: 200, massCookingProbability: 0.1362 }, { mastery: 250, massCookingProbability: 0.1459 }, { mastery: 300, massCookingProbability: 0.156 }, { mastery: 350, massCookingProbability: 0.1665 }, { mastery: 400, massCookingProbability: 0.1772 }, { mastery: 450, massCookingProbability: 0.1884 }, { mastery: 500, massCookingProbability: 0.1998 }, { mastery: 550, massCookingProbability: 0.2116 }, { mastery: 600, massCookingProbability: 0.2237 }, { mastery: 650, massCookingProbability: 0.2362 }, { mastery: 700, massCookingProbability: 0.249 }, { mastery: 750, massCookingProbability: 0.2621 }, { mastery: 800, massCookingProbability: 0.2756 }, { mastery: 850, massCookingProbability: 0.2894 }, { mastery: 900, massCookingProbability: 0.3058 }, { mastery: 950, massCookingProbability: 0.3226 }, { mastery: 1000, massCookingProbability: 0.3399 }, { mastery: 1050, massCookingProbability: 0.3576 }, { mastery: 1100, massCookingProbability: 0.3758 }, { mastery: 1150, massCookingProbability: 0.3944 }, { mastery: 1200, massCookingProbability: 0.4134 }, { mastery: 1250, massCookingProbability: 0.4422 }, { mastery: 1300, massCookingProbability: 0.472 }, { mastery: 1350, massCookingProbability: 0.5027 }, { mastery: 1400, massCookingProbability: 0.5344 }, { mastery: 1450, massCookingProbability: 0.567 }, { mastery: 1500, massCookingProbability: 0.6006 }, { mastery: 1550, massCookingProbability: 0.6352 }, { mastery: 1600, massCookingProbability: 0.6708 }, { mastery: 1650, massCookingProbability: 0.7073 }, { mastery: 1700, massCookingProbability: 0.7448 }, { mastery: 1750, massCookingProbability: 0.7832 }, { mastery: 1800, massCookingProbability: 0.8226 }, { mastery: 1850, massCookingProbability: 0.863 }, { mastery: 1900, massCookingProbability: 0.9044 }, { mastery: 1950, massCookingProbability: 0.995 }, { mastery: 2000, massCookingProbability: 1 }, { mastery: 2050, massCookingProbability: 1 }, { mastery: 2100, massCookingProbability: 1 }, { mastery: 2150, massCookingProbability: 1 }, { mastery: 2200, massCookingProbability: 1 }, { mastery: 2250, massCookingProbability: 1 }, { mastery: 2300, massCookingProbability: 1 }, { mastery: 2350, massCookingProbability: 1 }, { mastery: 2400, massCookingProbability: 1 }, { mastery: 2450, massCookingProbability: 1 }, { mastery: 2500, massCookingProbability: 1 }, { mastery: 2550, massCookingProbability: 1 }, { mastery: 2600, massCookingProbability: 1 }, { mastery: 2650, massCookingProbability: 1 }, { mastery: 2700, massCookingProbability: 1 }, { mastery: 2750, massCookingProbability: 1 }, { mastery: 2800, massCookingProbability: 1 }, { mastery: 2850, massCookingProbability: 1 }, { mastery: 2900, massCookingProbability: 1 }, { mastery: 2950, massCookingProbability: 1 }, { mastery: 3000, massCookingProbability: 1 },
 ]
 
 export function cookingMasteryRow(mastery: number): CookingMasteryRow | undefined {
@@ -99,30 +35,51 @@ export interface CookingMaterialForecast {
   massCookingProbability: number
   minimumServings: number
   expectedServings: number
+  safe95Servings: number
   maximumServings: number
 }
 
+function binomialCdf(k: number, n: number, p: number): number {
+  if (p <= 0) return 1
+  if (p >= 1) return k >= n ? 1 : 0
+  let probability = Math.pow(1 - p, n)
+  let total = probability
+  for (let successes = 0; successes < k; successes += 1) {
+    probability *= ((n - successes) / (successes + 1)) * (p / (1 - p))
+    total += probability
+  }
+  return total
+}
+
+/** Exact 95% binomial quantile for independent per-use Mass Cooking procs. */
+function binomialQuantile95(n: number, p: number): number {
+  if (p <= 0) return 0
+  if (p >= 1) return n
+  for (let k = 0; k <= n; k += 1) if (binomialCdf(k, n, p) >= 0.95) return k
+  return n
+}
+
 /**
- * Pearl Abyss' Cooking guide verifies that Mass Cooking consumes 10 servings of
- * materials and produces 10 servings while consuming one utensil durability.
- * A normal use consumes one serving. Expected value is therefore 1 + 9p.
- * This forecast is only emitted for an exact, source-verified mastery row.
+ * One Mass Cooking proc consumes 10 servings while one normal durability use
+ * consumes one. Expected value is 1 + 9p. safe95Servings is the exact 95th
+ * percentile under an independent Bernoulli-per-use model and is explicitly an
+ * estimate, not a guarantee. Maximum remains the guaranteed upper bound.
  */
 export function forecastCookingMaterialServings(
   durabilityUses: number,
   mastery: number,
 ): CookingMaterialForecast | undefined {
-  if (!Number.isInteger(durabilityUses) || durabilityUses < 0) {
-    throw new Error('durabilityUses must be a non-negative integer')
-  }
+  if (!Number.isInteger(durabilityUses) || durabilityUses < 0) throw new Error('durabilityUses must be a non-negative integer')
   const row = cookingMasteryRow(mastery)
   if (!row) return undefined
   const p = row.massCookingProbability
+  const safe95MassProcs = binomialQuantile95(durabilityUses, p)
   return {
     durabilityUses,
     massCookingProbability: p,
     minimumServings: durabilityUses,
     expectedServings: durabilityUses * (1 + 9 * p),
+    safe95Servings: durabilityUses + 9 * safe95MassProcs,
     maximumServings: durabilityUses * 10,
   }
 }
