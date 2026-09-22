@@ -23,6 +23,20 @@ The upstream GitHub releases contain source archives but no ready-made `items.js
 
 The same upstream author also publishes `iDevelopThings/bdo-viewer`. Its documented setup lets a user point the viewer at an installed Black Desert client and runs the bundled extractor automatically. On Windows the extracted dataset is stored under `%LocalAppData%\\bdo-viewer\\` and includes `items.json`, `recipes.json`, and icons. This is a lower-friction acquisition path, but the planner must still record the bundled extractor version/commit and extraction timestamp before accepting the snapshot as canonical evidence.
 
+## Client mastery cross-check
+
+The reviewed upstream contract also emits `data/mastery.json`. It contains client-side life-skill mastery proc/yield curves keyed by mastery value, including separate `cooking` and `alchemy` rate columns.
+
+For planner correctness this is **independent client-derived evidence**, not permission to collapse Cooking and Alchemy into one model:
+
+- retain the existing Pearl Abyss KR source/version metadata as the human-auditable product source;
+- when a production client snapshot is imported, preserve the matching `mastery.json` and extractor provenance alongside `items.json` / `recipes.json`;
+- deterministically compare Cooking Mass Cooking breakpoints used by the planner against the client-derived Cooking curve before release;
+- compare Alchemy mastery effects separately and never reinterpret an Alchemy rate as Cooking Mass Cooking;
+- any unexplained disagreement between the source-versioned product table and the current client extraction is a release-review item, not something to silently interpolate or overwrite.
+
+This cross-check reduces stale mastery-table risk without making the extractor the sole semantic authority for probabilistic UX labels.
+
 ## Import expectations
 
 For every imported snapshot retain:
@@ -31,6 +45,7 @@ For every imported snapshot retain:
 - extraction timestamp;
 - client/region provenance;
 - `items.json` and `recipes.json` structural source identifiers;
+- `mastery.json` when emitted by the reviewed extractor, for deterministic mastery cross-checks;
 - canonical item IDs and item weights;
 - every Cooking/Alchemy recipe block and alternative variant;
 - icon provenance/redirect mapping needed to resolve item images.
