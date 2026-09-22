@@ -1,0 +1,31 @@
+import type { ItemId, RecipeId } from '../domain/types'
+import type { CookingPreparationPolicy } from '../domain/durabilityPlan'
+import type { PlanInputMode, PlanSessionState } from './planSession'
+
+export interface SingleTargetSessionInput {
+  recipeId: RecipeId
+  variantId?: string
+  mode: PlanInputMode
+  amount: number
+  cookingPreparationPolicy?: CookingPreparationPolicy
+  craftIntermediateItemIds: ReadonlySet<ItemId>
+  intermediateRecipeIdByItemId: Readonly<Record<string, RecipeId>>
+}
+
+/** Snapshot the low-ceremony primary UI into the durable multi-target session schema. */
+export function singleTargetSession(input: SingleTargetSessionInput): PlanSessionState {
+  return {
+    version: 1,
+    targets: [{
+      recipeId: input.recipeId,
+      variantId: input.variantId,
+      mode: input.mode,
+      amount: input.amount,
+      cookingPreparationPolicy: input.mode === 'durability' ? input.cookingPreparationPolicy : undefined,
+    }],
+    craftIntermediateItemIds: [...input.craftIntermediateItemIds].sort((a, b) => a - b),
+    intermediateRecipeIdByItemId: { ...input.intermediateRecipeIdByItemId },
+    variantIdByRecipeId: input.variantId ? { [input.recipeId]: input.variantId } : {},
+    selectedSubstitutionItemIdByGroupId: {},
+  }
+}
