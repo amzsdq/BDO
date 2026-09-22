@@ -23,6 +23,7 @@ export function resolvePlanTarget(
 
   if (persisted.mode === 'output') return { target: { recipeId: persisted.recipeId, variantId: persisted.variantId, mode: 'output', amount: persisted.amount } }
   if (persisted.mode === 'servings') return { target: { recipeId: persisted.recipeId, variantId: persisted.variantId, mode: 'attempts', amount: persisted.amount } }
+  if (!Number.isInteger(persisted.amount)) return { error: 'utensil durability uses must be a positive integer' }
 
   if (recipe.skill === 'alchemy') {
     if (persisted.cookingPreparationPolicy) return { error: 'Cooking preparation policy cannot be applied to Alchemy' }
