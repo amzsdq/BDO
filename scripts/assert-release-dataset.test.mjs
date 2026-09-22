@@ -53,4 +53,17 @@ describe('final release gate', () => {
     expect(result.status).toBe(1)
     expect(result.stderr).toContain('structural validation failed')
   })
+
+  it('rejects a canonical local icon path when the installed asset is missing', () => {
+    const { datasetFile, reportFile } = setup()
+    const dataset = JSON.parse(readFileSync(datasetFile, 'utf8'))
+    dataset.items['20'].iconPath = 'icons/20.webp'
+    delete dataset.items['20'].iconUrl
+    delete dataset.metadata.fingerprint
+    dataset.metadata.fingerprint = fingerprint(dataset)
+    writeFileSync(datasetFile, JSON.stringify(dataset))
+    const result = gate(datasetFile, reportFile)
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('canonical local icon assets are missing')
+  })
 })
