@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { verifiedAlchemyMasteryRow } from './domain/alchemyMastery'
 import { searchRecipes } from './domain/search'
-import type { RecipeDataset, RecipeId } from './domain/types'
+import type { ItemId, RecipeDataset, RecipeId } from './domain/types'
 import type { CookingPreparationPolicy } from './domain/durabilityPlan'
 import type { PlanInputMode } from './data/planSession'
 import { buildActivePlanView } from './data/activePlanView'
@@ -9,6 +9,7 @@ import { loadRuntimeDataset, type DatasetMode } from './data/runtime'
 import { sampleDataset } from './data/sample'
 import { readCharacterProfile, readChecklist, readInventory, writeCharacterProfile, writeChecklist, writeInventory } from './data/storage'
 import { PlanTargetControls } from './PlanTargetControls'
+import { IntermediateCraftControls } from './IntermediateCraftControls'
 import { ItemIcon } from './ItemIcon'
 
 export function App() {
@@ -23,6 +24,8 @@ export function App() {
   const [mode, setMode] = useState<PlanInputMode>('servings')
   const [amount, setAmount] = useState(100)
   const [cookingPreparationPolicy, setCookingPreparationPolicy] = useState<CookingPreparationPolicy>('safe95')
+  const [craftIntermediateItemIds, setCraftIntermediateItemIds] = useState<Set<ItemId>>(() => new Set())
+  const [intermediateRecipeIdByItemId, setIntermediateRecipeIdByItemId] = useState<Record<string, RecipeId>>({})
   const [checked, setChecked] = useState<Record<string, boolean>>(() => readChecklist())
   const [inventory, setInventory] = useState<Record<string, number>>(() => readInventory())
   const [profile, setProfile] = useState(() => readCharacterProfile())
@@ -39,13 +42,9 @@ export function App() {
   const selectedVariant = selectedRecipe?.variants.find((variant) => variant.id === variantId) ?? selectedRecipe?.variants[0]
   const selectedItem = selectedRecipe ? dataset.items[String(selectedRecipe.outputItemId)] : undefined
   const activePlan = useMemo(() => selectedRecipe ? buildActivePlanView(dataset, {
-    recipeId: selectedRecipe.id,
-    variantId: selectedVariant?.id,
-    mode,
-    amount,
-    skill: selectedRecipe.skill,
+    recipeId: selectedRecipe.id, variantId: selectedVariant?.id, mode, amount, skill: selectedRecipe.skill,
     cookingPreparationPolicy: mode === 'durability' && selectedRecipe.skill === 'cooking' ? cookingPreparationPolicy : undefined,
-  }, inventory, profile) : { estimatedPreparation: false }, [amount, cookingPreparationPolicy, dataset, inventory, mode, profile, selectedRecipe, selectedVariant])
+  }, inventory, profile, { craftIntermediateItemIds, intermediateRecipeIdByItemId }) : { estimatedPreparation: false }, [amount, cookingPreparationPolicy, craftIntermediateItemIds, dataset, intermediateRecipeIdByItemId, inventory, mode, profile, selectedRecipe, selectedVariant])
   const plan = activePlan.plan
   const requestedServings = activePlan.materialServings
   const batch = activePlan.batch
@@ -57,6 +56,8 @@ export function App() {
   function handleSearchKeyDown(event: React.KeyboardEvent<HTMLInputElement>) { if (event.key === 'Escape' && searchOpen) { event.preventDefault(); setQuery(''); setActiveResultIndex(0); return } if (!searchOpen || !results.length) return; if (event.key === 'ArrowDown') { event.preventDefault(); setActiveResultIndex((current) => (current + 1) % results.length) } else if (event.key === 'ArrowUp') { event.preventDefault(); setActiveResultIndex((current) => (current - 1 + results.length) % results.length) } else if (event.key === 'Enter') { event.preventDefault(); selectSearchResult(activeResultIndex) } }
   function setProfileNumber(key: 'maxWeightLT' | 'reservedWeightLT' | 'cookingMastery' | 'alchemyMastery', raw: string) { const value = raw === '' ? undefined : Math.max(0, Number(raw) || 0); setProfile((current) => ({ ...current, [key]: value })) }
   function setOwned(itemId: string, raw: string) { const value = Math.max(0, Number(raw) || 0); setInventory((current) => ({ ...current, [itemId]: value })) }
+  function setIntermediateCraft(itemId: ItemId, craft: boolean) { setCraftIntermediateItemIds((current) => { const next = new Set(current); if (craft) next.add(itemId); else next.delete(itemId); return next }) }
+  function setIntermediateProducer(itemId: ItemId, nextRecipeId: RecipeId) { setIntermediateRecipeIdByItemId((current) => ({ ...current, [String(itemId)]: nextRecipeId })) }
   const pct = (value: number) => `${(value * 100).toFixed(2)}%`
 
   return <main className="app-shell">
@@ -69,6 +70,7 @@ export function App() {
       <div className="selected-target"><small>선택한 제작물</small><strong>{selectedItem?.nameKo ?? '선택 필요'}</strong></div>
       {selectedRecipe && selectedRecipe.variants.length > 1 && <label className="field"><span>재료 조합</span><select value={selectedVariant?.id ?? ''} onChange={(e) => setVariantId(e.target.value)}>{selectedRecipe.variants.map((variant, index) => <option key={variant.id} value={variant.id}>조합 {index + 1} · {variant.inputs.map((input) => `${dataset.items[String(input.itemId)]?.nameKo ?? `#${input.itemId}`} ×${input.count}`).join(' + ')}</option>)}</select><small>선택한 조합은 준비 목록과 무게 계산에 동일하게 적용됩니다.</small></label>}
       <PlanTargetControls skill={selectedRecipe?.skill ?? skill} mode={mode} amount={amount} cookingPreparationPolicy={cookingPreparationPolicy} onModeChange={setMode} onAmountChange={setAmount} onCookingPreparationPolicyChange={setCookingPreparationPolicy} />
+      <IntermediateCraftControls dataset={dataset} variant={selectedVariant} craftItemIds={craftIntermediateItemIds} producerByItemId={intermediateRecipeIdByItemId} onCraftChange={setIntermediateCraft} onProducerChange={setIntermediateProducer} />
       <details className="profile-card"><summary>캐릭터 설정 · 무게/숙련도</summary><div className="profile-grid"><label className="field"><span>최대 무게 (LT)</span><input type="number" min="0" value={profile.maxWeightLT ?? ''} onChange={(e) => setProfileNumber('maxWeightLT', e.target.value)} /></label><label className="field"><span>예약 무게 (LT)</span><input type="number" min="0" value={profile.reservedWeightLT ?? ''} onChange={(e) => setProfileNumber('reservedWeightLT', e.target.value)} /></label><label className="field"><span>요리 숙련도</span><input type="number" min="0" value={profile.cookingMastery ?? ''} onChange={(e) => setProfileNumber('cookingMastery', e.target.value)} /></label><label className="field"><span>연금 숙련도</span><input type="number" min="0" value={profile.alchemyMastery ?? ''} onChange={(e) => setProfileNumber('alchemyMastery', e.target.value)} /></label></div><small>숙련도는 요리·연금을 별도로 저장합니다. 확률 효과는 검증된 표의 정확한 숙련도 값에서만 계산합니다.</small></details>
       {activePlan.error && <p className="data-notice" role="alert">{activePlan.error}</p>}
       <div className="summary-card"><span>실제 준비 재료</span><strong>{requestedServings?.toLocaleString() ?? '—'}회분</strong><small>{activePlan.estimatedPreparation ? '선택한 확률 준비 기준으로 계산한 추정치입니다.' : '체크리스트와 무게 계산이 같은 재료 회분을 사용합니다.'}</small></div>
