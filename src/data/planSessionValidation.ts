@@ -31,7 +31,7 @@ export function validatePlanSessionAgainstDataset(dataset: RecipeDataset, sessio
     else if (!recipe.variants.some((variant) => variant.id === variantId)) errors.push(`unknown persisted variant: ${recipeId}/${variantId}`)
   }
 
-  for (const [groupId, itemId] of Object.entries(session.selectedSubstitutionItemIdByGroupId)) {
+  for (const [groupId, itemId] of Object.entries(session.selectedSubstitutionItemIdByGroupId ?? {})) {
     const group = dataset.substitutionGroups?.[groupId]
     if (!group) errors.push(`unknown persisted substitution group: ${groupId}`)
     else if (!group.memberItemIds.includes(itemId)) errors.push(`persisted substitution item ${itemId} is not a member of ${groupId}`)
