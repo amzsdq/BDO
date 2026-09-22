@@ -28,37 +28,49 @@ export const EMPTY_PLAN_SESSION: PlanSessionState = {
   variantIdByRecipeId: {},
 }
 
+function emptyPlanSession(): PlanSessionState {
+  return { version: 1, targets: [], craftIntermediateItemIds: [], intermediateRecipeIdByItemId: {}, variantIdByRecipeId: {} }
+}
+
 function validTarget(value: unknown): value is PersistedPlanTarget {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return false
   const target = value as Record<string, unknown>
+  const mode = String(target.mode)
+  const policyValid = target.cookingPreparationPolicy == null || ['minimum', 'expected', 'safe95', 'maximum'].includes(String(target.cookingPreparationPolicy))
+  const policyPlacementValid = target.cookingPreparationPolicy == null || mode === 'durability'
   return typeof target.recipeId === 'string' && target.recipeId.length > 0 &&
-    ['output', 'servings', 'durability'].includes(String(target.mode)) &&
+    ['output', 'servings', 'durability'].includes(mode) &&
     typeof target.amount === 'number' && Number.isFinite(target.amount) && target.amount > 0 &&
-    (target.variantId == null || typeof target.variantId === 'string') &&
-    (target.cookingPreparationPolicy == null || ['minimum', 'expected', 'safe95', 'maximum'].includes(String(target.cookingPreparationPolicy)))
+    (target.variantId == null || (typeof target.variantId === 'string' && target.variantId.length > 0)) &&
+    policyValid && policyPlacementValid
 }
 
-function stringRecord(value: unknown): Record<string, string> | undefined {
+function itemRecipeRecord(value: unknown): Record<string, string> | undefined {
   if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
   const entries = Object.entries(value as Record<string, unknown>)
   if (entries.some(([key, entry]) => !/^\d+$/.test(key) || typeof entry !== 'string' || !entry)) return undefined
   return Object.fromEntries(entries) as Record<string, string>
 }
 
+function recipeVariantRecord(value: unknown): Record<string, string> | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+  const entries = Object.entries(value as Record<string, unknown>)
+  if (entries.some(([key, entry]) => !key || typeof entry !== 'string' || !entry)) return undefined
+  return Object.fromEntries(entries) as Record<string, string>
+}
+
 export function readPlanSession(storage: Pick<Storage, 'getItem'> = localStorage): PlanSessionState {
   try {
     const raw = storage.getItem(PLAN_SESSION_KEY)
-    if (!raw) return EMPTY_PLAN_SESSION
+    if (!raw) return emptyPlanSession()
     const parsed: unknown = JSON.parse(raw)
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return EMPTY_PLAN_SESSION
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return emptyPlanSession()
     const value = parsed as Record<string, unknown>
-    if (value.version !== 1 || !Array.isArray(value.targets) || !value.targets.every(validTarget)) return EMPTY_PLAN_SESSION
-    if (!Array.isArray(value.craftIntermediateItemIds) || value.craftIntermediateItemIds.some((id) => !Number.isInteger(id) || Number(id) <= 0)) return EMPTY_PLAN_SESSION
-    const intermediateRecipeIdByItemId = stringRecord(value.intermediateRecipeIdByItemId)
-    const variantIdByRecipeId = value.variantIdByRecipeId && typeof value.variantIdByRecipeId === 'object' && !Array.isArray(value.variantIdByRecipeId)
-      ? Object.fromEntries(Object.entries(value.variantIdByRecipeId as Record<string, unknown>).filter(([key, entry]) => Boolean(key) && typeof entry === 'string' && entry)) as Record<string, string>
-      : undefined
-    if (!intermediateRecipeIdByItemId || !variantIdByRecipeId) return EMPTY_PLAN_SESSION
+    if (value.version !== 1 || !Array.isArray(value.targets) || !value.targets.every(validTarget)) return emptyPlanSession()
+    if (!Array.isArray(value.craftIntermediateItemIds) || value.craftIntermediateItemIds.some((id) => !Number.isInteger(id) || Number(id) <= 0)) return emptyPlanSession()
+    const intermediateRecipeIdByItemId = itemRecipeRecord(value.intermediateRecipeIdByItemId)
+    const variantIdByRecipeId = recipeVariantRecord(value.variantIdByRecipeId)
+    if (!intermediateRecipeIdByItemId || !variantIdByRecipeId) return emptyPlanSession()
     return {
       version: 1,
       targets: value.targets as PersistedPlanTarget[],
@@ -67,7 +79,7 @@ export function readPlanSession(storage: Pick<Storage, 'getItem'> = localStorage
       variantIdByRecipeId,
     }
   } catch {
-    return EMPTY_PLAN_SESSION
+    return emptyPlanSession()
   }
 }
 
