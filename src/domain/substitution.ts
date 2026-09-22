@@ -1,16 +1,4 @@
-import type { ItemId } from './types'
-
-/** Source-backed equivalence group. Never create one from name similarity alone. */
-export interface IngredientSubstitutionGroup {
-  id: string
-  memberItemIds: ItemId[]
-  source: {
-    provider: 'BDO Codex KR' | 'BDO client'
-    sourceId: string
-    sourceUrl?: string
-    verifiedAt: string
-  }
-}
+import type { IngredientSubstitutionGroup, ItemId } from './types'
 
 export interface IngredientChoice {
   itemId: ItemId

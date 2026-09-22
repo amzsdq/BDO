@@ -15,7 +15,17 @@ export interface Item {
   sourceUrl?: string
 }
 
-export interface Ingredient { itemId: ItemId; count: number }
+export interface Ingredient { itemId: ItemId; count: number; substitutionGroupId?: string }
+export interface IngredientSubstitutionGroup {
+  id: string
+  memberItemIds: ItemId[]
+  source: {
+    provider: 'BDO Codex KR' | 'BDO client'
+    sourceId: string
+    sourceUrl?: string
+    verifiedAt: string
+  }
+}
 export interface RecipeVariant { id: string; inputs: Ingredient[] }
 export interface RecipeYield { min: number; max: number; expected?: number }
 
@@ -39,6 +49,7 @@ export interface RecipeDataset {
   recipes: Record<string, Recipe>
   recipesByOutput: Record<string, RecipeId[]>
   byproducts?: Record<string, ByproductSource>
+  substitutionGroups?: Record<string, IngredientSubstitutionGroup>
   metadata: {
     generatedAt: string
     sources: string[]
@@ -67,6 +78,8 @@ export interface PlanOptions {
   intermediateRecipeIdByItemId?: Readonly<Record<string, RecipeId>>
   /** Explicit variant choice for any recipe, including nested intermediate recipes. */
   variantIdByRecipeId?: Readonly<Record<string, string>>
+  /** Explicit item choice for a source-verified substitution group. */
+  selectedSubstitutionItemIdByGroupId?: Readonly<Record<string, ItemId>>
 }
 
 export interface PlannedMaterial {

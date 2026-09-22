@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { resolveIngredientChoice, type IngredientSubstitutionGroup } from './substitution'
+import { resolveIngredientChoice } from './substitution'
+import type { IngredientSubstitutionGroup } from './types'
 
 const groups: Record<string, IngredientSubstitutionGroup> = {
   'codex:6502': {

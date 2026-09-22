@@ -10,6 +10,7 @@ import type {
   RecipeVariant,
   YieldPolicy,
 } from './types'
+import { resolveIngredientChoice } from './substitution'
 
 function positive(value: number, label: string): number {
   if (!Number.isFinite(value) || value <= 0) throw new Error(`${label} must be a positive finite number`)
@@ -79,17 +80,26 @@ export function buildPlan(dataset: RecipeDataset, targets: readonly PlanTarget[]
     if (!explicitVariant && recipe.variants.length > 1) warnings.push(`레시피 ${recipe.id}에 대체 조합 ${recipe.variants.length}개가 있습니다. 현재 첫 조합을 사용 중입니다.`)
 
     for (const input of variant.inputs) {
-      const total = positive(input.count, 'ingredient count') * attempts
-      const recipeIds = dataset.recipesByOutput[String(input.itemId)] ?? []
-      const requestedNestedId = options.intermediateRecipeIdByItemId?.[String(input.itemId)]
-      const nested = recipeForIntermediate(dataset, input.itemId, requestedNestedId)
-      const shouldCraft = nested && options.craftIntermediateItemIds.has(input.itemId)
+      const selectedSubstitute = input.substitutionGroupId ? options.selectedSubstitutionItemIdByGroupId?.[input.substitutionGroupId] : undefined
+      const resolvedInput = resolveIngredientChoice(input, dataset.substitutionGroups ?? {}, {
+        selectedItemId: selectedSubstitute,
+        ownedByItemId: options.haveByItemId,
+      })
+      if (resolvedInput.usedSubstitution && input.substitutionGroupId) {
+        warnings.push(`대체품목 그룹 ${input.substitutionGroupId}: item ${input.itemId} 대신 item ${resolvedInput.itemId}을 사용합니다.`)
+      }
+      const inputItemId = resolvedInput.itemId
+      const total = positive(resolvedInput.count, 'ingredient count') * attempts
+      const recipeIds = dataset.recipesByOutput[String(inputItemId)] ?? []
+      const requestedNestedId = options.intermediateRecipeIdByItemId?.[String(inputItemId)]
+      const nested = recipeForIntermediate(dataset, inputItemId, requestedNestedId)
+      const shouldCraft = nested && options.craftIntermediateItemIds.has(inputItemId)
       if (shouldCraft && nested) {
-        if (!requestedNestedId && recipeIds.length > 1) warnings.push(`중간재 item ${input.itemId}에 제작법 ${recipeIds.length}개가 있습니다. 현재 ${nested.id}을 사용 중입니다.`)
-        const incrementalMissing = addMaterial(input.itemId, total, depth + 1, depth === 0, true)
+        if (!requestedNestedId && recipeIds.length > 1) warnings.push(`중간재 item ${inputItemId}에 제작법 ${recipeIds.length}개가 있습니다. 현재 ${nested.id}을 사용 중입니다.`)
+        const incrementalMissing = addMaterial(inputItemId, total, depth + 1, depth === 0, true)
         const nestedAttempts = Math.ceil(incrementalMissing / yieldFor(nested, 'minimum'))
         expandRecipe(nested, nestedAttempts, depth + 1)
-      } else addMaterial(input.itemId, total, depth + 1, depth === 0, false)
+      } else addMaterial(inputItemId, total, depth + 1, depth === 0, false)
     }
     stack.delete(recipe.outputItemId)
   }
