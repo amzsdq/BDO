@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import path from 'node:path'
 import crypto from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 
@@ -31,6 +32,9 @@ const actualCounts = { cooking: Object.values(recipes).filter((recipe) => recipe
 if (actualCounts.cooking !== metadata.counts.cooking || actualCounts.alchemy !== metadata.counts.alchemy) fail(`recipe count mismatch: metadata=${JSON.stringify(metadata.counts)} actual=${JSON.stringify(actualCounts)}`)
 const unresolvedIcons = Object.values(items).filter((item) => !item.iconPath && !item.iconUrl)
 if (unresolvedIcons.length) fail(`${unresolvedIcons.length} items have no icon resolution result`)
+const localIconRoot = path.resolve(path.dirname(file), '..')
+const missingLocalIcons = Object.values(items).filter((item) => typeof item.iconPath === 'string' && !fs.existsSync(path.resolve(localIconRoot, item.iconPath)))
+if (missingLocalIcons.length) fail(`${missingLocalIcons.length} canonical local icon assets are missing; first ids: ${missingLocalIcons.slice(0, 20).map((item) => item.id).join(', ')}`)
 const placeholderKoreanNames = Object.values(items).filter((item) => /^아이템 #\d+$/.test(String(item.nameKo || '')))
 if (placeholderKoreanNames.length) fail(`${placeholderKoreanNames.length} items still have placeholder Korean names`)
 
