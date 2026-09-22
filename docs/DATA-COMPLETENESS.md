@@ -35,9 +35,10 @@ A dataset may be marked `COMPLETE_VERIFIED` only when all of these hold:
 5. counts are positive finite values;
 6. duplicate recipe identities are resolved deterministically;
 7. alternative recipe blocks remain distinct;
-8. Cooking/Alchemy Codex reconciliation has zero unexplained missing recipe ids;
-9. every UI-visible item has an icon resolution result (local extracted icon, approved remote icon, or explicit reviewed fallback);
-10. provenance records extraction/source timestamps and dataset fingerprint.
+8. extractor-marked byproduct-only outputs are not exposed as directly craftable target recipes;
+9. Cooking/Alchemy Codex reconciliation has zero unexplained missing recipe ids;
+10. every UI-visible item has an icon resolution result (local extracted icon, approved remote icon, or explicit reviewed fallback);
+11. provenance records extraction/source timestamps and dataset fingerprint.
 
 Any unexplained diff keeps the dataset in `INCOMPLETE_REVIEW`.
 
