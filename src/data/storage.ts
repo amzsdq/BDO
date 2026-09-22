@@ -8,10 +8,12 @@ export function readChecklist(storage: Pick<Storage, 'getItem'> = localStorage):
     if (!raw) return {}
     const parsed: unknown = JSON.parse(raw)
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {}
-    return Object.fromEntries(
-      Object.entries(parsed as Record<string, unknown>)
-        .filter(([key, value]) => /^\d+$/.test(key) && typeof value === 'boolean'),
-    )
+
+    const result: ChecklistState = {}
+    for (const [key, value] of Object.entries(parsed as Record<string, unknown>)) {
+      if (/^\d+$/.test(key) && typeof value === 'boolean') result[key] = value
+    }
+    return result
   } catch {
     return {}
   }
