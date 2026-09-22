@@ -1,5 +1,6 @@
 import type { RecipeDataset } from '../domain/types'
 import { sampleDataset } from './sample'
+import { hasRuntimeVerifiedEvidence } from './runtimeTrust'
 
 export type DatasetMode = 'verified' | 'imported-unreconciled' | 'sample-fallback'
 
@@ -27,14 +28,13 @@ export async function loadRuntimeDataset(): Promise<RuntimeDataset> {
     const candidate: unknown = await response.json()
     if (!looksLikeDataset(candidate)) throw new Error('invalid dataset shape')
 
-    const metadata = candidate.metadata as RecipeDataset['metadata'] & { status?: string }
-    const verified = metadata.status === 'COMPLETE_VERIFIED'
+    const verified = hasRuntimeVerifiedEvidence(candidate)
     return {
       dataset: candidate,
       mode: verified ? 'verified' : 'imported-unreconciled',
       message: verified
         ? 'KR 전체 레시피 검증 완료'
-        : '실데이터를 불러왔지만 전체 레시피 대조 검증 전입니다.',
+        : '실데이터를 불러왔지만 전체 레시피 대조 검증 전이거나 검증 증거가 불완전합니다.',
     }
   } catch (error) {
     return {
