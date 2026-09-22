@@ -11,6 +11,7 @@ function validDataset() {
       '10': { id: 10, nameKo: '요리 결과', weightLT: 0.1 },
       '11': { id: 11, nameKo: '연금 결과', weightLT: 0.1 },
       '20': { id: 20, nameKo: '재료', weightLT: 0.2 },
+      '21': { id: 21, nameKo: '대체 재료', weightLT: 0.2 },
     },
     recipes: {
       cook: { id: 'cook', skill: 'cooking', outputItemId: 10, yield: { min: 1, max: 2, expected: 1.5 }, variants: [{ id: 'v1', inputs: [{ itemId: 20, count: 2 }] }] },
@@ -34,6 +35,30 @@ describe('canonical dataset validator', () => {
     expect(JSON.parse(result.stdout).ok).toBe(true)
   })
 
+  it('accepts source-backed substitution membership', () => {
+    const dataset = validDataset()
+    dataset.substitutionGroups = {
+      'codex:6502': { id: 'codex:6502', memberItemIds: [20, 21], source: { provider: 'BDO Codex KR', sourceId: '6502', verifiedAt: '2026-09-23' } },
+    }
+    dataset.recipes.cook.variants[0].inputs[0].substitutionGroupId = 'codex:6502'
+    const result = run(dataset)
+    expect(result.status).toBe(0)
+    expect(JSON.parse(result.stdout).substitutionGroups).toBe(1)
+  })
+
+  it('rejects unknown or inconsistent substitution evidence', () => {
+    const dataset = validDataset()
+    dataset.substitutionGroups = {
+      'codex:6502': { id: 'codex:6502', memberItemIds: [21, 999], source: { provider: 'BDO Codex KR', sourceId: '6502', verifiedAt: 'bad-date' } },
+    }
+    dataset.recipes.cook.variants[0].inputs[0].substitutionGroupId = 'codex:6502'
+    const result = run(dataset)
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('unknown member item 999')
+    expect(result.stderr).toContain('verifiedAt invalid')
+    expect(result.stderr).toContain('canonical input 20 is not in substitution group codex:6502')
+  })
+
   it('rejects a broken recipesByOutput reverse index', () => {
     const dataset = validDataset()
     dataset.recipesByOutput['10'] = ['alch']
@@ -53,7 +78,7 @@ describe('canonical dataset validator', () => {
 
   it('rejects invalid yield and item identity metadata', () => {
     const dataset = validDataset()
-    dataset.items['20'].id = 21
+    dataset.items['20'].id = 22
     dataset.recipes.cook.yield.expected = 3
     const result = run(dataset)
     expect(result.status).toBe(1)
