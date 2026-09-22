@@ -31,8 +31,9 @@ For planner correctness this is **independent client-derived evidence**, not per
 
 - retain the existing Pearl Abyss KR source/version metadata as the human-auditable product source;
 - when a production client snapshot is imported, preserve the matching `mastery.json` and extractor provenance alongside `items.json` / `recipes.json`;
-- deterministically compare Cooking Mass Cooking breakpoints used by the planner against the client-derived Cooking curve before release;
-- compare Alchemy mastery effects separately and never reinterpret an Alchemy rate as Cooking Mass Cooking;
+- deterministically compare mastery thresholds and only those client rate columns whose semantics have been independently mapped to the corresponding Pearl Abyss field;
+- do **not** assume a `rates[]` index is Mass Cooking or another named effect merely because the numeric curve looks similar; the reviewed extractor intentionally preserves some columns whose exact roles are not fully confirmed;
+- compare Cooking and Alchemy separately and never reinterpret an Alchemy rate as Cooking Mass Cooking;
 - any unexplained disagreement between the source-versioned product table and the current client extraction is a release-review item, not something to silently interpolate or overwrite.
 
 This cross-check reduces stale mastery-table risk without making the extractor the sole semantic authority for probabilistic UX labels.
