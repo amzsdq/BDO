@@ -39,3 +39,29 @@ export function resolvePlanTarget(
     estimatedPreparation: preparation.estimated,
   }
 }
+
+export interface ResolvedPlanTargets {
+  targets: PlanTarget[]
+  errors: string[]
+  hasEstimatedPreparation: boolean
+}
+
+/** Resolve a multi-target session without silently dropping an invalid target. */
+export function resolvePlanTargets(
+  dataset: RecipeDataset,
+  persistedTargets: readonly PersistedPlanTarget[],
+  context: ResolvePlanTargetContext,
+): ResolvedPlanTargets {
+  const targets: PlanTarget[] = []
+  const errors: string[] = []
+  let hasEstimatedPreparation = false
+  for (const persisted of persistedTargets) {
+    const resolved = resolvePlanTarget(dataset, persisted, context)
+    if (resolved.error || !resolved.target) errors.push(`${persisted.recipeId}: ${resolved.error ?? 'target resolution failed'}`)
+    else {
+      targets.push(resolved.target)
+      hasEstimatedPreparation ||= resolved.estimatedPreparation === true
+    }
+  }
+  return { targets: errors.length ? [] : targets, errors, hasEstimatedPreparation }
+}
