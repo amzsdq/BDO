@@ -1,13 +1,5 @@
 import type { RecipeDataset } from '../domain/types'
 
-interface ReleaseMetadata {
-  status?: string
-  reconciliationStatus?: string
-  verifiedAt?: string
-  fingerprint?: string
-  counts?: { cooking?: number; alchemy?: number }
-}
-
 /**
  * Runtime display gate for the green "verified" state. This is intentionally
  * stricter than trusting metadata.status alone. The build-time release gate is
@@ -15,7 +7,7 @@ interface ReleaseMetadata {
  * presenting itself as complete merely because it retained one status string.
  */
 export function hasRuntimeVerifiedEvidence(dataset: RecipeDataset): boolean {
-  const metadata = dataset.metadata as RecipeDataset['metadata'] & ReleaseMetadata
+  const metadata = dataset.metadata
   if (metadata.supportedRegion !== 'KR') return false
   if (metadata.status !== 'COMPLETE_VERIFIED' || metadata.reconciliationStatus !== 'ZERO_UNEXPLAINED_DIFF') return false
   if (!metadata.verifiedAt || !metadata.fingerprint) return false
