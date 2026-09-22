@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest'
+import { sampleDataset } from '../data/sample'
+import { buildPlan } from './planner'
 import { cookingDurabilityPreparation } from './durabilityPlan'
 
 describe('Cooking durability preparation policy', () => {
@@ -17,6 +19,14 @@ describe('Cooking durability preparation policy', () => {
     expect(safe.estimated).toBe(true)
     expect(safe.materialServings).toBeGreaterThanOrEqual(expected.materialServings)
     expect(safe.materialServings).toBeLessThan(1000)
+  })
+
+  it('feeds selected material servings into the actionable planner instead of raw durability uses', () => {
+    const preparation = cookingDurabilityPreparation(100, 2000, 'maximum')!
+    const plan = buildPlan(sampleDataset, [{ recipeId: 'sample-cooking', mode: 'attempts', amount: preparation.materialServings }], { craftIntermediateItemIds: new Set() })
+    expect(preparation.materialServings).toBe(1000)
+    expect(plan.crafts[0]?.attempts).toBe(1000)
+    expect(plan.materials[0]?.required).toBe(5000)
   })
 
   it('fails closed for mastery values outside source-verified breakpoints', () => {
