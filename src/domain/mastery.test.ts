@@ -15,9 +15,7 @@ describe('Cooking mastery source data', () => {
 
   it('contains every official 50-point breakpoint from 0 through 3000', () => {
     expect(COOKING_MASTERY_ROWS).toHaveLength(61)
-    expect(COOKING_MASTERY_ROWS.map((row) => row.mastery)).toEqual(
-      Array.from({ length: 61 }, (_, index) => index * 50),
-    )
+    expect(COOKING_MASTERY_ROWS.map((row) => row.mastery)).toEqual(Array.from({ length: 61 }, (_, index) => index * 50))
     expect(cookingMasteryRow(0)?.massCookingProbability).toBe(0)
     expect(cookingMasteryRow(50)?.massCookingProbability).toBe(0.1089)
     expect(cookingMasteryRow(1000)?.massCookingProbability).toBe(0.3399)
@@ -34,20 +32,24 @@ describe('Cooking mastery source data', () => {
 })
 
 describe('Cooking durability material forecast', () => {
-  it('separates minimum, expected and maximum material servings', () => {
-    expect(forecastCookingMaterialServings(100, 1500)).toEqual({
-      durabilityUses: 100,
-      massCookingProbability: 0.6006,
-      minimumServings: 100,
-      expectedServings: 640.54,
-      maximumServings: 1000,
-    })
+  it('separates minimum, expected, 95% preparation target and maximum material servings', () => {
+    const forecast = forecastCookingMaterialServings(100, 1500)!
+    expect(forecast.durabilityUses).toBe(100)
+    expect(forecast.massCookingProbability).toBe(0.6006)
+    expect(forecast.minimumServings).toBe(100)
+    expect(forecast.expectedServings).toBe(640.54)
+    expect(forecast.safe95Servings).toBeGreaterThanOrEqual(Math.ceil(forecast.expectedServings))
+    expect(forecast.safe95Servings).toBeLessThan(forecast.maximumServings)
+    expect(forecast.maximumServings).toBe(1000)
   })
 
-  it('supports low mastery and becomes deterministic at 100% Mass Cooking', () => {
-    expect(forecastCookingMaterialServings(100, 0)?.expectedServings).toBe(100)
+  it('collapses the 95% target to deterministic bounds at 0% and 100%', () => {
+    expect(forecastCookingMaterialServings(100, 0)?.safe95Servings).toBe(100)
+    expect(forecastCookingMaterialServings(100, 2000)?.safe95Servings).toBe(1000)
+  })
+
+  it('supports low mastery expected values', () => {
     expect(forecastCookingMaterialServings(100, 50)?.expectedServings).toBeCloseTo(198.01)
-    expect(forecastCookingMaterialServings(100, 2000)?.expectedServings).toBe(1000)
   })
 
   it('disables the forecast for an unverified mastery value', () => {
