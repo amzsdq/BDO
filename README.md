@@ -38,10 +38,11 @@ npm run build
 npm run data:import -- --items <items.json> --recipes <recipes.json> --out public/data/dataset.json --source-revision <extractor-tag-or-sha>
 npm run data:validate -- public/data/dataset.json
 npm run data:reconcile -- --dataset public/data/dataset.json --codex <codex-manifest.json> --out <reconciliation-report.json>
+npm run data:promote -- public/data/dataset.json <reconciliation-report.json>
 npm run data:release-gate -- public/data/dataset.json <reconciliation-report.json>
 ```
 
-`data:release-gate`가 통과하지 않은 dataset은 릴리스 데이터가 아닙니다. 특히 `COMPLETE_VERIFIED`, 실제 fingerprint/count 일치, 아이콘/한국어 이름 해소, 그리고 `ZERO_UNEXPLAINED_DIFF` Codex reconciliation이 필요합니다.
+`data:promote`는 `ZERO_UNEXPLAINED_DIFF`, Cooking/Alchemy count 일치, 한국어 이름과 아이콘 해소를 확인한 뒤에만 `COMPLETE_VERIFIED` 상태와 새 fingerprint를 기록합니다. 그 다음 `data:release-gate`가 결과를 독립적으로 다시 검증합니다. 둘 중 하나라도 통과하지 않은 dataset은 릴리스 데이터가 아닙니다.
 
 현재 검토한 extractor 계약과 획득 경로는 `docs/EXTRACTOR-CONTRACT.md`, 전체 completeness 규칙은 `docs/DATA-COMPLETENESS.md`를 참고하세요.
 
