@@ -19,6 +19,8 @@ export interface Ingredient { itemId: ItemId; count: number; substitutionGroupId
 export interface IngredientSubstitutionGroup {
   id: string
   memberItemIds: ItemId[]
+  /** Source-backed replacement value per member. Omit until independently verified. */
+  memberValueByItemId?: Record<string, number>
   source: {
     provider: 'BDO Codex KR' | 'BDO client'
     sourceId: string
