@@ -54,7 +54,9 @@ for (const item of itemsRaw) {
     nameKo: `아이템 #${id}`,
     nameEn: sourceName || undefined,
     weightLT: normalizeWeight(item),
-    iconPath: item.icon ? String(item.icon) : undefined,
+    // The extractor's item.icon is the source DDS asset path, not the decoded
+    // web asset. `bdo-data-extractor icons` publishes canonical icons by item id.
+    iconPath: item.icon ? `icons/${id}.webp` : undefined,
     marketable: item.marketable === true,
   }
 }
@@ -107,7 +109,7 @@ const payloadWithoutHash = {
     generatedAt: new Date().toISOString(), supportedRegion: 'KR', status: 'CLIENT_IMPORTED_UNRECONCILED',
     sources: ['bdo-data-extractor:items.json', 'bdo-data-extractor:recipes.json'],
     sourceRevision: args['source-revision'] || 'unrecorded',
-    extractorContract: 'items.json + recipes.json; EntityRef serialized as URN text; Korean names not supplied by extractor',
+    extractorContract: 'items.json + recipes.json; EntityRef serialized as URN text; decoded icons resolved as icons/<itemId>.webp; Korean names not supplied by extractor',
     koreanNamesVerified: false,
     counts,
   }, items, recipes, recipesByOutput, byproducts,
