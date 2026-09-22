@@ -14,6 +14,7 @@ export function ItemIcon({ item }: { item: Item | undefined }) {
           alt=""
           loading="lazy"
           decoding="async"
+          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 'inherit' }}
           onError={() => setFailedSource(source ?? null)}
         />
       ) : (
