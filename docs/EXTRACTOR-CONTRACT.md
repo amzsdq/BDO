@@ -21,6 +21,8 @@ The planner's structural validator intentionally rejects duplicate ingredient ID
 
 The upstream GitHub releases contain source archives but no ready-made `items.json` / `recipes.json` release assets. Exhaustive production data therefore still requires running the reviewed extractor against a current installed BDO client (or obtaining an equivalently provenance-preserving fresh extraction). A GitHub source checkout alone is not recipe-completeness evidence.
 
+The same upstream author also publishes `iDevelopThings/bdo-viewer`. Its documented setup lets a user point the viewer at an installed Black Desert client and runs the bundled extractor automatically. On Windows the extracted dataset is stored under `%LocalAppData%\\bdo-viewer\\` and includes `items.json`, `recipes.json`, and icons. This is a lower-friction acquisition path, but the planner must still record the bundled extractor version/commit and extraction timestamp before accepting the snapshot as canonical evidence.
+
 ## Import expectations
 
 For every imported snapshot retain:
