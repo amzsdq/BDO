@@ -63,6 +63,10 @@ export interface PlanTarget {
 export interface PlanOptions {
   craftIntermediateItemIds: ReadonlySet<ItemId>
   haveByItemId?: Readonly<Record<string, number>>
+  /** Explicit recipe choice for craftable intermediate outputs. */
+  intermediateRecipeIdByItemId?: Readonly<Record<string, RecipeId>>
+  /** Explicit variant choice for any recipe, including nested intermediate recipes. */
+  variantIdByRecipeId?: Readonly<Record<string, string>>
 }
 
 export interface PlannedMaterial {
