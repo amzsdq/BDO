@@ -1,0 +1,42 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "BDO Codex reconciliation manifest",
+  "type": "object",
+  "required": ["generatedAt", "recipes"],
+  "properties": {
+    "generatedAt": { "type": "string" },
+    "source": { "type": "string" },
+    "recipes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["recipeId", "skill", "titleKo", "available", "ingredients"],
+        "properties": {
+          "recipeId": { "type": ["integer", "string"] },
+          "skill": { "enum": ["cooking", "alchemy"] },
+          "titleKo": { "type": "string", "minLength": 1 },
+          "available": { "type": "boolean" },
+          "url": { "type": "string" },
+          "baseYield": {
+            "type": "object",
+            "properties": {
+              "min": { "type": "number", "exclusiveMinimum": 0 },
+              "max": { "type": "number", "exclusiveMinimum": 0 }
+            }
+          },
+          "ingredients": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "required": ["name", "count"],
+              "properties": {
+                "name": { "type": "string", "minLength": 1 },
+                "count": { "type": "number", "exclusiveMinimum": 0 }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
