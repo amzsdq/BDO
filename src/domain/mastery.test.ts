@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import {
+  COOKING_MASTERY_ROWS,
   COOKING_MASTERY_SOURCE,
   cookingMasteryRow,
   forecastCookingMaterialServings,
@@ -9,14 +10,26 @@ describe('Cooking mastery source data', () => {
   it('carries source/version metadata', () => {
     expect(COOKING_MASTERY_SOURCE.provider).toBe('Pearl Abyss')
     expect(COOKING_MASTERY_SOURCE.region).toBe('KR')
-    expect(COOKING_MASTERY_SOURCE.verifiedAt).toBe('2026-09-22')
+    expect(COOKING_MASTERY_SOURCE.verifiedAt).toBe('2026-09-23')
   })
 
-  it('uses exact published breakpoints and never interpolates', () => {
+  it('contains every official 50-point breakpoint from 0 through 3000', () => {
+    expect(COOKING_MASTERY_ROWS).toHaveLength(61)
+    expect(COOKING_MASTERY_ROWS.map((row) => row.mastery)).toEqual(
+      Array.from({ length: 61 }, (_, index) => index * 50),
+    )
+    expect(cookingMasteryRow(0)?.massCookingProbability).toBe(0)
+    expect(cookingMasteryRow(50)?.massCookingProbability).toBe(0.1089)
+    expect(cookingMasteryRow(1000)?.massCookingProbability).toBe(0.3399)
     expect(cookingMasteryRow(1500)?.massCookingProbability).toBe(0.6006)
     expect(cookingMasteryRow(1950)?.massCookingProbability).toBe(0.995)
     expect(cookingMasteryRow(2000)?.massCookingProbability).toBe(1)
+    expect(cookingMasteryRow(3000)?.massCookingProbability).toBe(1)
+  })
+
+  it('never interpolates off-grid mastery values', () => {
     expect(cookingMasteryRow(1975)).toBeUndefined()
+    expect(cookingMasteryRow(25)).toBeUndefined()
   })
 })
 
@@ -31,7 +44,9 @@ describe('Cooking durability material forecast', () => {
     })
   })
 
-  it('becomes deterministic at a verified 100% Mass Cooking breakpoint', () => {
+  it('supports low mastery and becomes deterministic at 100% Mass Cooking', () => {
+    expect(forecastCookingMaterialServings(100, 0)?.expectedServings).toBe(100)
+    expect(forecastCookingMaterialServings(100, 50)?.expectedServings).toBeCloseTo(198.01)
     expect(forecastCookingMaterialServings(100, 2000)?.expectedServings).toBe(1000)
   })
 
