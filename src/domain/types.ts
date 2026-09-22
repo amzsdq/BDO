@@ -8,24 +8,14 @@ export interface Item {
   nameKo: string
   nameEn?: string
   iconUrl?: string
+  iconPath?: string
+  marketable?: boolean
   sourceUrl?: string
 }
 
-export interface Ingredient {
-  itemId: ItemId
-  count: number
-}
-
-export interface RecipeVariant {
-  id: string
-  inputs: Ingredient[]
-}
-
-export interface RecipeYield {
-  min: number
-  max: number
-  expected?: number
-}
+export interface Ingredient { itemId: ItemId; count: number }
+export interface RecipeVariant { id: string; inputs: Ingredient[] }
+export interface RecipeYield { min: number; max: number; expected?: number }
 
 export interface Recipe {
   id: RecipeId
@@ -51,6 +41,9 @@ export interface RecipeDataset {
     generatedAt: string
     sources: string[]
     supportedRegion: string
+    status?: string
+    fingerprint?: string
+    counts?: { cooking: number; alchemy: number }
   }
 }
 
