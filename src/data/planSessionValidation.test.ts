@@ -4,7 +4,7 @@ import type { PlanSessionState } from './planSession'
 import { validatePlanSessionAgainstDataset } from './planSessionValidation'
 
 function session(targetRecipeId = 'sample-cooking'): PlanSessionState {
-  return { version: 1, targets: [{ recipeId: targetRecipeId, variantId: 'default', mode: 'servings', amount: 10 }], craftIntermediateItemIds: [], intermediateRecipeIdByItemId: {}, variantIdByRecipeId: {} }
+  return { version: 1, targets: [{ recipeId: targetRecipeId, variantId: 'default', mode: 'servings', amount: 10 }], craftIntermediateItemIds: [], intermediateRecipeIdByItemId: {}, variantIdByRecipeId: {}, selectedSubstitutionItemIdByGroupId: {} }
 }
 
 describe('plan session dataset validation', () => {
@@ -27,5 +27,18 @@ describe('plan session dataset validation', () => {
     const result = validatePlanSessionAgainstDataset(dataset, value)
     expect(result.valid).toBe(false)
     expect(result.errors[0]).toContain('non-Cooking')
+  })
+
+  it('validates persisted substitution choices against source-backed group membership', () => {
+    const dataset = structuredClone(sampleDataset)
+    dataset.items['900003'] = { id: 900003, nameKo: '샘플 대체재' }
+    dataset.substitutionGroups = {
+      'codex:6502': { id: 'codex:6502', memberItemIds: [900002, 900003], source: { provider: 'BDO Codex KR', sourceId: '6502', verifiedAt: '2026-09-23' } },
+    }
+    const value = session()
+    value.selectedSubstitutionItemIdByGroupId['codex:6502'] = 900003
+    expect(validatePlanSessionAgainstDataset(dataset, value).valid).toBe(true)
+    value.selectedSubstitutionItemIdByGroupId['codex:6502'] = 999999
+    expect(validatePlanSessionAgainstDataset(dataset, value).errors[0]).toContain('not a member')
   })
 })

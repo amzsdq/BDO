@@ -18,7 +18,7 @@ describe('planner state bundle', () => {
     writeChecklist({ '100': true }, storage)
     writeInventory({ '100': 7 }, storage)
     writeCharacterProfile({ maxWeightLT: 2000, cookingMastery: 1500 }, storage)
-    writePlanSession({ version: 1, targets: [{ recipeId: 'cooking:10', mode: 'durability', amount: 100, cookingPreparationPolicy: 'safe95' }], craftIntermediateItemIds: [20], intermediateRecipeIdByItemId: { '20': 'cooking:20' }, variantIdByRecipeId: {} }, storage)
+    writePlanSession({ version: 1, targets: [{ recipeId: 'cooking:10', mode: 'durability', amount: 100, cookingPreparationPolicy: 'safe95' }], craftIntermediateItemIds: [20], intermediateRecipeIdByItemId: { '20': 'cooking:20' }, variantIdByRecipeId: {}, selectedSubstitutionItemIdByGroupId: { 'codex:6502': 21 } }, storage)
 
     expect(exportPlannerState(storage, '2026-09-23T00:00:00.000Z')).toEqual({
       version: 2,
@@ -26,7 +26,7 @@ describe('planner state bundle', () => {
       checklist: { '100': true },
       inventory: { '100': 7 },
       characterProfile: { maxWeightLT: 2000, reservedWeightLT: undefined, cookingMastery: 1500, alchemyMastery: undefined },
-      planSession: { version: 1, targets: [{ recipeId: 'cooking:10', mode: 'durability', amount: 100, cookingPreparationPolicy: 'safe95' }], craftIntermediateItemIds: [20], intermediateRecipeIdByItemId: { '20': 'cooking:20' }, variantIdByRecipeId: {} },
+      planSession: { version: 1, targets: [{ recipeId: 'cooking:10', mode: 'durability', amount: 100, cookingPreparationPolicy: 'safe95' }], craftIntermediateItemIds: [20], intermediateRecipeIdByItemId: { '20': 'cooking:20' }, variantIdByRecipeId: {}, selectedSubstitutionItemIdByGroupId: { 'codex:6502': 21 } },
     })
   })
 
@@ -35,7 +35,7 @@ describe('planner state bundle', () => {
     writeChecklist({ '100': true }, storage)
     writeInventory({ '100': 7 }, storage)
     writeCharacterProfile({ maxWeightLT: 2000 }, storage)
-    writePlanSession({ version: 1, targets: [{ recipeId: 'cooking:10', mode: 'servings', amount: 5 }], craftIntermediateItemIds: [], intermediateRecipeIdByItemId: {}, variantIdByRecipeId: {} }, storage)
+    writePlanSession({ version: 1, targets: [{ recipeId: 'cooking:10', mode: 'servings', amount: 5 }], craftIntermediateItemIds: [], intermediateRecipeIdByItemId: {}, variantIdByRecipeId: {}, selectedSubstitutionItemIdByGroupId: {} }, storage)
 
     resetPlannerState(storage)
 
