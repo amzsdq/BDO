@@ -18,6 +18,7 @@ export interface PlanSessionState {
   craftIntermediateItemIds: number[]
   intermediateRecipeIdByItemId: Record<string, string>
   variantIdByRecipeId: Record<string, string>
+  selectedSubstitutionItemIdByGroupId: Record<string, number>
 }
 
 export const EMPTY_PLAN_SESSION: PlanSessionState = {
@@ -26,10 +27,11 @@ export const EMPTY_PLAN_SESSION: PlanSessionState = {
   craftIntermediateItemIds: [],
   intermediateRecipeIdByItemId: {},
   variantIdByRecipeId: {},
+  selectedSubstitutionItemIdByGroupId: {},
 }
 
 function emptyPlanSession(): PlanSessionState {
-  return { version: 1, targets: [], craftIntermediateItemIds: [], intermediateRecipeIdByItemId: {}, variantIdByRecipeId: {} }
+  return { version: 1, targets: [], craftIntermediateItemIds: [], intermediateRecipeIdByItemId: {}, variantIdByRecipeId: {}, selectedSubstitutionItemIdByGroupId: {} }
 }
 
 function validTarget(value: unknown): value is PersistedPlanTarget {
@@ -59,6 +61,14 @@ function recipeVariantRecord(value: unknown): Record<string, string> | undefined
   return Object.fromEntries(entries) as Record<string, string>
 }
 
+function groupItemRecord(value: unknown): Record<string, number> | undefined {
+  if (value == null) return {}
+  if (typeof value !== 'object' || Array.isArray(value)) return undefined
+  const entries = Object.entries(value as Record<string, unknown>)
+  if (entries.some(([key, entry]) => !key || !Number.isInteger(entry) || Number(entry) <= 0)) return undefined
+  return Object.fromEntries(entries.map(([key, entry]) => [key, Number(entry)]))
+}
+
 export function readPlanSession(storage: Pick<Storage, 'getItem'> = localStorage): PlanSessionState {
   try {
     const raw = storage.getItem(PLAN_SESSION_KEY)
@@ -70,13 +80,15 @@ export function readPlanSession(storage: Pick<Storage, 'getItem'> = localStorage
     if (!Array.isArray(value.craftIntermediateItemIds) || value.craftIntermediateItemIds.some((id) => !Number.isInteger(id) || Number(id) <= 0)) return emptyPlanSession()
     const intermediateRecipeIdByItemId = itemRecipeRecord(value.intermediateRecipeIdByItemId)
     const variantIdByRecipeId = recipeVariantRecord(value.variantIdByRecipeId)
-    if (!intermediateRecipeIdByItemId || !variantIdByRecipeId) return emptyPlanSession()
+    const selectedSubstitutionItemIdByGroupId = groupItemRecord(value.selectedSubstitutionItemIdByGroupId)
+    if (!intermediateRecipeIdByItemId || !variantIdByRecipeId || !selectedSubstitutionItemIdByGroupId) return emptyPlanSession()
     return {
       version: 1,
       targets: value.targets as PersistedPlanTarget[],
       craftIntermediateItemIds: [...new Set(value.craftIntermediateItemIds as number[])],
       intermediateRecipeIdByItemId,
       variantIdByRecipeId,
+      selectedSubstitutionItemIdByGroupId,
     }
   } catch {
     return emptyPlanSession()
