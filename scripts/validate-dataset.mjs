@@ -14,6 +14,7 @@ const errors = []
 const items = dataset.items || {}
 const recipes = dataset.recipes || {}
 const recipesByOutput = dataset.recipesByOutput || {}
+const substitutionGroups = dataset.substitutionGroups || {}
 const seenSignatures = new Set()
 const seenVariantIds = new Set()
 
@@ -22,6 +23,22 @@ for (const [itemKey, item] of Object.entries(items)) {
   if (String(item.id) !== itemKey) errors.push(`${itemKey}: item key/id mismatch (${item.id})`)
   if (typeof item.nameKo !== 'string' || !item.nameKo.trim()) errors.push(`${itemKey}: missing Korean item name`)
   if (item.weightLT != null && (!Number.isFinite(item.weightLT) || item.weightLT < 0)) errors.push(`${itemKey}: invalid weightLT`)
+}
+
+for (const [groupId, group] of Object.entries(substitutionGroups)) {
+  if (!group || typeof group !== 'object') { errors.push(`${groupId}: invalid substitution group`); continue }
+  if (group.id !== groupId) errors.push(`${groupId}: substitution group key/id mismatch (${group.id})`)
+  if (!Array.isArray(group.memberItemIds) || group.memberItemIds.length < 2) errors.push(`${groupId}: substitution group requires at least two members`)
+  const seenMembers = new Set()
+  for (const itemId of group.memberItemIds || []) {
+    if (!Number.isInteger(itemId) || itemId <= 0) errors.push(`${groupId}: invalid member item id ${itemId}`)
+    if (!items[String(itemId)]) errors.push(`${groupId}: unknown member item ${itemId}`)
+    if (seenMembers.has(itemId)) errors.push(`${groupId}: duplicate member item ${itemId}`)
+    seenMembers.add(itemId)
+  }
+  if (!['BDO Codex KR', 'BDO client'].includes(group.source?.provider)) errors.push(`${groupId}: unsupported substitution evidence provider`)
+  if (typeof group.source?.sourceId !== 'string' || !group.source.sourceId.trim()) errors.push(`${groupId}: substitution sourceId missing`)
+  if (!group.source?.verifiedAt || Number.isNaN(Date.parse(group.source.verifiedAt))) errors.push(`${groupId}: substitution verifiedAt invalid`)
 }
 
 for (const [recipeId, recipe] of Object.entries(recipes)) {
@@ -39,7 +56,7 @@ for (const [recipeId, recipe] of Object.entries(recipes)) {
     seenVariantIds.add(variantKey)
     if (!Array.isArray(variant.inputs) || !variant.inputs.length) errors.push(`${recipeId}/${variant.id}: no inputs`)
     const signature = `${recipe.skill}:${recipe.outputItemId}:` + (variant.inputs || [])
-      .map((input) => `${input.itemId}:${input.count}`).sort().join('|')
+      .map((input) => `${input.itemId}:${input.count}:${input.substitutionGroupId || ''}`).sort().join('|')
     if (seenSignatures.has(signature)) errors.push(`${recipeId}/${variant.id}: duplicate variant signature`)
     seenSignatures.add(signature)
 
@@ -49,6 +66,11 @@ for (const [recipeId, recipe] of Object.entries(recipes)) {
       if (!Number.isFinite(input.count) || input.count <= 0) errors.push(`${recipeId}/${variant.id}: invalid count for ${input.itemId}`)
       if (inputIds.has(String(input.itemId))) errors.push(`${recipeId}/${variant.id}: duplicate input item ${input.itemId}; aggregate canonical counts instead`)
       inputIds.add(String(input.itemId))
+      if (input.substitutionGroupId != null) {
+        const group = substitutionGroups[input.substitutionGroupId]
+        if (!group) errors.push(`${recipeId}/${variant.id}: unknown substitution group ${input.substitutionGroupId}`)
+        else if (!(group.memberItemIds || []).includes(input.itemId)) errors.push(`${recipeId}/${variant.id}: canonical input ${input.itemId} is not in substitution group ${input.substitutionGroupId}`)
+      }
     }
   }
 }
@@ -82,5 +104,5 @@ if (!dataset.metadata?.generatedAt || Number.isNaN(Date.parse(dataset.metadata.g
 
 if (errors.length) fail(errors.join('\n'))
 
-const hash = crypto.createHash('sha256').update(JSON.stringify({ items, recipes })).digest('hex')
-console.log(JSON.stringify({ ok: true, counts: actualCounts, items: Object.keys(items).length, structuralHash: hash }))
+const hash = crypto.createHash('sha256').update(JSON.stringify({ items, recipes, substitutionGroups })).digest('hex')
+console.log(JSON.stringify({ ok: true, counts: actualCounts, items: Object.keys(items).length, substitutionGroups: Object.keys(substitutionGroups).length, structuralHash: hash }))
