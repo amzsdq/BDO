@@ -37,10 +37,16 @@ export interface Recipe {
   sourceUrl?: string
 }
 
+export interface ByproductSource {
+  outputItemId: ItemId
+  producedWhileCraftingItemIds: ItemId[]
+}
+
 export interface RecipeDataset {
   items: Record<string, Item>
   recipes: Record<string, Recipe>
   recipesByOutput: Record<string, RecipeId[]>
+  byproducts?: Record<string, ByproductSource>
   metadata: {
     generatedAt: string
     sources: string[]
