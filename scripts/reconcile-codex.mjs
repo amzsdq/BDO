@@ -14,7 +14,7 @@ function args(argv) {
 function normalizedName(value) {
   return String(value || '')
     .normalize('NFKC')
-    .replace(/[\s·・'"]/g, '')
+    .replace(/[\s·・'\"]/g, '')
     .toLocaleLowerCase('ko-KR')
 }
 
@@ -35,11 +35,17 @@ function reconciliationKey(skill, outputItemId, outputName) {
     : `${skill}:name:${normalizedName(outputName)}`
 }
 
+function itemIdentity(itemId, name) {
+  const id = Number(itemId)
+  if (Number.isSafeInteger(id) && id >= 0) return `#${id}`
+  return normalizedName(name)
+}
+
 function signatureFromDataset(dataset, recipe, variant) {
   return variant.inputs
     .map((input) => {
-      const name = dataset.items[String(input.itemId)]?.nameKo || `#${input.itemId}`
-      return `${normalizedName(name)}:${Number(input.count)}`
+      const item = dataset.items[String(input.itemId)]
+      return `${itemIdentity(input.itemId, item?.nameKo)}:${Number(input.count)}`
     })
     .sort()
     .join('|')
@@ -47,11 +53,7 @@ function signatureFromDataset(dataset, recipe, variant) {
 
 function signatureFromCodex(entry) {
   return (entry.ingredients || [])
-    .map((input) => {
-      const itemId = input.itemId === undefined || input.itemId === null ? undefined : Number(input.itemId)
-      const identity = Number.isSafeInteger(itemId) && itemId >= 0 ? `#${itemId}` : normalizedName(input.name)
-      return `${identity}:${Number(input.count)}`
-    })
+    .map((input) => `${itemIdentity(input.itemId, input.name)}:${Number(input.count)}`)
     .sort()
     .join('|')
 }
