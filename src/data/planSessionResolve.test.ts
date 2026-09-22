@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { sampleDataset } from './sample'
-import { resolvePlanTarget } from './planSessionResolve'
+import { resolvePlanTarget, resolvePlanTargets } from './planSessionResolve'
 
 const cooking = { recipeId: 'sample-cooking', mode: 'durability' as const, amount: 100, cookingPreparationPolicy: 'maximum' as const }
 
@@ -30,5 +30,14 @@ describe('persisted plan target resolution', () => {
     dataset.recipes['sample-cooking'].skill = 'alchemy'
     expect(resolvePlanTarget(dataset, cooking, { cookingMastery: 2000 }).error).toContain('cannot be applied to Alchemy')
     expect(resolvePlanTarget(dataset, { recipeId: 'sample-cooking', mode: 'durability', amount: 100 }, {}).target).toMatchObject({ mode: 'attempts', amount: 100 })
+  })
+
+  it('fails a multi-target resolution atomically instead of dropping a bad target', () => {
+    const result = resolvePlanTargets(sampleDataset, [
+      { recipeId: 'sample-cooking', mode: 'servings', amount: 10 },
+      { recipeId: 'missing', mode: 'servings', amount: 1 },
+    ], {})
+    expect(result.targets).toEqual([])
+    expect(result.errors[0]).toContain('missing')
   })
 })
