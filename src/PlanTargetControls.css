@@ -1,0 +1,28 @@
+.plan-mode-tabs {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+.plan-mode-tabs button {
+  min-width: 0;
+  padding-inline: 7px;
+  font-size: 11px;
+}
+.plan-policy-field select {
+  width: 100%;
+  border: 1px solid #30353a;
+  border-radius: 12px;
+  background: #0e1113;
+  color: #f7f8f9;
+  padding: 12px 14px;
+  outline: none;
+}
+.plan-policy-field select:focus-visible {
+  border-color: #b9935a;
+  box-shadow: 0 0 0 3px rgba(185,147,90,.13);
+  outline: 2px solid #d6ad70;
+  outline-offset: 2px;
+}
+.plan-policy-field small {
+  color: #777f85;
+  font-weight: 500;
+  line-height: 1.5;
+}
