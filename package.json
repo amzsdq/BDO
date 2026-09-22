@@ -10,7 +10,8 @@
     "test:watch": "vitest",
     "check": "npm test && npm run build",
     "data:import": "node scripts/import-bdo-extractor.mjs",
-    "data:validate": "node scripts/validate-dataset.mjs"
+    "data:validate": "node scripts/validate-dataset.mjs",
+    "data:reconcile": "node scripts/reconcile-codex.mjs"
   },
   "dependencies": {
     "react": "^19.1.1",
