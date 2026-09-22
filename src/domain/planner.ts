@@ -21,26 +21,18 @@ function positive(value: number, label: string): number {
 function yieldFor(recipe: Recipe, policy: YieldPolicy): number {
   if (policy === 'minimum') return positive(recipe.yield.min, 'recipe yield.min')
   if (policy === 'maximum') return positive(recipe.yield.max, 'recipe yield.max')
-  return positive(
-    recipe.yield.expected ?? recipe.yield.min,
-    'recipe yield.expected',
-  )
+  return positive(recipe.yield.expected ?? recipe.yield.min, 'recipe yield.expected')
 }
 
 function selectVariant(recipe: Recipe, requested?: string): RecipeVariant {
-  if (!recipe.variants.length) {
-    throw new Error(`recipe ${recipe.id} has no variants`)
-  }
+  if (!recipe.variants.length) throw new Error(`recipe ${recipe.id} has no variants`)
   if (!requested) return recipe.variants[0]
   const variant = recipe.variants.find((entry) => entry.id === requested)
   if (!variant) throw new Error(`unknown recipe variant: ${requested}`)
   return variant
 }
 
-function recipeForIntermediate(
-  dataset: RecipeDataset,
-  itemId: ItemId,
-): Recipe | undefined {
+function recipeForIntermediate(dataset: RecipeDataset, itemId: ItemId): Recipe | undefined {
   const ids = dataset.recipesByOutput[String(itemId)] ?? []
   if (!ids.length) return undefined
   return dataset.recipes[ids[0]]
@@ -49,7 +41,6 @@ function recipeForIntermediate(
 export function attemptsForTarget(recipe: Recipe, target: PlanTarget): number {
   positive(target.amount, 'target amount')
   if (target.mode === 'attempts') return Math.ceil(target.amount)
-
   const perAttempt = yieldFor(recipe, target.yieldPolicy ?? 'minimum')
   return Math.ceil(target.amount / perAttempt)
 }
@@ -64,46 +55,44 @@ export function buildPlan(
   const warnings: string[] = []
   const stack = new Set<ItemId>()
 
+  // Returns the incremental shortage introduced by this demand. This matters for
+  // craftable intermediates: owned stock must be consumed once across the whole
+  // batch plan, not once per parent recipe.
   function addMaterial(
     itemId: ItemId,
     count: number,
     depth: number,
     direct: boolean,
     craftedIntermediate: boolean,
-  ) {
-    const have = Math.max(
-      0,
-      Number(options.haveByItemId?.[String(itemId)] ?? 0),
-    )
+  ): number {
+    const have = Math.max(0, Number(options.haveByItemId?.[String(itemId)] ?? 0))
     const current = materialMap.get(itemId)
-    const required = (current?.required ?? 0) + count
+    const previousRequired = current?.required ?? 0
+    const previousMissing = Math.max(0, previousRequired - have)
+    const required = previousRequired + count
+    const missing = Math.max(0, required - have)
 
     materialMap.set(itemId, {
       itemId,
       required,
       have,
-      missing: Math.max(0, required - have),
+      missing,
       depth: Math.min(current?.depth ?? depth, depth),
       direct: (current?.direct ?? false) || direct,
-      craftedIntermediate:
-        (current?.craftedIntermediate ?? false) || craftedIntermediate,
+      craftedIntermediate: (current?.craftedIntermediate ?? false) || craftedIntermediate,
     })
+
+    return missing - previousMissing
   }
 
-  function addCraft(
-    recipe: Recipe,
-    attempts: number,
-    depth: number,
-    requestedOutput?: number,
-  ) {
-    const key = recipe.id
-    const current = craftMap.get(key)
-    craftMap.set(key, {
+  function addCraft(recipe: Recipe, attempts: number, depth: number, requestedOutput?: number) {
+    if (attempts <= 0) return
+    const current = craftMap.get(recipe.id)
+    craftMap.set(recipe.id, {
       recipeId: recipe.id,
       outputItemId: recipe.outputItemId,
       attempts: (current?.attempts ?? 0) + attempts,
-      requestedOutput:
-        (current?.requestedOutput ?? 0) + (requestedOutput ?? 0) || undefined,
+      requestedOutput: (current?.requestedOutput ?? 0) + (requestedOutput ?? 0) || undefined,
       depth: Math.min(current?.depth ?? depth, depth),
     })
   }
@@ -115,6 +104,7 @@ export function buildPlan(
     variantId?: string,
     requestedOutput?: number,
   ) {
+    if (attempts <= 0) return
     if (stack.has(recipe.outputItemId)) {
       warnings.push(`순환 제작 경로 감지: item ${recipe.outputItemId}`)
       return
@@ -127,14 +117,19 @@ export function buildPlan(
     for (const input of variant.inputs) {
       const total = positive(input.count, 'ingredient count') * attempts
       const nested = recipeForIntermediate(dataset, input.itemId)
-      const shouldCraft =
-        nested && options.craftIntermediateItemIds.has(input.itemId)
+      const shouldCraft = nested && options.craftIntermediateItemIds.has(input.itemId)
 
       if (shouldCraft && nested) {
-        const nestedAttempts = Math.ceil(
-          total / yieldFor(nested, 'minimum'),
+        const incrementalMissing = addMaterial(
+          input.itemId,
+          total,
+          depth + 1,
+          depth === 0,
+          true,
         )
-        addMaterial(input.itemId, total, depth + 1, depth === 0, true)
+        const nestedAttempts = Math.ceil(
+          incrementalMissing / yieldFor(nested, 'minimum'),
+        )
         expandRecipe(nested, nestedAttempts, depth + 1)
       } else {
         addMaterial(input.itemId, total, depth + 1, depth === 0, false)
