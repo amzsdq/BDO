@@ -22,6 +22,8 @@ BDO Codex also provides recipe detail pages and item imagery useful for human ve
 
 Codex recipe-page IDs are provenance identifiers, not canonical recipe identity: locale/region pages can assign different page IDs to the same logical recipe. Reconciliation therefore keys primarily by linked canonical output item ID plus normalized ingredient item-ID/count signature, with reviewed fallbacks only when those IDs are unavailable.
 
+Catalog acquisition itself is fail-closed. A generic JSON `id` field is not accepted as recipe identity because the same payload may contain item, category, row, or other identifiers. Automated catalog evidence must expose a recipe-specific id field or canonical `/kr/recipe/<id>/` URL, and a non-empty list alone never proves pagination completeness.
+
 ### 3. Secondary community cross-check
 
 Use a second independent source for unexplained differences where practical. This is a reconciliation aid, not authority to silently overwrite client-derived structure.
