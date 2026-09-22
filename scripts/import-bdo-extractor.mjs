@@ -89,6 +89,7 @@ for (const source of recipesRaw) {
 
 const recipes = {}
 const recipesByOutput = {}
+const byproducts = {}
 for (const [groupKey, rawVariants] of grouped) {
   const [skill, outputText] = groupKey.split(':')
   const outputItemId = Number(outputText)
@@ -105,6 +106,21 @@ for (const [groupKey, rawVariants] of grouped) {
     })
   }
 
+  const normalVariants = variants.filter((variant) => !variant.byproductOf)
+  const byproductVariants = variants.filter((variant) => variant.byproductOf)
+
+  if (byproductVariants.length) {
+    byproducts[String(outputItemId)] = {
+      outputItemId,
+      producedWhileCraftingItemIds: [...new Set(byproductVariants.map((variant) => variant.byproductOf))],
+    }
+  }
+
+  // Extractor marks duplicated ingredient signatures on higher-grade/random
+  // product pages with byproductOf. Those are outcomes, not directly craftable
+  // target recipes, so never expose them as a normal planner target.
+  if (!normalVariants.length) continue
+
   const id = `${skill}:${outputItemId}`
   recipes[id] = {
     id,
@@ -114,7 +130,7 @@ for (const [groupKey, rawVariants] of grouped) {
     // variable output distribution is not encoded here. Keep yield conservative
     // until a separately proven yield source enriches it.
     yield: { min: 1, max: 1, provenance: 'unknown-server-yield' },
-    variants,
+    variants: normalVariants.map(({ byproductOf: _byproductOf, ...variant }) => variant),
   }
   recipesByOutput[String(outputItemId)] = [
     ...(recipesByOutput[String(outputItemId)] || []),
@@ -152,6 +168,7 @@ const payloadWithoutHash = {
   items,
   recipes,
   recipesByOutput,
+  byproducts,
 }
 const payload = {
   ...payloadWithoutHash,
@@ -163,4 +180,4 @@ const payload = {
 
 fs.mkdirSync(path.dirname(args.out), { recursive: true })
 fs.writeFileSync(args.out, JSON.stringify(payload, null, 2) + '\n')
-console.log(JSON.stringify({ ok: true, ...counts, items: Object.keys(items).length, fingerprint: payload.metadata.fingerprint }))
+console.log(JSON.stringify({ ok: true, ...counts, items: Object.keys(items).length, byproducts: Object.keys(byproducts).length, fingerprint: payload.metadata.fingerprint }))
