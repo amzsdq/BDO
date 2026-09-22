@@ -37,6 +37,20 @@ interface CookingMasteryRow {
 
 The checked-in table must be an exact transcription of the publisher table and covered by boundary tests. Do not interpolate between published mastery rows unless the game itself documents interpolation semantics.
 
+## Client-derived cross-check
+
+The reviewed `iDevelopThings/bdo-data-extractor` contract emits `data/mastery.json` from current installed-client mastery tables. Treat this as an independent structural cross-check, not as a replacement for the publisher-facing semantic source above.
+
+For every production client snapshot used for release:
+
+- retain `mastery.json` with the extractor tag/commit, game/client fingerprint, region and extraction timestamp;
+- compare the planner's Cooking mastery breakpoints/rates against the extracted Cooking curve deterministically;
+- compare Alchemy rates separately against the extracted Alchemy curve;
+- fail release review on an unexplained mismatch instead of silently overwriting, interpolating, or merging the two skill models;
+- keep the Pearl Abyss KR source metadata in the runtime diagnostics/about-data surface so a user can audit what each probability means.
+
+This makes stale checked-in mastery data detectable while preserving the distinction between client-derived numeric evidence and the product's human-readable semantic provenance.
+
 ## Durability/material semantics
 
 `utensil durability uses` and `recipe material servings` are distinct quantities.
@@ -51,6 +65,8 @@ Alchemy mastery must remain separate; do not apply Cooking Mass Cooking behavior
 
 - source metadata present and visible to diagnostics/about-data UI;
 - all runtime rows match the recorded source snapshot;
+- production snapshots include a deterministic `mastery.json` cross-check when the reviewed extractor emits it;
+- unexplained publisher-vs-client mastery mismatches block release review;
 - tests cover exact published mastery breakpoints and out-of-range handling;
 - unknown/unverified mastery data disables probabilistic forecasts rather than guessing;
 - updating the source table requires updating `verifiedAt` and rerunning tests;
