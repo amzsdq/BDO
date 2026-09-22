@@ -20,6 +20,8 @@ Reconcile the imported Cooking and Alchemy sets against:
 
 BDO Codex also provides recipe detail pages and item imagery useful for human verification/enrichment.
 
+Codex recipe-page IDs are provenance identifiers, not canonical recipe identity: locale/region pages can assign different page IDs to the same logical recipe. Reconciliation therefore keys primarily by linked canonical output item ID plus normalized ingredient item-ID/count signature, with reviewed fallbacks only when those IDs are unavailable.
+
 ### 3. Secondary community cross-check
 
 Use a second independent source for unexplained differences where practical. This is a reconciliation aid, not authority to silently overwrite client-derived structure.
@@ -36,7 +38,7 @@ A dataset may be marked `COMPLETE_VERIFIED` only when all of these hold:
 6. duplicate recipe identities are resolved deterministically;
 7. alternative recipe blocks remain distinct;
 8. extractor-marked byproduct-only outputs are not exposed as directly craftable target recipes;
-9. Cooking/Alchemy Codex reconciliation has zero unexplained missing recipe ids;
+9. Cooking/Alchemy Codex reconciliation has zero unexplained canonical output/signature differences; differing Codex page IDs alone are never a missing-recipe signal;
 10. every UI-visible item has an icon resolution result (local extracted icon, approved remote icon, or explicit reviewed fallback);
 11. provenance records extraction/source timestamps and dataset fingerprint.
 
