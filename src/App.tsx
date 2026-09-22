@@ -46,7 +46,7 @@ export function App() {
     else if (event.key === 'Enter') { event.preventDefault(); selectSearchResult(activeResultIndex) }
   }
   function setProfileNumber(key: 'maxWeightLT' | 'reservedWeightLT' | 'cookingMastery' | 'alchemyMastery', raw: string) { const value = raw === '' ? undefined : Math.max(0, Number(raw) || 0); setProfile((current) => ({ ...current, [key]: value })) }
-  function setOwned(itemId: string, raw: string) { const value = Math.max(0, Number(raw) || 0; setInventory((current) => ({ ...current, [itemId]: value })) }
+  function setOwned(itemId: string, raw: string) { const value = Math.max(0, Number(raw) || 0); setInventory((current) => ({ ...current, [itemId]: value })) }
   const pct = (value: number) => `${(value * 100).toFixed(2)}%`
   return <main className="app-shell">
     <header className="hero"><div><p className="eyebrow">BLACK DESERT · 생활 준비</p><h1>요리·연금 준비를 한 화면에서</h1><p className="hero-copy">목표 수량이나 도구 사용 횟수를 입력하면 필요한 재료를 바로 계산하고, 준비한 항목을 체크하세요.</p></div><span className={`status-pill ${datasetMode}`}>{datasetMode === 'verified' ? 'KR · 검증 완료' : 'KR · 검증 중'}</span></header>
