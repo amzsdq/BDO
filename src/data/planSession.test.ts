@@ -10,7 +10,7 @@ function memoryStorage() {
 }
 
 describe('versioned plan session state', () => {
-  it('round-trips multiple targets and recursive craft choices', () => {
+  it('round-trips multiple targets and recursive craft/substitution choices', () => {
     const storage = memoryStorage()
     const state: PlanSessionState = {
       version: 1,
@@ -21,6 +21,7 @@ describe('versioned plan session state', () => {
       craftIntermediateItemIds: [20, 30],
       intermediateRecipeIdByItemId: { '20': 'cooking:20' },
       variantIdByRecipeId: { 'cooking:20': 'v3' },
+      selectedSubstitutionItemIdByGroupId: { 'codex:6502': 21 },
     }
     writePlanSession(state, storage)
     expect(readPlanSession(storage)).toEqual(state)
@@ -40,9 +41,22 @@ describe('versioned plan session state', () => {
     expect(readPlanSession(storage).targets).toEqual([])
   })
 
-  it('deduplicates persisted intermediate craft ids', () => {
+  it('deduplicates persisted intermediate craft ids and accepts legacy sessions without substitution choices', () => {
     const storage = memoryStorage()
     storage.setItem('bdo-planner:plan-session:v1', JSON.stringify({ version: 1, targets: [], craftIntermediateItemIds: [20, 20], intermediateRecipeIdByItemId: {}, variantIdByRecipeId: {} }))
-    expect(readPlanSession(storage).craftIntermediateItemIds).toEqual([20])
+    expect(readPlanSession(storage)).toEqual({
+      version: 1,
+      targets: [],
+      craftIntermediateItemIds: [20],
+      intermediateRecipeIdByItemId: {},
+      variantIdByRecipeId: {},
+      selectedSubstitutionItemIdByGroupId: {},
+    })
+  })
+
+  it('fails closed on invalid substitution selections', () => {
+    const storage = memoryStorage()
+    storage.setItem('bdo-planner:plan-session:v1', JSON.stringify({ version: 1, targets: [], craftIntermediateItemIds: [], intermediateRecipeIdByItemId: {}, variantIdByRecipeId: {}, selectedSubstitutionItemIdByGroupId: { 'codex:6502': -1 } }))
+    expect(readPlanSession(storage).selectedSubstitutionItemIdByGroupId).toEqual({})
   })
 })
