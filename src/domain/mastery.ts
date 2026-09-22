@@ -18,15 +18,36 @@ export const COOKING_MASTERY_SOURCE: MasterySourceMeta = {
   sourceUrl: 'https://www.kr.playblackdesert.com/ko-kr/News/Detail?countryType=ko-kr&groupContentNo=13398',
   sourceTitle: '[업데이트] 1월 8일(수) 업데이트 안내',
   sourceLastModified: '2025-02-12 11:56',
-  verifiedAt: '2026-09-22',
+  verifiedAt: '2026-09-23',
 }
 
 /**
- * Verified rows from Pearl Abyss KR's published Cooking mastery table.
- * This slice deliberately contains only rows transcribed and reviewed in-project.
- * Unknown mastery values return undefined instead of being interpolated.
+ * Complete 50-point Cooking mastery breakpoints published by Pearl Abyss KR.
+ * Values are transcribed from the source table; off-grid mastery values are not
+ * interpolated because the product must distinguish verified data from inference.
  */
 export const COOKING_MASTERY_ROWS: readonly CookingMasteryRow[] = [
+  { mastery: 0, massCookingProbability: 0 },
+  { mastery: 50, massCookingProbability: 0.1089 },
+  { mastery: 100, massCookingProbability: 0.1176 },
+  { mastery: 150, massCookingProbability: 0.1267 },
+  { mastery: 200, massCookingProbability: 0.1362 },
+  { mastery: 250, massCookingProbability: 0.1459 },
+  { mastery: 300, massCookingProbability: 0.156 },
+  { mastery: 350, massCookingProbability: 0.1665 },
+  { mastery: 400, massCookingProbability: 0.1772 },
+  { mastery: 450, massCookingProbability: 0.1884 },
+  { mastery: 500, massCookingProbability: 0.1998 },
+  { mastery: 550, massCookingProbability: 0.2116 },
+  { mastery: 600, massCookingProbability: 0.2237 },
+  { mastery: 650, massCookingProbability: 0.2362 },
+  { mastery: 700, massCookingProbability: 0.249 },
+  { mastery: 750, massCookingProbability: 0.2621 },
+  { mastery: 800, massCookingProbability: 0.2756 },
+  { mastery: 850, massCookingProbability: 0.2894 },
+  { mastery: 900, massCookingProbability: 0.3058 },
+  { mastery: 950, massCookingProbability: 0.3226 },
+  { mastery: 1000, massCookingProbability: 0.3399 },
   { mastery: 1050, massCookingProbability: 0.3576 },
   { mastery: 1100, massCookingProbability: 0.3758 },
   { mastery: 1150, massCookingProbability: 0.3944 },
