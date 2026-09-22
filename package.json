@@ -12,6 +12,7 @@
     "data:import": "node scripts/import-bdo-extractor.mjs",
     "data:validate": "node scripts/validate-dataset.mjs",
     "data:reconcile": "node scripts/reconcile-codex.mjs",
+    "data:promote": "node scripts/promote-release-dataset.mjs",
     "data:release-gate": "node scripts/assert-release-dataset.mjs"
   },
   "dependencies": {
