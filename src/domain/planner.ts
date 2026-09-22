@@ -12,9 +12,7 @@ import type {
 } from './types'
 
 function positive(value: number, label: string): number {
-  if (!Number.isFinite(value) || value <= 0) {
-    throw new Error(`${label} must be a positive finite number`)
-  }
+  if (!Number.isFinite(value) || value <= 0) throw new Error(`${label} must be a positive finite number`)
   return value
 }
 
@@ -32,133 +30,75 @@ function selectVariant(recipe: Recipe, requested?: string): RecipeVariant {
   return variant
 }
 
-function recipeForIntermediate(dataset: RecipeDataset, itemId: ItemId): Recipe | undefined {
+function recipeForIntermediate(dataset: RecipeDataset, itemId: ItemId, requestedRecipeId?: string): Recipe | undefined {
   const ids = dataset.recipesByOutput[String(itemId)] ?? []
   if (!ids.length) return undefined
-  return dataset.recipes[ids[0]]
+  if (!requestedRecipeId) return dataset.recipes[ids[0]]
+  if (!ids.includes(requestedRecipeId)) throw new Error(`recipe ${requestedRecipeId} does not produce item ${itemId}`)
+  const recipe = dataset.recipes[requestedRecipeId]
+  if (!recipe) throw new Error(`unknown intermediate recipe: ${requestedRecipeId}`)
+  return recipe
 }
 
 export function attemptsForTarget(recipe: Recipe, target: PlanTarget): number {
   positive(target.amount, 'target amount')
   if (target.mode === 'attempts') return Math.ceil(target.amount)
-  const perAttempt = yieldFor(recipe, target.yieldPolicy ?? 'minimum')
-  return Math.ceil(target.amount / perAttempt)
+  return Math.ceil(target.amount / yieldFor(recipe, target.yieldPolicy ?? 'minimum'))
 }
 
-export function buildPlan(
-  dataset: RecipeDataset,
-  targets: readonly PlanTarget[],
-  options: PlanOptions,
-): PlanResult {
+export function buildPlan(dataset: RecipeDataset, targets: readonly PlanTarget[], options: PlanOptions): PlanResult {
   const materialMap = new Map<ItemId, PlannedMaterial>()
   const craftMap = new Map<string, PlannedCraft>()
   const warnings: string[] = []
   const stack = new Set<ItemId>()
 
-  // Returns the incremental shortage introduced by this demand. This matters for
-  // craftable intermediates: owned stock must be consumed once across the whole
-  // batch plan, not once per parent recipe.
-  function addMaterial(
-    itemId: ItemId,
-    count: number,
-    depth: number,
-    direct: boolean,
-    craftedIntermediate: boolean,
-  ): number {
+  function addMaterial(itemId: ItemId, count: number, depth: number, direct: boolean, craftedIntermediate: boolean): number {
     const have = Math.max(0, Number(options.haveByItemId?.[String(itemId)] ?? 0))
     const current = materialMap.get(itemId)
     const previousRequired = current?.required ?? 0
     const previousMissing = Math.max(0, previousRequired - have)
     const required = previousRequired + count
     const missing = Math.max(0, required - have)
-
-    materialMap.set(itemId, {
-      itemId,
-      required,
-      have,
-      missing,
-      depth: Math.min(current?.depth ?? depth, depth),
-      direct: (current?.direct ?? false) || direct,
-      craftedIntermediate: (current?.craftedIntermediate ?? false) || craftedIntermediate,
-    })
-
+    materialMap.set(itemId, { itemId, required, have, missing, depth: Math.min(current?.depth ?? depth, depth), direct: (current?.direct ?? false) || direct, craftedIntermediate: (current?.craftedIntermediate ?? false) || craftedIntermediate })
     return missing - previousMissing
   }
 
   function addCraft(recipe: Recipe, attempts: number, depth: number, requestedOutput?: number) {
     if (attempts <= 0) return
     const current = craftMap.get(recipe.id)
-    craftMap.set(recipe.id, {
-      recipeId: recipe.id,
-      outputItemId: recipe.outputItemId,
-      attempts: (current?.attempts ?? 0) + attempts,
-      requestedOutput: (current?.requestedOutput ?? 0) + (requestedOutput ?? 0) || undefined,
-      depth: Math.min(current?.depth ?? depth, depth),
-    })
+    craftMap.set(recipe.id, { recipeId: recipe.id, outputItemId: recipe.outputItemId, attempts: (current?.attempts ?? 0) + attempts, requestedOutput: (current?.requestedOutput ?? 0) + (requestedOutput ?? 0) || undefined, depth: Math.min(current?.depth ?? depth, depth) })
   }
 
-  function expandRecipe(
-    recipe: Recipe,
-    attempts: number,
-    depth: number,
-    variantId?: string,
-    requestedOutput?: number,
-  ) {
+  function expandRecipe(recipe: Recipe, attempts: number, depth: number, variantId?: string, requestedOutput?: number) {
     if (attempts <= 0) return
-    if (stack.has(recipe.outputItemId)) {
-      warnings.push(`순환 제작 경로 감지: item ${recipe.outputItemId}`)
-      return
-    }
-
+    if (stack.has(recipe.outputItemId)) { warnings.push(`순환 제작 경로 감지: item ${recipe.outputItemId}`); return }
     stack.add(recipe.outputItemId)
     addCraft(recipe, attempts, depth, requestedOutput)
-    const variant = selectVariant(recipe, variantId)
+    const explicitVariant = variantId ?? options.variantIdByRecipeId?.[recipe.id]
+    const variant = selectVariant(recipe, explicitVariant)
+    if (!explicitVariant && recipe.variants.length > 1) warnings.push(`레시피 ${recipe.id}에 대체 조합 ${recipe.variants.length}개가 있습니다. 현재 첫 조합을 사용 중입니다.`)
 
     for (const input of variant.inputs) {
       const total = positive(input.count, 'ingredient count') * attempts
-      const nested = recipeForIntermediate(dataset, input.itemId)
+      const recipeIds = dataset.recipesByOutput[String(input.itemId)] ?? []
+      const requestedNestedId = options.intermediateRecipeIdByItemId?.[String(input.itemId)]
+      const nested = recipeForIntermediate(dataset, input.itemId, requestedNestedId)
       const shouldCraft = nested && options.craftIntermediateItemIds.has(input.itemId)
-
       if (shouldCraft && nested) {
-        const incrementalMissing = addMaterial(
-          input.itemId,
-          total,
-          depth + 1,
-          depth === 0,
-          true,
-        )
-        const nestedAttempts = Math.ceil(
-          incrementalMissing / yieldFor(nested, 'minimum'),
-        )
+        if (!requestedNestedId && recipeIds.length > 1) warnings.push(`중간재 item ${input.itemId}에 제작법 ${recipeIds.length}개가 있습니다. 현재 ${nested.id}을 사용 중입니다.`)
+        const incrementalMissing = addMaterial(input.itemId, total, depth + 1, depth === 0, true)
+        const nestedAttempts = Math.ceil(incrementalMissing / yieldFor(nested, 'minimum'))
         expandRecipe(nested, nestedAttempts, depth + 1)
-      } else {
-        addMaterial(input.itemId, total, depth + 1, depth === 0, false)
-      }
+      } else addMaterial(input.itemId, total, depth + 1, depth === 0, false)
     }
-
     stack.delete(recipe.outputItemId)
   }
 
   for (const target of targets) {
     const recipe = dataset.recipes[target.recipeId]
     if (!recipe) throw new Error(`unknown recipe: ${target.recipeId}`)
-    const attempts = attemptsForTarget(recipe, target)
-    expandRecipe(
-      recipe,
-      attempts,
-      0,
-      target.variantId,
-      target.mode === 'output' ? target.amount : undefined,
-    )
+    expandRecipe(recipe, attemptsForTarget(recipe, target), 0, target.variantId, target.mode === 'output' ? target.amount : undefined)
   }
 
-  return {
-    crafts: [...craftMap.values()].sort(
-      (a, b) => a.depth - b.depth || a.recipeId.localeCompare(b.recipeId),
-    ),
-    materials: [...materialMap.values()].sort(
-      (a, b) => a.depth - b.depth || b.missing - a.missing || a.itemId - b.itemId,
-    ),
-    warnings,
-  }
+  return { crafts: [...craftMap.values()].sort((a, b) => a.depth - b.depth || a.recipeId.localeCompare(b.recipeId)), materials: [...materialMap.values()].sort((a, b) => a.depth - b.depth || b.missing - a.missing || a.itemId - b.itemId), warnings }
 }
