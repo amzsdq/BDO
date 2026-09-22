@@ -15,6 +15,7 @@ export function App() {
   const [datasetMessage, setDatasetMessage] = useState('데이터 불러오는 중…')
   const [skill, setSkill] = useState<'cooking' | 'alchemy'>('cooking')
   const [query, setQuery] = useState('')
+  const [activeResultIndex, setActiveResultIndex] = useState(0)
   const [recipeId, setRecipeId] = useState<RecipeId>('sample-cooking')
   const [mode, setMode] = useState<'output' | 'attempts'>('attempts')
   const [amount, setAmount] = useState(100)
@@ -26,6 +27,8 @@ export function App() {
   useEffect(() => { writeInventory(inventory) }, [inventory])
   useEffect(() => { writeCharacterProfile(profile) }, [profile])
   const results = useMemo(() => searchRecipes(dataset, query, { skill, limit: 8 }), [dataset, query, skill])
+  const searchOpen = Boolean(query.trim())
+  const activeResult = results[activeResultIndex]
   const selectedRecipe = dataset.recipes[recipeId]
   const selectedItem = selectedRecipe ? dataset.items[String(selectedRecipe.outputItemId)] : undefined
   const plan = useMemo(() => selectedRecipe ? buildPlan(dataset, [{ recipeId: selectedRecipe.id, mode, amount }], { craftIntermediateItemIds: new Set(), haveByItemId: inventory }) : null, [amount, dataset, inventory, mode, selectedRecipe])
@@ -33,7 +36,15 @@ export function App() {
   const batch = useMemo(() => { const variant = selectedRecipe?.variants[0]; if (!variant || profile.maxWeightLT == null) return null; return calculateBatchCapacity(variant, dataset.items, { maxWeightLT: profile.maxWeightLT, reservedWeightLT: profile.reservedWeightLT }, requestedServings) }, [dataset.items, profile.maxWeightLT, profile.reservedWeightLT, requestedServings, selectedRecipe])
   const massCooking = useMemo(() => skill === 'cooking' && mode === 'attempts' && profile.cookingMastery != null ? forecastCookingMaterialServings(amount, profile.cookingMastery) ?? null : null, [amount, mode, profile.cookingMastery, skill])
   const alchemyMastery = useMemo(() => skill === 'alchemy' && profile.alchemyMastery != null ? verifiedAlchemyMasteryRow(profile.alchemyMastery) ?? null : null, [profile.alchemyMastery, skill])
-  function changeSkill(next: 'cooking' | 'alchemy') { setSkill(next); setQuery(''); const first = Object.values(dataset.recipes).find((recipe) => recipe.skill === next); if (first) setRecipeId(first.id) }
+  function changeSkill(next: 'cooking' | 'alchemy') { setSkill(next); setQuery(''); setActiveResultIndex(0); const first = Object.values(dataset.recipes).find((recipe) => recipe.skill === next); if (first) setRecipeId(first.id) }
+  function selectSearchResult(index: number) { const result = results[index]; if (!result) return; setRecipeId(result.recipe.id); setQuery(''); setActiveResultIndex(0) }
+  function handleSearchKeyDown(event: React.KeyboardEvent<HTMLInputElement>) {
+    if (event.key === 'Escape' && searchOpen) { event.preventDefault(); setQuery(''); setActiveResultIndex(0); return }
+    if (!searchOpen || !results.length) return
+    if (event.key === 'ArrowDown') { event.preventDefault(); setActiveResultIndex((current) => (current + 1) % results.length) }
+    else if (event.key === 'ArrowUp') { event.preventDefault(); setActiveResultIndex((current) => (current - 1 + results.length) % results.length) }
+    else if (event.key === 'Enter') { event.preventDefault(); selectSearchResult(activeResultIndex) }
+  }
   function setProfileNumber(key: 'maxWeightLT' | 'reservedWeightLT' | 'cookingMastery' | 'alchemyMastery', raw: string) { const value = raw === '' ? undefined : Math.max(0, Number(raw) || 0); setProfile((current) => ({ ...current, [key]: value })) }
   function setOwned(itemId: string, raw: string) { const value = Math.max(0, Number(raw) || 0); setInventory((current) => ({ ...current, [itemId]: value })) }
   const pct = (value: number) => `${(value * 100).toFixed(2)}%`
@@ -43,7 +54,7 @@ export function App() {
     <section className="planner-grid"><aside className="panel controls">
       <div className="section-heading"><span>01</span><div><strong>무엇을 만들까요?</strong><small>이름을 입력하면 바로 찾습니다.</small></div></div>
       <div className="segmented skill-tabs" aria-label="생활 콘텐츠"><button className={skill === 'cooking' ? 'active' : ''} onClick={() => changeSkill('cooking')}>요리</button><button className={skill === 'alchemy' ? 'active' : ''} onClick={() => changeSkill('alchemy')}>연금</button></div>
-      <div className="search-wrap"><label className="field"><span>제작물 검색</span><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder={selectedItem?.nameKo ?? '예: 맥주'} aria-label="제작물 검색" autoComplete="off" /></label>{query.trim() && <div className="search-results" role="listbox" aria-label="검색 결과">{results.length ? results.map(({ recipe, item }) => <button key={recipe.id} role="option" aria-selected={recipe.id === recipeId} onClick={() => { setRecipeId(recipe.id); setQuery('') }}><span>{item.nameKo}</span><small>{recipe.skill === 'cooking' ? '요리' : '연금'}</small></button>) : <p>일치하는 제작물이 없습니다.</p>}</div>}</div>
+      <div className="search-wrap"><label className="field"><span>제작물 검색</span><input value={query} onChange={(e) => { setQuery(e.target.value); setActiveResultIndex(0) }} onKeyDown={handleSearchKeyDown} placeholder={selectedItem?.nameKo ?? '예: 맥주'} aria-label="제작물 검색" role="combobox" aria-autocomplete="list" aria-expanded={searchOpen} aria-controls="recipe-search-results" aria-activedescendant={searchOpen && activeResult ? `recipe-option-${activeResult.recipe.id}` : undefined} autoComplete="off" /></label>{searchOpen && <div id="recipe-search-results" className="search-results" role="listbox" aria-label="검색 결과">{results.length ? results.map(({ recipe, item }, index) => <button id={`recipe-option-${recipe.id}`} key={recipe.id} role="option" aria-selected={index === activeResultIndex} onMouseEnter={() => setActiveResultIndex(index)} onClick={() => selectSearchResult(index)}><span>{item.nameKo}</span><small>{recipe.skill === 'cooking' ? '요리' : '연금'}</small></button>) : <p>일치하는 제작물이 없습니다.</p>}</div>}</div>
       <div className="selected-target"><small>선택한 제작물</small><strong>{selectedItem?.nameKo ?? '선택 필요'}</strong></div>
       <div className="segmented" aria-label="계산 기준"><button className={mode === 'output' ? 'active' : ''} onClick={() => setMode('output')}>목표 수량</button><button className={mode === 'attempts' ? 'active' : ''} onClick={() => setMode('attempts')}>도구 사용 횟수</button></div>
       <label className="field"><span>{mode === 'output' ? '목표 수량' : '사용 횟수'}</span><input type="number" min={1} value={amount} onChange={(e) => setAmount(Math.max(1, Number(e.target.value) || 1))} /></label>
