@@ -34,6 +34,12 @@ describe('versioned plan session state', () => {
     expect(readPlanSession(storage).targets).toEqual([])
   })
 
+  it('rejects Cooking preparation policy on a non-durability target', () => {
+    const storage = memoryStorage()
+    storage.setItem('bdo-planner:plan-session:v1', JSON.stringify({ version: 1, targets: [{ recipeId: 'cooking:10', mode: 'output', amount: 10, cookingPreparationPolicy: 'safe95' }], craftIntermediateItemIds: [], intermediateRecipeIdByItemId: {}, variantIdByRecipeId: {} }))
+    expect(readPlanSession(storage).targets).toEqual([])
+  })
+
   it('deduplicates persisted intermediate craft ids', () => {
     const storage = memoryStorage()
     storage.setItem('bdo-planner:plan-session:v1', JSON.stringify({ version: 1, targets: [], craftIntermediateItemIds: [20, 20], intermediateRecipeIdByItemId: {}, variantIdByRecipeId: {} }))
