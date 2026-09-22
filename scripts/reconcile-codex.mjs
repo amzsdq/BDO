@@ -18,6 +18,23 @@ function normalizedName(value) {
     .toLocaleLowerCase('ko-KR')
 }
 
+function normalizedSkill(value) {
+  return String(value || '').toLowerCase()
+}
+
+function outputItemIdFromCodex(entry) {
+  const value = entry.outputItemId ?? entry.itemId
+  if (value === undefined || value === null || value === '') return undefined
+  const id = Number(value)
+  return Number.isSafeInteger(id) && id >= 0 ? id : undefined
+}
+
+function reconciliationKey(skill, outputItemId, outputName) {
+  return outputItemId !== undefined
+    ? `${skill}:item:${outputItemId}`
+    : `${skill}:name:${normalizedName(outputName)}`
+}
+
 function signatureFromDataset(dataset, recipe, variant) {
   return variant.inputs
     .map((input) => {
@@ -30,7 +47,11 @@ function signatureFromDataset(dataset, recipe, variant) {
 
 function signatureFromCodex(entry) {
   return (entry.ingredients || [])
-    .map((input) => `${normalizedName(input.name)}:${Number(input.count)}`)
+    .map((input) => {
+      const itemId = input.itemId === undefined || input.itemId === null ? undefined : Number(input.itemId)
+      const identity = Number.isSafeInteger(itemId) && itemId >= 0 ? `#${itemId}` : normalizedName(input.name)
+      return `${identity}:${Number(input.count)}`
+    })
     .sort()
     .join('|')
 }
@@ -49,7 +70,8 @@ const clientByKey = new Map()
 
 for (const recipe of Object.values(dataset.recipes || {})) {
   const output = dataset.items[String(recipe.outputItemId)]
-  const key = `${recipe.skill}:${normalizedName(output?.nameKo)}`
+  const skill = normalizedSkill(recipe.skill)
+  const key = reconciliationKey(skill, Number(recipe.outputItemId), output?.nameKo)
   clientByKey.set(key, {
     recipe,
     output,
@@ -60,8 +82,9 @@ for (const recipe of Object.values(dataset.recipes || {})) {
 const codexLive = (manifest.recipes || []).filter((entry) => entry.available !== false)
 const codexByKey = new Map()
 for (const entry of codexLive) {
-  const skill = String(entry.skill || '').toLowerCase()
-  const key = `${skill}:${normalizedName(entry.titleKo)}`
+  const skill = normalizedSkill(entry.skill)
+  const outputItemId = outputItemIdFromCodex(entry)
+  const key = reconciliationKey(skill, outputItemId, entry.titleKo)
   const group = codexByKey.get(key) || []
   group.push(entry)
   codexByKey.set(key, group)
