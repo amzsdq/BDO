@@ -5,6 +5,7 @@ const INVENTORY_KEY = 'bdo-planner:inventory:v1'
 export type ChecklistState = Record<string, boolean>
 export type InventoryState = Record<string, number>
 export interface CharacterProfileState { maxWeightLT?: number; reservedWeightLT?: number; cookingMastery?: number; alchemyMastery?: number }
+export interface PlannerStateExport { version: 1; exportedAt: string; checklist: ChecklistState; inventory: InventoryState; characterProfile: CharacterProfileState }
 
 function readObject(storage: Pick<Storage, 'getItem'>, key: string): Record<string, unknown> | undefined {
   try { const raw = storage.getItem(key); if (!raw) return undefined; const parsed: unknown = JSON.parse(raw); return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed as Record<string, unknown> : undefined } catch { return undefined }
@@ -33,3 +34,22 @@ export function readCharacterProfile(storage: Pick<Storage, 'getItem'> = localSt
 }
 export function writeCharacterProfile(value: CharacterProfileState, storage: Pick<Storage, 'setItem'> = localStorage): void { storage.setItem(CHARACTER_PROFILE_KEY, JSON.stringify(value)) }
 export function clearCharacterProfile(storage: Pick<Storage, 'removeItem'> = localStorage): void { storage.removeItem(CHARACTER_PROFILE_KEY) }
+
+export function exportPlannerState(
+  storage: Pick<Storage, 'getItem'> = localStorage,
+  exportedAt = new Date().toISOString(),
+): PlannerStateExport {
+  return {
+    version: 1,
+    exportedAt,
+    checklist: readChecklist(storage),
+    inventory: readInventory(storage),
+    characterProfile: readCharacterProfile(storage),
+  }
+}
+
+export function resetPlannerState(storage: Pick<Storage, 'removeItem'> = localStorage): void {
+  clearChecklist(storage)
+  clearInventory(storage)
+  clearCharacterProfile(storage)
+}
