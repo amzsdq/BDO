@@ -34,26 +34,43 @@ describe('active plan target end-to-end material semantics', () => {
 
     const recipe = sampleDataset.recipes['sample-cooking']
     const variant = recipe.variants.find((entry) => entry.id === 'default')!
+    const weightedItems = {
+      ...sampleDataset.items,
+      '900002': { ...sampleDataset.items['900002'], weightLT: 0.1 },
+    }
     const batch = calculateBatchCapacity(
       variant,
-      sampleDataset.items,
+      weightedItems,
       { maxWeightLT: 10_000, reservedWeightLT: 0 },
       plan.crafts[0]?.attempts,
     )
-    expect(batch.requestedServings).toBe(1000)
+    expect(batch.lines).toHaveLength(1)
+    expect(batch.lines[0]?.countToCarry).toBe(5000)
+    expect(batch.totalStartingIngredientWeightLT).toBe(500)
   })
 
   it('keeps Alchemy durability as exact one-serving-per-use input math', () => {
-    const recipe = Object.values(sampleDataset.recipes).find((entry) => entry.skill === 'alchemy')
-    if (!recipe) return
+    const alchemyDataset = {
+      ...sampleDataset,
+      recipes: {
+        ...sampleDataset.recipes,
+        'sample-alchemy': {
+          id: 'sample-alchemy',
+          skill: 'alchemy' as const,
+          outputItemId: 900001,
+          yield: { min: 1, max: 1 },
+          variants: [{ id: 'default', inputs: [{ itemId: 900002, count: 2 }] }],
+        },
+      },
+    }
     const persisted = activePlanTarget({
-      recipeId: recipe.id,
-      variantId: recipe.variants[0]?.id,
+      recipeId: 'sample-alchemy',
+      variantId: 'default',
       mode: 'durability',
       amount: 123,
       skill: 'alchemy',
     })
-    const resolved = resolvePlanTarget(sampleDataset, persisted, { cookingMastery: 2000 })
+    const resolved = resolvePlanTarget(alchemyDataset, persisted, { cookingMastery: 2000 })
     expect(resolved.target?.mode).toBe('attempts')
     expect(resolved.target?.amount).toBe(123)
     expect(resolved.estimatedPreparation).toBe(false)
