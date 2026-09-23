@@ -17,7 +17,7 @@ function fixture() {
   }
 }
 function reportFor(dataset, overrides = {}) { return { status: 'ZERO_UNEXPLAINED_DIFF', unresolved: [], clientRecipeGroups: 2, codexLivePages: 2, codexLiveRecipeIds: [101, 201], datasetFingerprint: reconciliationDatasetFingerprint(dataset), ...overrides } }
-function catalog(overrides = {}) { return { source: 'BDO Codex KR', complete: true, catalogs: [{ skill: 'cooking', complete: true, recipeCount: 1, recipeIds: [101], endpointUsed: 'https://bdocodex.com/query.php?a=recipes&type=culinary&l=kr', endpointFinalUrl: 'https://bdocodex.com/query.php?a=recipes&type=culinary&l=kr', endpointEvidence: { recordsReported: 1 }, countMatchesExpected: null }, { skill: 'alchemy', complete: true, recipeCount: 1, recipeIds: [201], endpointUsed: 'https://bdocodex.com/query.php?a=recipes&type=alchemy&l=kr', endpointFinalUrl: 'https://bdocodex.com/query.php?a=recipes&type=alchemy&l=kr', endpointEvidence: { recordsReported: 1 }, countMatchesExpected: null }], ...overrides } }
+function catalog(overrides = {}) { return { source: 'BDO Codex KR', collectedAt: '2026-09-23T00:00:00.000Z', complete: true, catalogs: [{ skill: 'cooking', complete: true, recipeCount: 1, recipeIds: [101], endpointUsed: 'https://bdocodex.com/query.php?a=recipes&type=culinary&l=kr', endpointFinalUrl: 'https://bdocodex.com/query.php?a=recipes&type=culinary&l=kr', endpointEvidence: { recordsReported: 1 }, countMatchesExpected: null }, { skill: 'alchemy', complete: true, recipeCount: 1, recipeIds: [201], endpointUsed: 'https://bdocodex.com/query.php?a=recipes&type=alchemy&l=kr', endpointFinalUrl: 'https://bdocodex.com/query.php?a=recipes&type=alchemy&l=kr', endpointEvidence: { recordsReported: 1 }, countMatchesExpected: null }], ...overrides } }
 function run(dataset, reconciliation, catalogEvidence = catalog(), missingIconId = null) {
   const root = mkdtempSync(join(tmpdir(), 'bdo-promote-')), dir = join(root, 'data'), iconDir = join(root, 'icons'); mkdirSync(dir); mkdirSync(iconDir)
   const datasetFile = join(dir, 'dataset.json'), reportFile = join(dir, 'report.json'), catalogFile = join(dir, 'catalog.json'), outFile = join(dir, 'promoted.json')
@@ -49,6 +49,9 @@ describe('release dataset promotion', () => {
   })
   it('blocks COMPLETE_VERIFIED promotion when catalog completeness is unproven', () => {
     const dataset = fixture(); const result = run(dataset, reportFor(dataset), catalog({ complete: false })); expect(result.result.status).toBe(1); expect(result.result.stderr).toContain('catalog completeness is not independently proven')
+  })
+  it('blocks promotion when Codex catalog collection time is missing or invalid', () => {
+    const dataset = fixture(); for (const collectedAt of [undefined, '', 'not-a-date']) { const evidence = catalog({ collectedAt }); const result = run(dataset, reportFor(dataset), evidence); expect(result.result.status).toBe(1); expect(result.result.stderr).toContain('collectedAt timestamp') }
   })
   it('blocks promotion when catalog endpoint scope does not match its declared skill', () => {
     const dataset = fixture(); const evidence = catalog(); evidence.catalogs[0].endpointUsed = 'https://bdocodex.com/query.php?a=recipes&type=alchemy&l=kr'; const result = run(dataset, reportFor(dataset), evidence); expect(result.result.status).toBe(1); expect(result.result.stderr).toContain('endpoint scope is invalid')
