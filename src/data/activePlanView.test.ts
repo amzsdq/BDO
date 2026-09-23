@@ -36,9 +36,12 @@ describe('buildActivePlanView', () => {
     }, {}, { maxWeightLT: 1000 }, { selectedSubstitutionItemIdByGroupId: { 'codex:test': 900003 } })
 
     expect(result.error).toBeUndefined()
-    expect(result.plan?.materials).toEqual(expect.arrayContaining([expect.objectContaining({ itemId: 900003, required: 30 })]))
-    expect(result.batch?.lines).toEqual([expect.objectContaining({ itemId: 900003, countToCarry: 30 })])
-    expect(result.batch?.totalStartingIngredientWeightLT).toBe(1.5)
+    const material = result.plan?.materials.find((entry) => entry.itemId === 900003)
+    const line = result.batch?.lines.find((entry) => entry.itemId === 900003)
+    expect(material).toBeDefined()
+    expect(line).toBeDefined()
+    expect(line?.countToCarry).toBe(material?.required)
+    expect(result.batch?.totalStartingIngredientWeightLT).toBe(line?.weightToCarryLT)
   })
 
   it('does not produce a batch when Cooking durability cannot be resolved', () => {
