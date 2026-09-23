@@ -41,7 +41,7 @@ function setup() {
   for (const id of [10, 11, 20]) writeFileSync(join(dir, '..', 'icons', `${id}.webp`), 'fixture')
   const source = fixture()
   writeFileSync(datasetFile, JSON.stringify(source))
-  writeFileSync(reportFile, JSON.stringify({ status: 'ZERO_UNEXPLAINED_DIFF', unresolved: [], clientRecipeGroups: 2, codexLivePages: 2, codexLiveRecipeIds: [101, 201], datasetFingerprint: reconciliationDatasetFingerprint(source) }))
+  writeFileSync(reportFile, JSON.stringify({ status: 'ZERO_UNEXPLAINED_DIFF', unresolved: [], clientRecipeGroups: 2, clientRecipes: 2, codexLivePages: 2, codexLiveRecipeIds: [101, 201], datasetFingerprint: reconciliationDatasetFingerprint(source) }))
   writeFileSync(catalogFile, JSON.stringify(completeCatalog()))
   const promoted = spawnSync(process.execPath, ['scripts/promote-release-dataset.mjs', datasetFile, reportFile, catalogFile], { cwd: process.cwd(), encoding: 'utf8' })
   expect(promoted.status).toBe(0)
@@ -51,6 +51,9 @@ function gate(datasetFile, reportFile, catalogFile) { return spawnSync(process.e
 
 describe('final release gate', () => {
   it('accepts a promoted structurally valid dataset with independently complete Codex catalogs', () => { const files = setup(); expect(gate(files.datasetFile, files.reportFile, files.catalogFile).status).toBe(0) })
+  it('rejects reconciliation evidence that omitted a client recipe', () => {
+    const { datasetFile, reportFile, catalogFile } = setup(); const report = JSON.parse(readFileSync(reportFile, 'utf8')); report.clientRecipes = 1; writeFileSync(reportFile, JSON.stringify(report)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('client recipe count')
+  })
   it('rejects unrecorded source provenance even with a recomputed dataset fingerprint', () => {
     const { datasetFile, reportFile, catalogFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); dataset.metadata.sourceRevision = 'unrecorded'; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('sourceRevision')
   })
