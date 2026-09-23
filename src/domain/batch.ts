@@ -18,18 +18,22 @@ export function calculateBatchCapacity(
   const reservedWeightLT = finiteNonNegative(profile.reservedWeightLT)
   const availableWeightLT = Math.max(0, maxWeightLT - reservedWeightLT)
   const unknownWeightItemIds: number[] = []
+  const negativeWeightItemIds: number[] = []
   const zeroWeightItemIds: number[] = []
   let ingredientWeightPerServingLT = 0
   for (const input of variant.inputs) {
     const item = items[String(input.itemId)]
-    if (!item || item.weightLT == null || !Number.isFinite(item.weightLT) || item.weightLT < 0) { unknownWeightItemIds.push(input.itemId); continue }
+    if (!item || item.weightLT == null || !Number.isFinite(item.weightLT)) { unknownWeightItemIds.push(input.itemId); continue }
+    if (item.weightLT < 0) { negativeWeightItemIds.push(input.itemId); continue }
     if (item.weightLT === 0) zeroWeightItemIds.push(input.itemId)
     ingredientWeightPerServingLT += item.weightLT * input.count
   }
   const warnings: string[] = []
   if (zeroWeightItemIds.length) warnings.push(`무게가 0 LT로 기록된 재료가 있습니다: ${[...new Set(zeroWeightItemIds)].join(', ')}. 검증된 0 LT 값으로 계산에 포함했습니다.`)
-  if (unknownWeightItemIds.length) {
-    warnings.push('일부 재료의 검증된 무게가 없어 한 번에 준비 가능한 회분을 계산하지 않았습니다.')
+  if (negativeWeightItemIds.length) warnings.push(`음수 무게는 유효한 재료 무게로 사용할 수 없습니다: ${[...new Set(negativeWeightItemIds)].join(', ')}.`)
+  if (unknownWeightItemIds.length) warnings.push('일부 재료의 검증된 무게가 없습니다.')
+  if (negativeWeightItemIds.length || unknownWeightItemIds.length) {
+    warnings.push('재료 무게를 완전히 검증할 수 없어 한 번에 준비 가능한 회분을 계산하지 않았습니다.')
     return { availableWeightLT, lines: [], unknownWeightItemIds: [...new Set(unknownWeightItemIds)], warnings }
   }
   if (ingredientWeightPerServingLT <= 0) {
