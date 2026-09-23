@@ -37,8 +37,8 @@ function fingerprint(value) { return crypto.createHash('sha256').update(JSON.str
 function variantSignature(inputs) {
   return inputs.map((input) => `${input.itemId}:${input.count}`).sort().join('|')
 }
-function variantId(signature) {
-  return `v-${crypto.createHash('sha256').update(signature).digest('hex').slice(0, 12)}`
+function variantId(identity) {
+  return `v-${crypto.createHash('sha256').update(identity).digest('hex').slice(0, 12)}`
 }
 
 const args = parseArgs(process.argv.slice(2))
@@ -97,7 +97,7 @@ for (const [groupKey, rawVariants] of grouped) {
   for (const candidate of rawVariants.sort((a, b) => a.dedupeKey.localeCompare(b.dedupeKey))) {
     if (seen.has(candidate.dedupeKey)) continue
     seen.add(candidate.dedupeKey)
-    variants.push({ signature: candidate.signature, inputs: candidate.inputs, byproductOf: candidate.byproductOf })
+    variants.push({ identity: candidate.dedupeKey, signature: candidate.signature, inputs: candidate.inputs, byproductOf: candidate.byproductOf })
   }
   const normalVariants = variants.filter((variant) => !variant.byproductOf)
   const byproductVariants = variants.filter((variant) => variant.byproductOf)
@@ -109,7 +109,7 @@ for (const [groupKey, rawVariants] of grouped) {
     skill,
     outputItemId,
     yield: { min: 1, max: 1, provenance: 'unknown-server-yield' },
-    variants: normalVariants.map(({ byproductOf: _x, signature, ...variant }) => ({ id: variantId(signature), ...variant })),
+    variants: normalVariants.map(({ byproductOf: _x, signature: _signature, identity, ...variant }) => ({ id: variantId(identity), ...variant })),
   }
   recipesByOutput[String(outputItemId)] = [...(recipesByOutput[String(outputItemId)] || []), id]
 }

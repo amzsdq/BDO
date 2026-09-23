@@ -1,4 +1,5 @@
 import { execFileSync } from 'node:child_process'
+import crypto from 'node:crypto'
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -13,6 +14,9 @@ function importDataset(items, recipes) {
   writeFileSync(recipesPath, JSON.stringify(recipes))
   execFileSync(process.execPath, [resolve('scripts/import-bdo-extractor.mjs'), '--items', itemsPath, '--recipes', recipesPath, '--out', outPath, '--source-revision', 'test'])
   return { dataset: JSON.parse(readFileSync(outPath, 'utf8')), outPath }
+}
+function expectedVariantId(identity) {
+  return `v-${crypto.createHash('sha256').update(identity).digest('hex').slice(0, 12)}`
 }
 
 describe('bdo extractor importer icon contract', () => {
@@ -67,10 +71,11 @@ describe('bdo extractor importer icon contract', () => {
     expect(dataset.recipes['cooking:102']).toBeDefined()
     expect(dataset.recipes['cooking:102'].variants).toHaveLength(1)
     expect(dataset.recipes['cooking:102'].variants[0].inputs).toEqual([{ itemId: 200, count: 1 }])
+    expect(dataset.recipes['cooking:102'].variants[0].id).toBe(expectedVariantId('direct|200:1'))
     expect(dataset.byproducts['102']).toEqual({ outputItemId: 102, producedWhileCraftingItemIds: [100] })
   })
 
-  it('preserves alternative direct recipes with deterministic identities across source row ordering', () => {
+  it('preserves alternative direct recipes with deterministic role-aware identities across source row ordering', () => {
     const items = [
       { id: 100, name: 'Cooking Output', weight: 0.1 },
       { id: 101, name: 'Alchemy Output', weight: 0.1 },
@@ -87,6 +92,10 @@ describe('bdo extractor importer icon contract', () => {
     expect(first).toHaveLength(2)
     expect(second).toEqual(first)
     expect(new Set(first.map((variant) => variant.id)).size).toBe(2)
+    expect(first.map((variant) => variant.id).sort()).toEqual([
+      expectedVariantId('direct|200:2'),
+      expectedVariantId('direct|201:3'),
+    ].sort())
     expect(first.every((variant) => /^v-[0-9a-f]{12}$/.test(variant.id))).toBe(true)
   })
 })
