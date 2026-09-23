@@ -16,7 +16,7 @@
     "data:validate": "node scripts/validate-dataset.mjs",
     "data:reconcile": "node scripts/reconcile-codex.mjs",
     "data:promote": "node scripts/promote-release-dataset.mjs",
-    "data:release-gate": "node scripts/assert-release-dataset.mjs"
+    "data:release-gate": "node scripts/assert-release-readiness.mjs"
   },
   "dependencies": {
     "react": "^19.1.1",

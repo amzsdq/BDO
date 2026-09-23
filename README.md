@@ -32,7 +32,7 @@ npm run build
 
 ## production dataset 파이프라인
 
-라이브 클라이언트 추출물 `items.json`과 `recipes.json`, 그리고 `bdo-data-extractor icons`가 만든 `<extractor-data>/icons/<itemId>.webp`를 준비합니다. runtime이 실제로 읽는 dataset과 브라우저가 실제로 제공하는 icon asset을 함께 설치합니다. Codex reconciliation 전에 Cooking/Alchemy 카탈로그 전체를 독립적으로 수집하고 completeness가 증명된 `<codex-catalog.json>` artifact를 보존해야 합니다. 부분 manifest끼리 서로 일치하는 것만으로는 release gate를 통과할 수 없습니다.
+라이브 클라이언트 추출물 `items.json`, `recipes.json`, `mastery.json`, 그리고 `bdo-data-extractor icons`가 만든 `<extractor-data>/icons/<itemId>.webp`를 준비합니다. runtime이 실제로 읽는 dataset과 브라우저가 실제로 제공하는 icon asset을 함께 설치합니다. Codex reconciliation 전에 Cooking/Alchemy 카탈로그 전체를 독립적으로 수집하고 completeness가 증명된 `<codex-catalog.json>` artifact를 보존해야 합니다. 부분 manifest끼리 서로 일치하는 것만으로는 release gate를 통과할 수 없습니다.
 
 기본 구조 import:
 
@@ -48,6 +48,14 @@ node scripts/collect-codex-substitution-groups.mjs --groups <3001,6002,...> --ou
 npm run data:import -- --items <items.json> --recipes <recipes.json> --out public/data/dataset.json --source-revision <extractor-tag-or-sha> --substitution-evidence <codex-substitutions.json>
 ```
 
+숙련도 증거는 production client의 `mastery.json`에 extractor revision, client fingerprint, extraction timestamp를 결합해 보존합니다. 구조만 맞는 raw mastery 파일은 릴리스 증거가 아닙니다. Cooking/Alchemy raw columns가 검증된 semantic mapping을 거쳐 현재 runtime mastery curve와 모두 일치한 cross-check PASS artifact만 최종 gate에 사용할 수 있습니다.
+
+```bash
+npm run data:mastery-evidence -- --mastery <mastery.json> --out <mastery-evidence.json> --source-revision <extractor-tag-or-sha> --client-fingerprint <client-fingerprint> --extracted-at <iso-timestamp>
+```
+
+현재 evidence generator는 semantic cross-check가 결합되기 전까지 의도적으로 `releaseReady=false`를 출력하므로 그 상태의 artifact는 최종 gate를 통과하지 못합니다. 최종 gate는 evidence에 기록된 SHA-256을 전달된 원본 `mastery.json` 바이트와 다시 계산·대조하여 다른 client snapshot의 evidence 재사용도 거부합니다.
+
 이후 release gate:
 
 ```bash
@@ -56,17 +64,17 @@ npm run data:validate -- public/data/dataset.json
 node scripts/collect-codex-catalog.mjs --endpoint '<complete-catalog-endpoint-template-with-{skill}>' --out <codex-catalog.json>
 npm run data:reconcile -- --dataset public/data/dataset.json --codex <codex-manifest.json> --out <reconciliation-report.json>
 npm run data:promote -- public/data/dataset.json <reconciliation-report.json> <codex-catalog.json>
-npm run data:release-gate -- public/data/dataset.json <reconciliation-report.json> <codex-catalog.json>
+npm run data:release-gate -- public/data/dataset.json <reconciliation-report.json> <codex-catalog.json> <mastery-evidence.json> <mastery.json>
 ```
 
 `collect-codex-catalog.mjs`는 Cooking과 Alchemy 각각에 대해 구성된 endpoint에서 recipe-specific ID를 추출합니다. endpoint의 `recordsTotal`이 unique recipe-id 수와 일치하거나 별도의 `--expected-counts` 증거가 일치해야 해당 skill을 `complete=true`로 표시합니다. product-scoped/부분 endpoint나 단순 non-empty 응답은 complete catalog 증거가 아닙니다. promotion과 최종 release gate는 complete catalog의 총 recipe page 수와 정확한 recipe-id set이 reconciliation report와 일치하는지 다시 검증합니다.
 
 `data:icons`는 dataset이 참조하는 canonical `icons/<itemId>.webp`만 설치하며, extractor output에서 필요한 icon 하나라도 빠져 있으면 실패합니다. source DDS 경로를 브라우저 asset 경로로 취급하지 않습니다.
 
-`data:promote`는 `ZERO_UNEXPLAINED_DIFF`, 독립 Codex catalog completeness, Cooking/Alchemy count 일치, 한국어 이름과 아이콘 해소를 확인한 뒤에만 `COMPLETE_VERIFIED` 상태와 새 fingerprint를 기록합니다. 그 다음 `data:release-gate`가 결과와 catalog evidence를 독립적으로 다시 검증합니다. 둘 중 하나라도 통과하지 않은 dataset은 릴리스 데이터가 아닙니다.
+`data:promote`는 `ZERO_UNEXPLAINED_DIFF`, 독립 Codex catalog completeness, Cooking/Alchemy count 일치, 한국어 이름과 아이콘 해소를 확인한 뒤에만 `COMPLETE_VERIFIED` 상태와 새 fingerprint를 기록합니다. 그 다음 `data:release-gate`가 결과와 catalog evidence를 독립적으로 다시 검증하고 production mastery evidence의 semantic cross-check PASS와 exact snapshot binding까지 요구합니다. 어느 하나라도 통과하지 않은 dataset은 릴리스 데이터가 아닙니다.
 
-현재 검토한 extractor 계약과 획득 경로는 `docs/EXTRACTOR-CONTRACT.md`, 전체 completeness 규칙은 `docs/DATA-COMPLETENESS.md`를 참고하세요.
+현재 검토한 extractor 계약과 획득 경로는 `docs/EXTRACTOR-CONTRACT.md`, 전체 completeness 규칙은 `docs/DATA-COMPLETENESS.md`, 숙련도 증거 규칙은 `docs/MASTERY_DATA_POLICY.md`를 참고하세요.
 
 ## 현재 릴리스 상태
 
-아직 PROGRAM_COMPLETE가 아닙니다. 현재 저장소의 sample 데이터는 계산 엔진/레이아웃 검증용이며, exhaustive live-client Cooking/Alchemy dataset이 위 gate를 통과하기 전에는 실제 릴리스를 허용하지 않습니다.
+아직 PROGRAM_COMPLETE가 아닙니다. 현재 저장소의 sample 데이터는 계산 엔진/레이아웃 검증용이며, exhaustive live-client Cooking/Alchemy dataset과 production mastery cross-check가 위 gate를 통과하기 전에는 실제 릴리스를 허용하지 않습니다.
