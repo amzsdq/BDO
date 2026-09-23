@@ -55,6 +55,8 @@ The currently documented extractor CLI localization flag is not Korean-first. St
 
 BDO Codex category pages currently render the table shell and report "Loading data from server"; the complete row set is not present in the static category HTML. A bulk collector must identify/use the site's data/query route or another controlled enumeration path. Search-engine discovery of individual pages is useful evidence but is not a completeness proof.
 
+Independent implementations confirm a JSON recipe transport of the form `https://bdocodex.com/query.php?a=recipes&type=product&item_id=<id>&l=<locale>`. That route is explicitly product/item scoped: it can retrieve recipes associated with one item, but its row count and ID set cannot establish the complete Cooking or Alchemy catalog. It must never be supplied to the completeness collector as catalog evidence. The complete skill-scoped transport/count remains unverified.
+
 Once recipe detail URLs are enumerated, their linked item IDs provide a deterministic bridge back to the client graph; the remaining hard problem is exhaustive enumeration, not entity identity.
 
 ## Licensing / provenance

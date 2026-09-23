@@ -24,6 +24,8 @@ Codex recipe-page IDs are provenance identifiers, not canonical recipe identity:
 
 Catalog acquisition itself is fail-closed. A generic JSON `id` field is not accepted as recipe identity because the same payload may contain item, category, row, or other identifiers. Automated catalog evidence must expose a recipe-specific id field or canonical `/kr/recipe/<id>/` URL, and a non-empty list alone never proves pagination completeness.
 
+For automated JSON collection, a candidate URL must remain on HTTPS BDO Codex after redirects, use the known `query.php?a=recipes` recipe transport, bind the requested Cooking/Alchemy scope explicitly, and must not be an item/product-scoped transport (`item_id` or `type=product`). Merely being hosted by BDO Codex or returning recipe-shaped rows is not completeness evidence. The exact complete-catalog transport still requires independent verification before production use.
+
 The release pipeline requires an independently complete catalog artifact for both Cooking and Alchemy. Each skill entry must record the endpoint/evidence used, a positive independently supported recipe count, and the exact unique recipe-page ID set. The reconciliation report must cover the same total page count and the same recipe-page ID set. A partial manifest that agrees with itself is not completeness proof.
 
 ### 3. Secondary community cross-check
