@@ -4,14 +4,27 @@ import { assertMasteryCurvesMatch } from './mastery-crosscheck.mjs'
 import { loadRuntimeMasteryRows } from './load-runtime-mastery.mjs'
 
 function fail(message) { throw new Error(message) }
-function arg(name) { const index = process.argv.indexOf(`--${name}`); return index >= 0 ? process.argv[index + 1] : undefined }
+function parseArgs(args) {
+  const allowed = new Set(['--mastery', '--out', '--source-revision', '--client-fingerprint', '--extracted-at'])
+  const parsed = new Map()
+  for (let index = 0; index < args.length; index += 2) {
+    const flag = args[index]
+    const value = args[index + 1]
+    if (!allowed.has(flag)) fail(`unknown argument: ${flag || 'missing'}`)
+    if (parsed.has(flag)) fail(`duplicate argument: ${flag}`)
+    if (value == null || value.startsWith('--')) fail(`missing value for ${flag}`)
+    parsed.set(flag, value)
+  }
+  return parsed
+}
 function sha256(bytes) { return crypto.createHash('sha256').update(bytes).digest('hex') }
 
-const masteryPath = arg('mastery')
-const outPath = arg('out')
-const sourceRevision = String(arg('source-revision') || '').trim()
-const clientFingerprint = String(arg('client-fingerprint') || '').trim()
-const extractedAt = String(arg('extracted-at') || '').trim()
+const args = parseArgs(process.argv.slice(2))
+const masteryPath = args.get('--mastery')
+const outPath = args.get('--out')
+const sourceRevision = String(args.get('--source-revision') || '').trim()
+const clientFingerprint = String(args.get('--client-fingerprint') || '').trim()
+const extractedAt = String(args.get('--extracted-at') || '').trim()
 if (!masteryPath || !outPath || !sourceRevision || !clientFingerprint || !extractedAt) {
   fail('required: --mastery <mastery.json> --out <evidence.json> --source-revision <tag-or-sha> --client-fingerprint <fingerprint> --extracted-at <timestamp>')
 }
