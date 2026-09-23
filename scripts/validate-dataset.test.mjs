@@ -36,18 +36,27 @@ describe('canonical dataset validator', () => {
     expect(JSON.parse(result.stdout).ok).toBe(true)
   })
 
-  it('accepts source-backed substitution membership', () => {
+  it('accepts source-backed substitution membership with complete Worth evidence', () => {
     const dataset = validDataset()
-    dataset.substitutionGroups = { 'codex:6502': { id: 'codex:6502', memberItemIds: [20, 21], source: { provider: 'BDO Codex KR', sourceId: '6502', verifiedAt: '2026-09-23' } } }
+    dataset.substitutionGroups = { 'codex:6502': { id: 'codex:6502', memberItemIds: [20, 21], memberValueByItemId: { '20': 1, '21': 2 }, source: { provider: 'BDO Codex KR', sourceId: '6502', verifiedAt: '2026-09-23' } } }
     dataset.recipes.cook.variants[0].inputs[0].substitutionGroupId = 'codex:6502'
     const result = run(dataset)
     expect(result.status).toBe(0)
     expect(JSON.parse(result.stdout).substitutionGroups).toBe(1)
   })
 
+  it('rejects incomplete Codex Worth evidence', () => {
+    const dataset = validDataset()
+    dataset.substitutionGroups = { 'codex:6502': { id: 'codex:6502', memberItemIds: [20, 21], memberValueByItemId: { '20': 1 }, source: { provider: 'BDO Codex KR', sourceId: '6502', verifiedAt: '2026-09-23' } } }
+    dataset.recipes.cook.variants[0].inputs[0].substitutionGroupId = 'codex:6502'
+    const result = run(dataset)
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('Worth map must cover exactly the substitution members')
+  })
+
   it('rejects unknown or inconsistent substitution evidence', () => {
     const dataset = validDataset()
-    dataset.substitutionGroups = { 'codex:6502': { id: 'codex:6502', memberItemIds: [21, 999], source: { provider: 'BDO Codex KR', sourceId: '6502', verifiedAt: 'bad-date' } } }
+    dataset.substitutionGroups = { 'codex:6502': { id: 'codex:6502', memberItemIds: [21, 999], memberValueByItemId: { '21': 1, '999': 1 }, source: { provider: 'BDO Codex KR', sourceId: '6502', verifiedAt: 'bad-date' } } }
     dataset.recipes.cook.variants[0].inputs[0].substitutionGroupId = 'codex:6502'
     const result = run(dataset)
     expect(result.status).toBe(1)

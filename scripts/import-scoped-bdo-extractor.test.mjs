@@ -20,7 +20,7 @@ describe('scoped canonical extractor import', () => {
     execFileSync(process.execPath, [resolve('scripts/import-scoped-bdo-extractor.mjs'), '--items', itemsPath, '--recipes', recipesPath, '--out', outPath, '--source-revision', 'test'])
     const dataset = JSON.parse(readFileSync(outPath, 'utf8'))
     expect(Object.keys(dataset.items)).toEqual(['100', '101', '200'])
-    expect(dataset.metadata.itemScope).toBe('planner-referenced-cooking-alchemy-v1')
+    expect(dataset.metadata.itemScope).toBe('planner-referenced-cooking-alchemy-v2')
     expect(dataset.metadata.importedItemCount).toBe(4)
     expect(dataset.metadata.scopedItemCount).toBe(3)
     expect(dataset.metadata.fingerprint).toBeUndefined()

@@ -11,14 +11,25 @@ export interface ResolveIngredientChoiceOptions {
   ownedByItemId?: Readonly<Record<string, number>>
 }
 
-/**
- * Resolve one recipe slot without inventing equivalence.
- * - exact slots always stay exact;
- * - grouped slots accept only explicitly sourced group members;
- * - explicit user choice wins;
- * - otherwise prefer a member with enough owned stock, then highest owned stock;
- * - quantity is never reduced merely because a substitute is higher grade.
- */
+function sourcedValue(group: IngredientSubstitutionGroup, itemId: ItemId): number | undefined {
+  const rawValue = group.memberValueByItemId?.[String(itemId)]
+  if (rawValue == null) return undefined
+  const value = Number(rawValue)
+  if (!Number.isFinite(value) || value <= 0) throw new Error(`invalid substitution value for item ${itemId} in group ${group.id}`)
+  return value
+}
+
+function requiredCount(group: IngredientSubstitutionGroup, canonicalItemId: ItemId, selectedItemId: ItemId, canonicalCount: number): number {
+  if (!group.memberValueByItemId) return canonicalCount
+  const canonicalValue = sourcedValue(group, canonicalItemId)
+  const selectedValue = sourcedValue(group, selectedItemId)
+  if (canonicalValue == null || selectedValue == null) {
+    throw new Error(`missing substitution value in sourced group ${group.id}`)
+  }
+  return Math.ceil((canonicalCount * canonicalValue) / selectedValue)
+}
+
+/** Resolve one recipe slot using only source-backed group membership and Worth. */
 export function resolveIngredientChoice(
   ingredient: IngredientChoice,
   groups: Readonly<Record<string, IngredientSubstitutionGroup>>,
@@ -42,13 +53,18 @@ export function resolveIngredientChoice(
     if (!members.includes(options.selectedItemId)) {
       throw new Error(`item ${options.selectedItemId} is not a member of substitution group ${group.id}`)
     }
-    return { itemId: options.selectedItemId, count: ingredient.count, usedSubstitution: options.selectedItemId !== ingredient.itemId }
+    return {
+      itemId: options.selectedItemId,
+      count: requiredCount(group, ingredient.itemId, options.selectedItemId, ingredient.count),
+      usedSubstitution: options.selectedItemId !== ingredient.itemId,
+    }
   }
 
   const owned = options.ownedByItemId ?? {}
   const ranked = members
-    .map((itemId) => ({ itemId, owned: Math.max(0, Number(owned[String(itemId)]) || 0) }))
-    .sort((a, b) => Number(b.owned >= ingredient.count) - Number(a.owned >= ingredient.count) || b.owned - a.owned || a.itemId - b.itemId)
-  const chosen = ranked[0]?.owned ? ranked[0].itemId : ingredient.itemId
-  return { itemId: chosen, count: ingredient.count, usedSubstitution: chosen !== ingredient.itemId }
+    .map((itemId) => ({ itemId, required: requiredCount(group, ingredient.itemId, itemId, ingredient.count), owned: Math.max(0, Number(owned[String(itemId)]) || 0) }))
+    .sort((a, b) => Number(b.owned >= b.required) - Number(a.owned >= a.required) || (b.owned / b.required) - (a.owned / a.required) || a.itemId - b.itemId)
+  const chosen = ranked[0]?.owned ? ranked[0] : ranked.find((entry) => entry.itemId === ingredient.itemId)
+  const itemId = chosen?.itemId ?? ingredient.itemId
+  return { itemId, count: requiredCount(group, ingredient.itemId, itemId, ingredient.count), usedSubstitution: itemId !== ingredient.itemId }
 }
