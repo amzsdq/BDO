@@ -15,6 +15,10 @@ export const sampleDataset: RecipeDataset = {
       id: 900002,
       nameKo: '샘플 재료',
     },
+    '900003': {
+      id: 900003,
+      nameKo: '샘플 연금',
+    },
   },
   recipes: {
     'sample-cooking': {
@@ -29,8 +33,21 @@ export const sampleDataset: RecipeDataset = {
         },
       ],
     },
+    'sample-alchemy': {
+      id: 'sample-alchemy',
+      skill: 'alchemy',
+      outputItemId: 900003,
+      yield: { min: 1, max: 1 },
+      variants: [
+        {
+          id: 'default',
+          inputs: [{ itemId: 900002, count: 2 }],
+        },
+      ],
+    },
   },
   recipesByOutput: {
     '900001': ['sample-cooking'],
+    '900003': ['sample-alchemy'],
   },
 }
