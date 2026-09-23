@@ -41,6 +41,13 @@ describe('restorePlanSession', () => {
     if (!result.restored) expect(result.errors[0]).toContain('덮어쓰지 않습니다')
   })
 
+  it('keeps a newer persisted version in recovery instead of treating it as first run', () => {
+    const storage: Pick<Storage, 'getItem'> = { getItem: () => JSON.stringify({ version: 2, targets: [] }) }
+    const result = restorePlanSession(sampleDataset, storage)
+    expect(result).toMatchObject({ restored: false, reason: 'unsupported-version' })
+    if (!result.restored) expect(result.errors[0]).toContain('v2')
+  })
+
   it('fails closed when the storage backend itself throws', () => {
     const storage: Pick<Storage, 'getItem'> = { getItem: () => { throw new Error('storage unavailable') } }
     expect(restorePlanSession(sampleDataset, storage)).toMatchObject({ restored: false, reason: 'invalid-storage' })
