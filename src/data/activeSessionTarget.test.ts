@@ -36,6 +36,16 @@ describe('active session target bridge', () => {
     expect(next.targets[1]).toEqual(session.targets[1])
   })
 
+  it('clears durability-only policy when the active target changes to another mode', () => {
+    const durability: PlanSessionState = {
+      ...session,
+      targets: [{ recipeId: 'a', mode: 'durability', amount: 100, cookingPreparationPolicy: 'safe95' }, session.targets[1]!],
+    }
+    const next = updateActiveSessionTarget(durability, 0, { mode: 'servings' })
+    expect(next.targets[0]).toEqual({ recipeId: 'a', mode: 'servings', amount: 100 })
+    expect(next.targets[1]).toEqual(session.targets[1])
+  })
+
   it('fails closed on stale recipe or variant references', () => {
     expect(activeSessionTarget(dataset, { ...session, targets: [{ ...session.targets[0]!, recipeId: 'missing' }] }, 0)).toBeUndefined()
     expect(activeSessionTarget(dataset, { ...session, targets: [{ ...session.targets[0]!, variantId: 'missing' }] }, 0)).toBeUndefined()
