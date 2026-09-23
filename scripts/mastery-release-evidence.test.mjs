@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest'
-import { assertMasteryReleaseEvidence, validateMasteryReleaseEvidence } from './mastery-release-evidence.mjs'
+import { assertMasteryReleaseEvidence, masterySnapshotSha256, validateMasteryReleaseEvidence } from './mastery-release-evidence.mjs'
 
+const masteryBytes = Buffer.from('{"cooking":[],"alchemy":[]}')
 function validEvidence() {
   return {
     schemaVersion: 1,
     releaseReady: true,
     semanticRateMapping: 'VERIFIED',
     crossCheck: { pass: true, cooking: { pass: true }, alchemy: { pass: true } },
-    masterySha256: 'a'.repeat(64),
+    masterySha256: masterySnapshotSha256(masteryBytes),
     sourceRevision: 'v0.1.9@5bf11bd',
     clientFingerprint: 'client-abc',
     extractedAt: '2026-09-23T00:00:00Z',
@@ -15,8 +16,8 @@ function validEvidence() {
 }
 
 describe('mastery release evidence', () => {
-  it('accepts only a provenance-bound two-skill cross-check pass', () => {
-    expect(validateMasteryReleaseEvidence(validEvidence())).toEqual({ ok: true, errors: [] })
+  it('accepts only a provenance-bound two-skill cross-check pass for the exact client snapshot', () => {
+    expect(validateMasteryReleaseEvidence(validEvidence(), masteryBytes)).toEqual({ ok: true, errors: [] })
   })
 
   it.each([
@@ -28,12 +29,16 @@ describe('mastery release evidence', () => {
   ])('fails closed when %s is invalid', (field, value, message) => {
     const evidence = validEvidence()
     evidence[field] = value
-    expect(() => assertMasteryReleaseEvidence(evidence)).toThrow(message)
+    expect(() => assertMasteryReleaseEvidence(evidence, masteryBytes)).toThrow(message)
   })
 
   it('requires both skill cross-checks even if the aggregate flag claims pass', () => {
     const evidence = validEvidence()
     evidence.crossCheck.alchemy.pass = false
-    expect(() => assertMasteryReleaseEvidence(evidence)).toThrow(/both skills/)
+    expect(() => assertMasteryReleaseEvidence(evidence, masteryBytes)).toThrow(/both skills/)
+  })
+
+  it('rejects a valid-looking evidence envelope copied onto different mastery.json bytes', () => {
+    expect(() => assertMasteryReleaseEvidence(validEvidence(), Buffer.from('{"tampered":true}'))).toThrow(/different client snapshot bytes/)
   })
 })
