@@ -44,7 +44,8 @@ async function collectCatalog(catalog) {
     if (!finalValidation.ok) throw new Error(`Configured catalog endpoint redirected to invalid scope: ${finalValidation.reason}`)
     let parsed
     try { parsed = JSON.parse(response.text) } catch { throw new Error(`Configured endpoint did not return JSON: ${endpointUsed}`) }
-    ids = recipeIdsFromJson(parsed)
+    // Positional aaData[0] identities are accepted only after both configured and final endpoints pass the skill-scoped, non-product endpoint validator.
+    ids = recipeIdsFromJson(parsed, { allowCodexAaData: endpointValidation.ok && finalValidation.ok })
     endpointEvidence = {
       topLevelKeys: parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? Object.keys(parsed).sort() : [],
       recordsReported: Number.isSafeInteger(Number(parsed?.recordsTotal)) ? Number(parsed.recordsTotal) : null,
