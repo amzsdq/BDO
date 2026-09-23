@@ -3,17 +3,19 @@ import { exportPlannerState, importPlannerState, readCharacterProfile, readChara
 import { writePlanSession } from './planSession'
 
 function memoryStorage() { let value: string | null = null; return { getItem: () => value, setItem: (_key: string, next: string) => { value = next } } }
-function mapStorage(initial: Record<string, string> = {}, failOnSetKey?: string): Storage {
+function mapStorage(initial: Record<string, string> = {}, failOnceOnSetKey?: string): Storage {
   const values = new Map(Object.entries(initial))
+  let failed = false
   return {
     get length() { return values.size },
     clear: () => values.clear(),
     getItem: (key) => values.get(key) ?? null,
     key: (index) => [...values.keys()][index] ?? null,
     removeItem: (key) => { values.delete(key) },
-    setItem: (key, value) => { if (key === failOnSetKey) throw new Error('quota'); values.set(key, value) },
+    setItem: (key, value) => { if (key === failOnceOnSetKey && !failed) { failed = true; throw new Error('quota') } values.set(key, value) },
   }
 }
+const emptyPlanSession = { version: 1 as const, targets: [], craftIntermediateItemIds: [], intermediateRecipeIdByItemId: {}, variantIdByRecipeId: {}, selectedSubstitutionItemIdByGroupId: {} }
 
 describe('checklist persistence', () => {
   it('round-trips valid item completion state', () => { const storage = memoryStorage(); writeChecklist({ '100': true, '200': false }, storage); expect(readChecklist(storage)).toEqual({ '100': true, '200': false }) })
@@ -36,7 +38,7 @@ describe('planner state import', () => {
     writeChecklist({ '100': true }, source)
     writeInventory({ '100': 12 }, source)
     writeCharacterProfile({ maxWeightLT: 2000, cookingMastery: 1500 }, source)
-    writePlanSession({ version: 1, targets: [{ recipeId: 10, mode: 'attempts', amount: 25, variantId: 10 }], activeTargetIndex: 0, craftIntermediates: [], recipeChoices: {} }, source)
+    writePlanSession({ ...emptyPlanSession, targets: [{ recipeId: '10', mode: 'servings', amount: 25 }] }, source)
     const bundle = exportPlannerState(source, '2026-09-24T00:00:00.000Z')
     const target = mapStorage()
     expect(importPlannerState(bundle, target)).toEqual(bundle)
@@ -48,7 +50,7 @@ describe('planner state import', () => {
       'bdo-planner:checklist:v1': JSON.stringify({ '1': true }),
       'bdo-planner:inventory:v1': JSON.stringify({ '1': 3 }),
       'bdo-planner:character-profile:v1': JSON.stringify({ maxWeightLT: 1000 }),
-      'bdo-planner:plan-session:v1': JSON.stringify({ version: 1, targets: [], activeTargetIndex: 0, craftIntermediates: [], recipeChoices: {} }),
+      'bdo-planner:plan-session:v1': JSON.stringify(emptyPlanSession),
     }
     const target = mapStorage(initial, 'bdo-planner:character-profile:v1')
     const bundle = {
@@ -57,7 +59,7 @@ describe('planner state import', () => {
       checklist: { '2': true },
       inventory: { '2': 9 },
       characterProfile: { maxWeightLT: 2000 },
-      planSession: { version: 1 as const, targets: [], activeTargetIndex: 0, craftIntermediates: [], recipeChoices: {} },
+      planSession: emptyPlanSession,
     }
     expect(() => importPlannerState(bundle, target)).toThrow('quota')
     for (const [key, value] of Object.entries(initial)) expect(target.getItem(key)).toBe(value)
