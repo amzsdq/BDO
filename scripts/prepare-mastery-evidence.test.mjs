@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -15,6 +15,9 @@ function run(payload) {
   fs.writeFileSync(mastery, JSON.stringify(payload))
   execFileSync(process.execPath, ['scripts/prepare-mastery-evidence.mjs', '--mastery', mastery, '--out', out, '--source-revision', 'v0.1.9@5bf11bd', '--client-fingerprint', 'client-abc', '--extracted-at', '2026-09-23T00:00:00Z'])
   return JSON.parse(fs.readFileSync(out, 'utf8'))
+}
+function runArgs(args) {
+  return spawnSync(process.execPath, ['scripts/prepare-mastery-evidence.mjs', ...args], { cwd: process.cwd(), encoding: 'utf8' })
 }
 
 async function matchingClientFixture() {
@@ -48,5 +51,15 @@ describe('production mastery evidence envelope', () => {
   it('rejects malformed breakpoint/rate structure before semantic promotion', () => {
     expect(() => run({ cooking: curve(4), alchemy: curve(9) })).toThrow()
     expect(() => run({ cooking: curve(5).slice(1), alchemy: curve(9) })).toThrow()
+  })
+
+  it.each([
+    [['--bogus', 'value'], 'unknown argument: --bogus'],
+    [['--mastery', 'a', '--mastery', 'b'], 'duplicate argument: --mastery'],
+    [['--mastery', '--out', 'evidence.json'], 'missing value for --mastery'],
+  ])('fails closed on malformed CLI arguments %#', (args, message) => {
+    const result = runArgs(args)
+    expect(result.status).not.toBe(0)
+    expect(result.stderr).toContain(message)
   })
 })
