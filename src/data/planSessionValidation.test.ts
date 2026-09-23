@@ -18,15 +18,17 @@ describe('plan session dataset validation', () => {
     expect(result.errors[0]).toContain('unknown target recipe')
   })
 
-  it('rejects Cooking-only preparation policy on an Alchemy recipe', () => {
-    const dataset = structuredClone(sampleDataset)
-    dataset.recipes['sample-cooking'].skill = 'alchemy'
-    const value = session()
-    value.targets[0].mode = 'durability'
-    value.targets[0].cookingPreparationPolicy = 'safe95'
-    const result = validatePlanSessionAgainstDataset(dataset, value)
-    expect(result.valid).toBe(false)
-    expect(result.errors[0]).toContain('non-Cooking')
+  it('requires Cooking durability policy and rejects it outside Cooking durability', () => {
+    const missing = session()
+    missing.targets[0].mode = 'durability'
+    expect(validatePlanSessionAgainstDataset(sampleDataset, missing).errors[0]).toContain('missing preparation policy')
+
+    const alchemyDataset = structuredClone(sampleDataset)
+    alchemyDataset.recipes['sample-cooking'].skill = 'alchemy'
+    const misplaced = session()
+    misplaced.targets[0].mode = 'durability'
+    misplaced.targets[0].cookingPreparationPolicy = 'safe95'
+    expect(validatePlanSessionAgainstDataset(alchemyDataset, misplaced).errors[0]).toContain('outside Cooking durability')
   })
 
   it('validates persisted substitution choices against source-backed group membership', () => {
