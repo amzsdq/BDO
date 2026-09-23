@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest'
+import { forecastCookingMaterialServings } from './mastery'
 import { MASS_COOKING_EXTRA_SERVINGS, MASS_COOKING_MECHANICS } from './massCookingMechanics'
 
 describe('Mass Cooking first-party mechanics evidence', () => {
@@ -14,5 +15,14 @@ describe('Mass Cooking first-party mechanics evidence', () => {
     expect(MASS_COOKING_MECHANICS.source.region).toBe('KR')
     expect(MASS_COOKING_MECHANICS.source.sourceUrl).toContain('wikiNo=102')
     expect(MASS_COOKING_MECHANICS.source.verifiedAt).toBe('2026-09-23')
+  })
+
+  it('keeps the durability forecast consistent with the sourced multiplier at 100% Mass Cooking', () => {
+    const durabilityUses = 37
+    const forecast = forecastCookingMaterialServings(durabilityUses, 2000)!
+    expect(forecast.massCookingProbability).toBe(1)
+    expect(forecast.expectedServings).toBe(durabilityUses * MASS_COOKING_MECHANICS.servingsPerActivation)
+    expect(forecast.safe95Servings).toBe(durabilityUses * MASS_COOKING_MECHANICS.servingsPerActivation)
+    expect(forecast.maximumServings).toBe(durabilityUses * MASS_COOKING_MECHANICS.servingsPerActivation)
   })
 })
