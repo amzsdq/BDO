@@ -13,12 +13,7 @@ export interface RuntimeDataset {
 function looksLikeDataset(value: unknown): value is RecipeDataset {
   if (!value || typeof value !== 'object') return false
   const candidate = value as Partial<RecipeDataset>
-  return Boolean(
-    candidate.items &&
-    candidate.recipes &&
-    candidate.recipesByOutput &&
-    candidate.metadata?.supportedRegion === 'KR',
-  )
+  return Boolean(candidate.items && candidate.recipes && candidate.recipesByOutput && candidate.metadata?.supportedRegion === 'KR')
 }
 
 export async function loadRuntimeDataset(): Promise<RuntimeDataset> {
@@ -28,7 +23,7 @@ export async function loadRuntimeDataset(): Promise<RuntimeDataset> {
     const candidate: unknown = await response.json()
     if (!looksLikeDataset(candidate)) throw new Error('invalid dataset shape')
 
-    const verified = hasRuntimeVerifiedEvidence(candidate)
+    const verified = await hasRuntimeVerifiedEvidence(candidate)
     return {
       dataset: candidate,
       mode: verified ? 'verified' : 'imported-unreconciled',

@@ -8,13 +8,17 @@ interface ReleaseMetadata {
   counts?: { cooking?: number; alchemy?: number }
 }
 
-/**
- * Runtime display gate for the green "verified" state. This is intentionally
- * stricter than trusting metadata.status alone. The build-time release gate is
- * still authoritative; this prevents a stale/partially copied artifact from
- * presenting itself as complete merely because it retained one status string.
- */
-export function hasRuntimeVerifiedEvidence(dataset: RecipeDataset): boolean {
+async function payloadFingerprint(dataset: RecipeDataset): Promise<string | undefined> {
+  if (!globalThis.crypto?.subtle) return undefined
+  const clone = JSON.parse(JSON.stringify(dataset)) as RecipeDataset
+  delete (clone.metadata as RecipeDataset['metadata'] & ReleaseMetadata).fingerprint
+  const bytes = new TextEncoder().encode(JSON.stringify(clone))
+  const digest = await globalThis.crypto.subtle.digest('SHA-256', bytes)
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
+}
+
+/** Runtime display gate for the green verified state, including payload-integrity verification. */
+export async function hasRuntimeVerifiedEvidence(dataset: RecipeDataset): Promise<boolean> {
   const metadata = dataset.metadata as RecipeDataset['metadata'] & ReleaseMetadata
   if (metadata.supportedRegion !== 'KR') return false
   if (metadata.status !== 'COMPLETE_VERIFIED' || metadata.reconciliationStatus !== 'ZERO_UNEXPLAINED_DIFF') return false
@@ -30,5 +34,7 @@ export function hasRuntimeVerifiedEvidence(dataset: RecipeDataset): boolean {
     if (!String(item.nameKo || '').trim() || /^아이템 #\d+$/.test(String(item.nameKo))) return false
     if (!item.iconPath && !item.iconUrl) return false
   }
-  return true
+
+  const actualFingerprint = await payloadFingerprint(dataset)
+  return actualFingerprint === metadata.fingerprint
 }
