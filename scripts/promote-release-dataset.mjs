@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import path from 'node:path'
 import crypto from 'node:crypto'
 import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.mjs'
 import { validateResolvedCatalogEndpoint } from './codex-catalog-endpoint.mjs'
@@ -50,6 +51,9 @@ if (!counts.cooking || !counts.alchemy) fail('both Cooking and Alchemy coverage 
 if (dataset.metadata?.counts?.cooking !== counts.cooking || dataset.metadata?.counts?.alchemy !== counts.alchemy) fail('metadata recipe counts do not match dataset')
 const missingCanonicalIconPaths = Object.values(items).filter((item) => item.iconPath !== `icons/${item.id}.webp`)
 if (missingCanonicalIconPaths.length) fail(`${missingCanonicalIconPaths.length} items lack canonical local icon paths; first ids: ${missingCanonicalIconPaths.slice(0, 20).map((item) => item.id).join(', ')}`)
+const localIconRoot = path.resolve(path.dirname(datasetFile), '..')
+const missingLocalIcons = Object.values(items).filter((item) => !fs.existsSync(path.resolve(localIconRoot, item.iconPath)))
+if (missingLocalIcons.length) fail(`${missingLocalIcons.length} canonical local icon assets are missing; first ids: ${missingLocalIcons.slice(0, 20).map((item) => item.id).join(', ')}`)
 const unresolvedNames = Object.values(items).filter((item) => !String(item.nameKo || '').trim() || /^아이템 #\d+$/.test(String(item.nameKo)))
 if (unresolvedNames.length) fail(`${unresolvedNames.length} items have unresolved Korean names`)
 const promoted = { ...dataset, metadata: { ...dataset.metadata, status: 'COMPLETE_VERIFIED', counts, verifiedAt: new Date().toISOString(), reconciliationStatus: 'ZERO_UNEXPLAINED_DIFF', codexCatalogPages } }
