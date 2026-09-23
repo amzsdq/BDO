@@ -2,11 +2,11 @@ import type { Item, RecipeVariant } from './types'
 
 export interface CarryProfile { maxWeightLT: number; reservedWeightLT?: number }
 export interface BatchLine { itemId: number; countPerServing: number; countToCarry: number; weightPerItemLT: number; weightToCarryLT: number }
-export interface BatchCapacity { availableWeightLT: number; ingredientWeightPerServingLT?: number; maxServings?: number; totalStartingIngredientWeightLT?: number; lines: BatchLine[]; unknownWeightItemIds: number[]; warnings: string[] }
+export interface BatchCapacity { availableWeightLT: number; ingredientWeightPerServingLT?: number; maxServings?: number; loadServings?: number; totalStartingIngredientWeightLT?: number; lines: BatchLine[]; unknownWeightItemIds: number[]; warnings: string[] }
 
 function finiteNonNegative(value: number | undefined): number { return Number.isFinite(value) && (value ?? 0) >= 0 ? value! : 0 }
 
-/** Exact starting ingredient load only; output/byproduct peak weight is separate. */
+/** Exact starting ingredient math. `totalStartingIngredientWeightLT` covers the requested work; carry lines describe one capacity-safe trip/load. */
 export function calculateBatchCapacity(
   variant: RecipeVariant,
   items: Readonly<Record<string, Item>>,
@@ -33,12 +33,13 @@ export function calculateBatchCapacity(
     return { availableWeightLT, ingredientWeightPerServingLT, lines: [], unknownWeightItemIds: [], warnings }
   }
   const maxServings = Math.floor(availableWeightLT / ingredientWeightPerServingLT)
-  const servingsToLoad = requestedServings == null ? maxServings : Math.max(0, Math.floor(requestedServings))
-  if (servingsToLoad > maxServings) warnings.push(`요청한 ${servingsToLoad}회분은 현재 가용 무게에서 한 번에 들 수 없습니다. 최대 ${maxServings}회분입니다.`)
+  const requested = requestedServings == null ? maxServings : Math.max(0, Math.floor(requestedServings))
+  const loadServings = Math.min(requested, maxServings)
+  if (requested > maxServings) warnings.push(`요청한 ${requested}회분은 현재 가용 무게에서 한 번에 들 수 없습니다. 아래 휴대 수량은 최대 ${maxServings}회분 기준입니다.`)
   const lines = variant.inputs.map((input) => {
     const weightPerItemLT = items[String(input.itemId)]!.weightLT!
-    const countToCarry = input.count * servingsToLoad
+    const countToCarry = input.count * loadServings
     return { itemId: input.itemId, countPerServing: input.count, countToCarry, weightPerItemLT, weightToCarryLT: weightPerItemLT * countToCarry }
   })
-  return { availableWeightLT, ingredientWeightPerServingLT, maxServings, totalStartingIngredientWeightLT: ingredientWeightPerServingLT * servingsToLoad, lines, unknownWeightItemIds: [], warnings }
+  return { availableWeightLT, ingredientWeightPerServingLT, maxServings, loadServings, totalStartingIngredientWeightLT: ingredientWeightPerServingLT * requested, lines, unknownWeightItemIds: [], warnings }
 }
