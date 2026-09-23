@@ -1,5 +1,6 @@
 import type { RecipeDataset } from './domain/types'
 import type { PlanSessionState } from './data/planSession'
+import { ItemIcon } from './ItemIcon'
 import './PlanTargetList.css'
 
 export interface PlanTargetListProps {
@@ -30,7 +31,8 @@ export function PlanTargetList({ dataset, session, activeIndex, onSelect, onAdd,
         const label = item?.nameKo ?? `목표 ${index + 1}`
         return <div role="listitem" key={`${index}:${target.recipeId}`} className="target-chip">
           <button type="button" aria-pressed={index === activeIndex} onClick={() => onSelect(index)}>
-            {label} · {target.amount.toLocaleString()}
+            <ItemIcon item={item} />
+            <span>{label} · {target.amount.toLocaleString()}</span>
           </button>
           {session.targets.length > 1 && <button type="button" aria-label={`${label} 목표 제거`} onClick={() => onRemove(index)}>×</button>}
         </div>
