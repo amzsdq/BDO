@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import type { Dispatch, SetStateAction } from 'react'
 import type { PlannerBootstrap } from './data/plannerBootstrap'
 import { writePlanSession, type PlanSessionState } from './data/planSession'
 import { writeCharacterProfile, writeChecklist, writeInventory, type CharacterProfileState, type ChecklistState, type InventoryState } from './data/storage'
@@ -9,13 +10,13 @@ type ReadyBootstrap = Omit<PlannerBootstrap, 'hydration'> & {
 
 export interface ReadyPlannerState {
   session: PlanSessionState
-  setSession: React.Dispatch<React.SetStateAction<PlanSessionState>>
+  setSession: Dispatch<SetStateAction<PlanSessionState>>
   checklist: ChecklistState
-  setChecklist: React.Dispatch<React.SetStateAction<ChecklistState>>
+  setChecklist: Dispatch<SetStateAction<ChecklistState>>
   inventory: InventoryState
-  setInventory: React.Dispatch<React.SetStateAction<InventoryState>>
+  setInventory: Dispatch<SetStateAction<InventoryState>>
   profile: CharacterProfileState
-  setProfile: React.Dispatch<React.SetStateAction<CharacterProfileState>>
+  setProfile: Dispatch<SetStateAction<CharacterProfileState>>
 }
 
 /**
