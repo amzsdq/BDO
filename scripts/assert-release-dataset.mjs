@@ -6,6 +6,7 @@ import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.m
 
 function fail(message) { console.error(`release blocked: ${message}`); process.exit(1) }
 function fingerprint(value) { return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex') }
+function sortedIds(values) { return [...new Set(values.map(Number).filter((id) => Number.isSafeInteger(id) && id > 0))].sort((a, b) => a - b) }
 const [file, reconciliationFile, catalogFile] = process.argv.slice(2)
 if (!file) fail('usage: node scripts/assert-release-dataset.mjs <dataset.json> <reconciliation-report.json> <codex-catalog.json>')
 if (!fs.existsSync(file)) fail(`dataset not found: ${file}`)
@@ -46,7 +47,11 @@ for (const skill of ['cooking', 'alchemy']) {
   const entry = catalogBySkill.get(skill)
   if (!entry || entry.complete !== true || !Number.isSafeInteger(entry.recipeCount) || entry.recipeCount <= 0) fail(`Codex ${skill} catalog completeness is not proven`)
   if (!entry.endpointUsed || !entry.endpointEvidence || (entry.countMatchesExpected !== true && entry.endpointEvidence.recordsReported !== entry.recipeCount)) fail(`Codex ${skill} catalog lacks independent count evidence`)
+  if (!Array.isArray(entry.recipeIds) || sortedIds(entry.recipeIds).length !== entry.recipeCount) fail(`Codex ${skill} catalog recipe-id evidence is incomplete`)
 }
 const completeCatalogPages = ['cooking', 'alchemy'].reduce((sum, skill) => sum + catalogBySkill.get(skill).recipeCount, 0)
 if (reconciliation.codexLivePages !== completeCatalogPages) fail(`reconciliation Codex page count ${reconciliation.codexLivePages ?? 'missing'} does not match independently complete catalog count ${completeCatalogPages}`)
+const completeCatalogIds = sortedIds(['cooking', 'alchemy'].flatMap((skill) => catalogBySkill.get(skill).recipeIds))
+const reconciliationIds = sortedIds(Array.isArray(reconciliation.codexLiveRecipeIds) ? reconciliation.codexLiveRecipeIds : [])
+if (JSON.stringify(reconciliationIds) !== JSON.stringify(completeCatalogIds)) fail('reconciliation Codex recipe-id set does not match independently complete catalog')
 console.log(JSON.stringify({ ok: true, status: metadata.status, counts: actualCounts, items: Object.keys(items).length, fingerprint: metadata.fingerprint, reconciliation: reconciliation.status, codexCatalogPages: completeCatalogPages }))
