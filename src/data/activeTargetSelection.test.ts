@@ -43,6 +43,15 @@ describe('active target selection', () => {
     expect(result.session.targets[1].cookingPreparationPolicy).toBeUndefined()
   })
 
+  it('keeps durability targets resolvable while switching between Alchemy and Cooking', () => {
+    const durability: PlanSessionState = { ...base, targets: [{ recipeId: 'sample-cooking', variantId: 'default', mode: 'durability', amount: 10, cookingPreparationPolicy: 'maximum' }] }
+    const alchemy = switchTargetSkill(sampleDataset, durability, 0, 'alchemy')
+    expect(alchemy.session.targets[0].mode).toBe('durability')
+    expect(alchemy.session.targets[0].cookingPreparationPolicy).toBeUndefined()
+    const cooking = switchTargetSkill(sampleDataset, alchemy.session, 0, 'cooking')
+    expect(cooking.session.targets[0]).toMatchObject({ mode: 'durability', amount: 10, cookingPreparationPolicy: 'safe95' })
+  })
+
   it('keeps the same logical active sibling when removing an earlier target', () => {
     const result = removeTargetAndSelect(base, 0, 2)
     expect(result.session.targets.map((target) => target.amount)).toEqual([3, 4])

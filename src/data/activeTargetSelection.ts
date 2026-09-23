@@ -34,7 +34,9 @@ export function switchTargetSkill(
     ...fallback,
     mode: current.mode,
     amount: current.amount,
-    cookingPreparationPolicy: preferredSkill === 'cooking' ? current.cookingPreparationPolicy : undefined,
+    cookingPreparationPolicy: current.mode === 'durability' && preferredSkill === 'cooking'
+      ? current.cookingPreparationPolicy ?? 'safe95'
+      : undefined,
   }
   return { session: replacePlanTarget(session, index, target), activeIndex: index }
 }
