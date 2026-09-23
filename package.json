@@ -11,6 +11,7 @@
     "check": "npm test && npm run build",
     "data:import": "node scripts/import-scoped-bdo-extractor.mjs",
     "data:icons": "node scripts/install-icon-assets.mjs",
+    "data:substitutions": "node scripts/apply-substitution-evidence.mjs",
     "data:validate": "node scripts/validate-dataset.mjs",
     "data:reconcile": "node scripts/reconcile-codex.mjs",
     "data:promote": "node scripts/promote-release-dataset.mjs",
