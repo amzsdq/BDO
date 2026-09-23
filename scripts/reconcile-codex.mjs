@@ -11,6 +11,7 @@ function reconciliationKey(skill, outputItemId, outputName) { return outputItemI
 function itemIdentity(itemId, name) { const id = Number(itemId); return Number.isSafeInteger(id) && id >= 0 ? `#${id}` : normalizedName(name) }
 function signatureFromDataset(dataset, recipe, variant) { return variant.inputs.map((input) => { const item = dataset.items[String(input.itemId)]; return `${itemIdentity(input.itemId, item?.nameKo)}:${Number(input.count)}` }).sort().join('|') }
 function signatureFromCodex(entry) { return (entry.ingredients || []).map((input) => `${itemIdentity(input.itemId, input.name)}:${Number(input.count)}`).sort().join('|') }
+function liveRecipeIds(entries) { return [...new Set(entries.map((entry) => Number(entry.recipeId)).filter((id) => Number.isSafeInteger(id) && id > 0))].sort((a, b) => a - b) }
 
 const opt = args(process.argv.slice(2))
 if (!opt.dataset || !opt.codex) fail('usage: --dataset <dataset.json> --codex <codex-manifest.json> [--review <review.json>] [--out <report.json>]')
@@ -27,6 +28,7 @@ for (const recipe of Object.values(dataset.recipes || {})) {
   clientByKey.set(key, { recipe, output, variants, signatures: new Set(variants.map((variant) => variant.signature)) })
 }
 const codexLive = (manifest.recipes || []).filter((entry) => entry.available !== false)
+const codexLiveRecipeIds = liveRecipeIds(codexLive)
 const codexByKey = new Map()
 for (const entry of codexLive) {
   const skill = normalizedSkill(entry.skill)
@@ -47,9 +49,7 @@ for (const [key, client] of clientByKey) {
     if (sig && !client.signatures.has(sig)) diffs.push({ key: `SIGNATURE:${entry.recipeId}:${key}`, kind: 'SIGNATURE_MISMATCH', codexRecipeId: entry.recipeId, output: entry.titleKo, codexSignature: sig, clientSignatures: [...client.signatures] })
   }
   for (const variant of client.variants) {
-    if (variant.signature && !codexSignatures.has(variant.signature)) {
-      diffs.push({ key: `CLIENT_VARIANT_ONLY:${client.recipe.id}:${variant.variantId}:${key}`, kind: 'CLIENT_VARIANT_ONLY', recipeId: client.recipe.id, variantId: variant.variantId, output: client.output?.nameKo, clientSignature: variant.signature, codexSignatures: [...codexSignatures] })
-    }
+    if (variant.signature && !codexSignatures.has(variant.signature)) diffs.push({ key: `CLIENT_VARIANT_ONLY:${client.recipe.id}:${variant.variantId}:${key}`, kind: 'CLIENT_VARIANT_ONLY', recipeId: client.recipe.id, variantId: variant.variantId, output: client.output?.nameKo, clientSignature: variant.signature, codexSignatures: [...codexSignatures] })
   }
 }
 for (const [key, entries] of codexByKey) if (!clientByKey.has(key)) for (const entry of entries) diffs.push({ key: `CODEX_ONLY:${entry.recipeId}:${key}`, kind: 'CODEX_ONLY', codexRecipeId: entry.recipeId, output: entry.titleKo })
@@ -60,6 +60,7 @@ const report = {
   datasetFingerprint: reconciliationDatasetFingerprint(dataset),
   clientRecipeGroups: clientByKey.size,
   codexLivePages: codexLive.length,
+  codexLiveRecipeIds,
   codexDisabledPages: (manifest.recipes || []).length - codexLive.length,
   diffs,
   acceptedDiffKeys: [...accepted].sort(),

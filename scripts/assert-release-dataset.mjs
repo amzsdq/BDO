@@ -7,8 +7,9 @@ import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.m
 function fail(message) { console.error(`release blocked: ${message}`); process.exit(1) }
 function fingerprint(value) { return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex') }
 function hasRecordedSourceRevision(value) { const revision = String(value ?? '').trim(); return revision !== '' && revision.toLowerCase() !== 'unrecorded' }
-const [file, reconciliationFile] = process.argv.slice(2)
-if (!file) fail('usage: node scripts/assert-release-dataset.mjs <dataset.json> [reconciliation-report.json]')
+function sortedIds(values) { return [...new Set(values.map(Number).filter((id) => Number.isSafeInteger(id) && id > 0))].sort((a, b) => a - b) }
+const [file, reconciliationFile, catalogFile] = process.argv.slice(2)
+if (!file) fail('usage: node scripts/assert-release-dataset.mjs <dataset.json> <reconciliation-report.json> <codex-catalog.json>')
 if (!fs.existsSync(file)) fail(`dataset not found: ${file}`)
 const structural = spawnSync(process.execPath, ['scripts/validate-dataset.mjs', file], { cwd: process.cwd(), encoding: 'utf8' })
 if (structural.status !== 0) fail(`structural validation failed:\n${(structural.stderr || structural.stdout || 'unknown validator failure').trim()}`)
@@ -42,4 +43,19 @@ if (reconciliation.status !== 'ZERO_UNEXPLAINED_DIFF' || (reconciliation.unresol
 if (reconciliation.clientRecipeGroups !== Object.keys(recipes).length) fail(`reconciliation client group count ${reconciliation.clientRecipeGroups} does not match dataset recipe count ${Object.keys(recipes).length}`)
 const expectedReconciliationFingerprint = reconciliationDatasetFingerprint(dataset)
 if (reconciliation.datasetFingerprint !== expectedReconciliationFingerprint) fail(`reconciliation report belongs to different dataset content: recorded=${reconciliation.datasetFingerprint || 'missing'} actual=${expectedReconciliationFingerprint}`)
-console.log(JSON.stringify({ ok: true, status: metadata.status, counts: actualCounts, items: Object.keys(items).length, fingerprint: metadata.fingerprint, reconciliation: reconciliation.status }))
+if (!catalogFile || !fs.existsSync(catalogFile)) fail('independently complete Codex catalog evidence is required')
+const catalog = JSON.parse(fs.readFileSync(catalogFile, 'utf8'))
+if (catalog.source !== 'BDO Codex KR' || catalog.complete !== true || !Array.isArray(catalog.catalogs)) fail('Codex catalog completeness is not independently proven')
+const catalogBySkill = new Map(catalog.catalogs.map((entry) => [String(entry.skill || '').toLowerCase(), entry]))
+for (const skill of ['cooking', 'alchemy']) {
+  const entry = catalogBySkill.get(skill)
+  if (!entry || entry.complete !== true || !Number.isSafeInteger(entry.recipeCount) || entry.recipeCount <= 0) fail(`Codex ${skill} catalog completeness is not proven`)
+  if (!entry.endpointUsed || !entry.endpointEvidence || (entry.countMatchesExpected !== true && entry.endpointEvidence.recordsReported !== entry.recipeCount)) fail(`Codex ${skill} catalog lacks independent count evidence`)
+  if (!Array.isArray(entry.recipeIds) || sortedIds(entry.recipeIds).length !== entry.recipeCount) fail(`Codex ${skill} catalog recipe-id evidence is incomplete`)
+}
+const completeCatalogPages = ['cooking', 'alchemy'].reduce((sum, skill) => sum + catalogBySkill.get(skill).recipeCount, 0)
+if (reconciliation.codexLivePages !== completeCatalogPages) fail(`reconciliation Codex page count ${reconciliation.codexLivePages ?? 'missing'} does not match independently complete catalog count ${completeCatalogPages}`)
+const completeCatalogIds = sortedIds(['cooking', 'alchemy'].flatMap((skill) => catalogBySkill.get(skill).recipeIds))
+const reconciliationIds = sortedIds(Array.isArray(reconciliation.codexLiveRecipeIds) ? reconciliation.codexLiveRecipeIds : [])
+if (JSON.stringify(reconciliationIds) !== JSON.stringify(completeCatalogIds)) fail('reconciliation Codex recipe-id set does not match independently complete catalog')
+console.log(JSON.stringify({ ok: true, status: metadata.status, counts: actualCounts, items: Object.keys(items).length, fingerprint: metadata.fingerprint, reconciliation: reconciliation.status, codexCatalogPages: completeCatalogPages }))

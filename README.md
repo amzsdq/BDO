@@ -32,7 +32,7 @@ npm run build
 
 ## production dataset 파이프라인
 
-라이브 클라이언트 추출물 `items.json`과 `recipes.json`, 그리고 `bdo-data-extractor icons`가 만든 `<extractor-data>/icons/<itemId>.webp`를 준비합니다. runtime이 실제로 읽는 dataset과 브라우저가 실제로 제공하는 icon asset을 함께 설치합니다.
+라이브 클라이언트 추출물 `items.json`과 `recipes.json`, 그리고 `bdo-data-extractor icons`가 만든 `<extractor-data>/icons/<itemId>.webp`를 준비합니다. runtime이 실제로 읽는 dataset과 브라우저가 실제로 제공하는 icon asset을 함께 설치합니다. Codex reconciliation 전에 Cooking/Alchemy 카탈로그 전체를 독립적으로 수집하고 completeness가 증명된 `<codex-catalog.json>` artifact를 보존해야 합니다. 부분 manifest끼리 서로 일치하는 것만으로는 release gate를 통과할 수 없습니다.
 
 기본 구조 import:
 
@@ -53,14 +53,17 @@ npm run data:import -- --items <items.json> --recipes <recipes.json> --out publi
 ```bash
 npm run data:icons -- public/data/dataset.json <extractor-data>/icons public/icons
 npm run data:validate -- public/data/dataset.json
+node scripts/collect-codex-catalog.mjs --endpoint '<complete-catalog-endpoint-template-with-{skill}>' --out <codex-catalog.json>
 npm run data:reconcile -- --dataset public/data/dataset.json --codex <codex-manifest.json> --out <reconciliation-report.json>
-npm run data:promote -- public/data/dataset.json <reconciliation-report.json>
-npm run data:release-gate -- public/data/dataset.json <reconciliation-report.json>
+npm run data:promote -- public/data/dataset.json <reconciliation-report.json> <codex-catalog.json>
+npm run data:release-gate -- public/data/dataset.json <reconciliation-report.json> <codex-catalog.json>
 ```
+
+`collect-codex-catalog.mjs`는 Cooking과 Alchemy 각각에 대해 구성된 endpoint에서 recipe-specific ID를 추출합니다. endpoint의 `recordsTotal`이 unique recipe-id 수와 일치하거나 별도의 `--expected-counts` 증거가 일치해야 해당 skill을 `complete=true`로 표시합니다. product-scoped/부분 endpoint나 단순 non-empty 응답은 complete catalog 증거가 아닙니다. promotion과 최종 release gate는 complete catalog의 총 recipe page 수와 정확한 recipe-id set이 reconciliation report와 일치하는지 다시 검증합니다.
 
 `data:icons`는 dataset이 참조하는 canonical `icons/<itemId>.webp`만 설치하며, extractor output에서 필요한 icon 하나라도 빠져 있으면 실패합니다. source DDS 경로를 브라우저 asset 경로로 취급하지 않습니다.
 
-`data:promote`는 `ZERO_UNEXPLAINED_DIFF`, Cooking/Alchemy count 일치, 한국어 이름과 아이콘 해소를 확인한 뒤에만 `COMPLETE_VERIFIED` 상태와 새 fingerprint를 기록합니다. 그 다음 `data:release-gate`가 결과를 독립적으로 다시 검증합니다. 둘 중 하나라도 통과하지 않은 dataset은 릴리스 데이터가 아닙니다.
+`data:promote`는 `ZERO_UNEXPLAINED_DIFF`, 독립 Codex catalog completeness, Cooking/Alchemy count 일치, 한국어 이름과 아이콘 해소를 확인한 뒤에만 `COMPLETE_VERIFIED` 상태와 새 fingerprint를 기록합니다. 그 다음 `data:release-gate`가 결과와 catalog evidence를 독립적으로 다시 검증합니다. 둘 중 하나라도 통과하지 않은 dataset은 릴리스 데이터가 아닙니다.
 
 현재 검토한 extractor 계약과 획득 경로는 `docs/EXTRACTOR-CONTRACT.md`, 전체 completeness 규칙은 `docs/DATA-COMPLETENESS.md`를 참고하세요.
 
