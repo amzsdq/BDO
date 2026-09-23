@@ -8,6 +8,7 @@ import { validateResolvedCatalogEndpoint } from './codex-catalog-endpoint.mjs'
 
 function fail(message) { console.error(`release blocked: ${message}`); process.exit(1) }
 function fingerprint(value) { return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex') }
+function sha256(bytes) { return crypto.createHash('sha256').update(bytes).digest('hex') }
 function hasRecordedSourceRevision(value) { const revision = String(value ?? '').trim(); return revision !== '' && revision.toLowerCase() !== 'unrecorded' }
 function hasValidTimestamp(value) { return typeof value === 'string' && value.trim() !== '' && Number.isFinite(Date.parse(value)) }
 function sortedIds(values) { return [...new Set(values.map(Number).filter((id) => Number.isSafeInteger(id) && id > 0))].sort((a, b) => a - b) }
@@ -45,9 +46,13 @@ if (reconciliation.clientRecipeGroups !== Object.keys(recipes).length) fail(`rec
 const expectedReconciliationFingerprint = reconciliationDatasetFingerprint(dataset)
 if (reconciliation.datasetFingerprint !== expectedReconciliationFingerprint) fail(`reconciliation report belongs to different dataset content: recorded=${reconciliation.datasetFingerprint || 'missing'} actual=${expectedReconciliationFingerprint}`)
 if (!catalogFile || !fs.existsSync(catalogFile)) fail('independently complete Codex catalog evidence is required')
-const catalog = JSON.parse(fs.readFileSync(catalogFile, 'utf8'))
+const catalogBytes = fs.readFileSync(catalogFile)
+const catalog = JSON.parse(catalogBytes.toString('utf8'))
 if (catalog.source !== 'BDO Codex KR' || catalog.complete !== true || !Array.isArray(catalog.catalogs)) fail('Codex catalog completeness is not independently proven')
 if (!hasValidTimestamp(catalog.collectedAt)) fail('Codex catalog collectedAt timestamp is missing or invalid')
+const actualCatalogSha256 = sha256(catalogBytes)
+if (metadata.codexCatalogSha256 !== actualCatalogSha256) fail(`Codex catalog artifact does not match promoted evidence: recorded=${metadata.codexCatalogSha256 || 'missing'} actual=${actualCatalogSha256}`)
+if (metadata.codexCatalogCollectedAt !== catalog.collectedAt) fail('Codex catalog collectedAt does not match promoted evidence')
 const catalogBySkill = new Map(catalog.catalogs.map((entry) => [String(entry.skill || '').toLowerCase(), entry]))
 for (const skill of ['cooking', 'alchemy']) {
   const entry = catalogBySkill.get(skill)
@@ -67,4 +72,4 @@ if (reconciliation.codexLivePages !== completeCatalogPages) fail(`reconciliation
 const completeCatalogIds = sortedIds(['cooking', 'alchemy'].flatMap((skill) => catalogBySkill.get(skill).recipeIds))
 const reconciliationIds = sortedIds(Array.isArray(reconciliation.codexLiveRecipeIds) ? reconciliation.codexLiveRecipeIds : [])
 if (JSON.stringify(reconciliationIds) !== JSON.stringify(completeCatalogIds)) fail('reconciliation Codex recipe-id set does not match independently complete catalog')
-console.log(JSON.stringify({ ok: true, status: metadata.status, counts: actualCounts, items: Object.keys(items).length, fingerprint: metadata.fingerprint, reconciliation: reconciliation.status, codexCatalogPages: completeCatalogPages }))
+console.log(JSON.stringify({ ok: true, status: metadata.status, counts: actualCounts, items: Object.keys(items).length, fingerprint: metadata.fingerprint, reconciliation: reconciliation.status, codexCatalogPages: completeCatalogPages, codexCatalogSha256: actualCatalogSha256 }))
