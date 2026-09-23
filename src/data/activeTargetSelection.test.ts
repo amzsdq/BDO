@@ -24,6 +24,14 @@ describe('active target selection', () => {
     expect(result.activeIndex).toBe(1)
   })
 
+  it('can add the opposite life skill without replacing the existing target', () => {
+    const result = addDefaultTarget(sampleDataset, { ...base, targets: base.targets.slice(0, 1) }, 'alchemy')
+    expect(result.session.targets).toHaveLength(2)
+    expect(result.session.targets[0]).toEqual(base.targets[0])
+    const added = result.session.targets[result.activeIndex]
+    expect(sampleDataset.recipes[added.recipeId]?.skill).toBe('alchemy')
+  })
+
   it('keeps the same logical active sibling when removing an earlier target', () => {
     const result = removeTargetAndSelect(base, 0, 2)
     expect(result.session.targets.map((target) => target.amount)).toEqual([3, 4])
