@@ -42,7 +42,8 @@ if (placeholderKoreanNames.length) fail(`${placeholderKoreanNames.length} items 
 if (!reconciliationFile || !fs.existsSync(reconciliationFile)) fail('ZERO_UNEXPLAINED_DIFF reconciliation report is required')
 const reconciliation = JSON.parse(fs.readFileSync(reconciliationFile, 'utf8'))
 if (reconciliation.status !== 'ZERO_UNEXPLAINED_DIFF' || (reconciliation.unresolved || []).length !== 0) fail('reconciliation evidence is not ZERO_UNEXPLAINED_DIFF')
-if (reconciliation.clientRecipeGroups !== Object.keys(recipes).length) fail(`reconciliation client group count ${reconciliation.clientRecipeGroups} does not match dataset recipe count ${Object.keys(recipes).length}`)
+const datasetRecipeCount = Object.keys(recipes).length
+if (!Number.isSafeInteger(reconciliation.clientRecipes) || reconciliation.clientRecipes !== datasetRecipeCount) fail(`reconciliation client recipe count ${reconciliation.clientRecipes ?? 'missing'} does not match dataset recipe count ${datasetRecipeCount}`)
 const expectedReconciliationFingerprint = reconciliationDatasetFingerprint(dataset)
 if (reconciliation.datasetFingerprint !== expectedReconciliationFingerprint) fail(`reconciliation report belongs to different dataset content: recorded=${reconciliation.datasetFingerprint || 'missing'} actual=${expectedReconciliationFingerprint}`)
 if (!catalogFile || !fs.existsSync(catalogFile)) fail('independently complete Codex catalog evidence is required')
