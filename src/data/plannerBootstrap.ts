@@ -8,6 +8,8 @@ export type PlannerBootstrap = {
   datasetMode: DatasetMode
   datasetMessage: string
   hydration: PlannerBundleHydration
+  /** Persistence effects must remain disabled until hydration is fully ready. */
+  writesEnabled: boolean
 }
 
 type RuntimeDatasetLoader = typeof loadRuntimeDataset
@@ -30,6 +32,7 @@ export async function bootstrapPlanner(
       datasetMode: loaded.mode,
       datasetMessage: loaded.message,
       hydration: { ...hydration, session: createInitialPlanSession(loaded.dataset) },
+      writesEnabled: true,
     }
   }
 
@@ -38,5 +41,6 @@ export async function bootstrapPlanner(
     datasetMode: loaded.mode,
     datasetMessage: loaded.message,
     hydration,
+    writesEnabled: hydration.status === 'ready',
   }
 }
