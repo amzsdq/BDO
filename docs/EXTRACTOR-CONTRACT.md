@@ -1,6 +1,6 @@
 # bdo-data-extractor contract used by the planner
 
-Checked: 2026-09-23
+Checked: 2026-09-24
 Upstream: `iDevelopThings/bdo-data-extractor`
 Current reviewed release: `v0.1.9` (published 2026-08-15)
 
@@ -16,6 +16,20 @@ Why the floor matters:
 - v0.1.9 fixed the current expanded post-icon item property/footer layout and explicitly requires re-extraction.
 
 The planner's structural validator intentionally rejects duplicate ingredient IDs inside one canonical recipe variant. That matches the v0.1.7+ extractor contract rather than attempting to preserve obsolete pre-v0.1.7 output.
+
+## Recipe identity invariant
+
+Current upstream `recipes.json` exports recipe records as `{output,type,station,inputs,byproductOf?}`. The reviewed public JSON contract does **not** expose a separate source recipe id. Upstream `FORMATS.md` explicitly states that repeated producing blocks are alternative recipes.
+
+Therefore the planner must not fabricate a source recipe identity. For Cooking/Alchemy:
+
+- planner recipe identity is `(skill, outputItemId)`;
+- every distinct direct ingredient signature for that identity is preserved as an alternative variant;
+- direct and byproduct rows remain distinct even when their ingredients are identical;
+- internal variant ids are deterministic functions of canonical variant content and must not depend on extractor row order;
+- if a future extractor release exposes a real stable recipe/block identity, review and version this contract before adopting it.
+
+This preserves source-backed alternatives without pretending the current extractor supplies identity that it does not.
 
 ## Acquisition invariant
 
