@@ -3,6 +3,7 @@ import type { PlanOptions, PlanResult, RecipeDataset } from '../domain/types'
 import type { CharacterProfileState } from './storage'
 import { activePlanTarget, type ActivePlanTargetInput } from './activePlanTarget'
 import { resolvePlanTarget } from './planSessionResolve'
+import { appendYieldProvenanceWarnings } from './yieldWarnings'
 
 export interface BuiltActivePlan {
   plan?: PlanResult
@@ -25,17 +26,14 @@ export function buildActivePlan(
     const persisted = activePlanTarget(input)
     const resolved = resolvePlanTarget(dataset, persisted, { cookingMastery: profile.cookingMastery })
     if (resolved.error || !resolved.target) return { error: resolved.error ?? 'target resolution failed', estimatedPreparation: resolved.estimatedPreparation === true }
-    const plan = buildPlan(dataset, [resolved.target], {
+    const rawPlan = buildPlan(dataset, [resolved.target], {
       craftIntermediateItemIds: options.craftIntermediateItemIds ?? new Set(),
       haveByItemId: inventory,
       intermediateRecipeIdByItemId: options.intermediateRecipeIdByItemId,
       variantIdByRecipeId: options.variantIdByRecipeId,
       selectedSubstitutionItemIdByGroupId: options.selectedSubstitutionItemIdByGroupId,
     })
-    const recipe = dataset.recipes[input.recipeId]
-    if (input.mode === 'output' && recipe?.yield.provenance === 'unknown-server-yield') {
-      plan.warnings.unshift('이 제작법의 실제 산출 분포는 서버 측 정보라 검증되지 않았습니다. 현재 출력 목표는 최소 1개/회 기준의 보수적 준비량이며, 예상 산출량을 뜻하지 않습니다.')
-    }
+    const plan = appendYieldProvenanceWarnings(dataset, [resolved.target], rawPlan)
     return { plan, materialServings: plan.crafts[0]?.attempts, estimatedPreparation: resolved.estimatedPreparation === true }
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'planner failed', estimatedPreparation: false }
