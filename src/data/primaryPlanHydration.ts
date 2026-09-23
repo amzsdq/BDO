@@ -5,7 +5,7 @@ import { singleTargetRestoredState, type SingleTargetRestoredState } from './sin
 export type PrimaryPlanHydration =
   | { status: 'restored'; state: SingleTargetRestoredState }
   | { status: 'first-run' }
-  | { status: 'recovery-required'; reason: 'invalid-storage' | 'invalid-reference'; errors: string[] }
+  | { status: 'recovery-required'; reason: 'invalid-storage' | 'unsupported-version' | 'invalid-reference'; errors: string[] }
 
 /**
  * Resolve persisted primary-planner state only after the runtime dataset is known.
