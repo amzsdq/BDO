@@ -2,6 +2,7 @@ import type { Dispatch, SetStateAction } from 'react'
 import type { RecipeDataset } from './domain/types'
 import type { ChecklistState, InventoryState } from './data/storage'
 import type { SessionPlanResult } from './data/sessionPlan'
+import { parseNonNegativeFiniteOrZero } from './data/numericInput'
 import { ItemIcon } from './ItemIcon'
 
 export type SessionPreparationChecklistProps = {
@@ -16,7 +17,7 @@ export type SessionPreparationChecklistProps = {
 /** Visible checklist for the aggregate persisted session, never just the active target projection. */
 export function SessionPreparationChecklist({ dataset, result, checked, setChecked, inventory, setInventory }: SessionPreparationChecklistProps) {
   function setOwned(itemId: string, raw: string) {
-    const value = Math.max(0, Number(raw) || 0)
+    const value = parseNonNegativeFiniteOrZero(raw)
     setInventory((current) => ({ ...current, [itemId]: value }))
   }
 
