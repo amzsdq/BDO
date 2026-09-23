@@ -4,23 +4,27 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
+function importDataset(items, recipes) {
+  const dir = mkdtempSync(join(tmpdir(), 'bdo-import-'))
+  const itemsPath = join(dir, 'items.json')
+  const recipesPath = join(dir, 'recipes.json')
+  const outPath = join(dir, 'dataset.json')
+  writeFileSync(itemsPath, JSON.stringify(items))
+  writeFileSync(recipesPath, JSON.stringify(recipes))
+  execFileSync(process.execPath, [resolve('scripts/import-bdo-extractor.mjs'), '--items', itemsPath, '--recipes', recipesPath, '--out', outPath, '--source-revision', 'test'])
+  return { dataset: JSON.parse(readFileSync(outPath, 'utf8')), outPath }
+}
+
 describe('bdo extractor importer icon contract', () => {
   it('maps extractor DDS source paths to decoded item-id WebP assets', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'bdo-import-'))
-    const itemsPath = join(dir, 'items.json')
-    const recipesPath = join(dir, 'recipes.json')
-    const outPath = join(dir, 'dataset.json')
-    writeFileSync(itemsPath, JSON.stringify([
+    const { dataset } = importDataset([
       { id: 100, name: 'Cooking Output', icon: 'New_Icon/source/00000100.dds', weight: 0.1 },
       { id: 101, name: 'Alchemy Output', icon: 'New_Icon/source/00000101.dds', weight: 0.1 },
       { id: 200, name: 'Ingredient', icon: 'New_Icon/source/00000200.dds', weight: 0.2 },
-    ]))
-    writeFileSync(recipesPath, JSON.stringify([
+    ], [
       { output: 100, type: 'COOK', inputs: [{ item: 200, count: 1 }] },
       { output: 101, type: 'ALCHEMY', inputs: [{ item: 200, count: 2 }] },
-    ]))
-    execFileSync(process.execPath, [resolve('scripts/import-bdo-extractor.mjs'), '--items', itemsPath, '--recipes', recipesPath, '--out', outPath, '--source-revision', 'test'])
-    const dataset = JSON.parse(readFileSync(outPath, 'utf8'))
+    ])
     expect(dataset.items['100'].iconPath).toBe('icons/100.webp')
     expect(dataset.items['101'].iconPath).toBe('icons/101.webp')
     expect(dataset.items['200'].iconPath).toBe('icons/200.webp')
@@ -28,24 +32,41 @@ describe('bdo extractor importer icon contract', () => {
   })
 
   it('emits a byproduct graph that satisfies the structural validator', () => {
-    const dir = mkdtempSync(join(tmpdir(), 'bdo-import-byproduct-'))
-    const itemsPath = join(dir, 'items.json')
-    const recipesPath = join(dir, 'recipes.json')
-    const outPath = join(dir, 'dataset.json')
-    writeFileSync(itemsPath, JSON.stringify([
+    const { dataset, outPath } = importDataset([
       { id: 100, name: 'Cooking Output', weight: 0.1 },
       { id: 101, name: 'Alchemy Output', weight: 0.1 },
       { id: 102, name: 'Cooking Byproduct', weight: 0.1 },
       { id: 200, name: 'Ingredient', weight: 0.2 },
-    ]))
-    writeFileSync(recipesPath, JSON.stringify([
+    ], [
       { output: 100, type: 'COOK', inputs: [{ item: 200, count: 1 }] },
       { output: 101, type: 'ALCHEMY', inputs: [{ item: 200, count: 2 }] },
       { output: 102, type: 'COOK', byproductOf: 100, inputs: [{ item: 200, count: 1 }] },
-    ]))
-    execFileSync(process.execPath, [resolve('scripts/import-bdo-extractor.mjs'), '--items', itemsPath, '--recipes', recipesPath, '--out', outPath, '--source-revision', 'test'])
-    const dataset = JSON.parse(readFileSync(outPath, 'utf8'))
+    ])
     expect(dataset.byproducts['102']).toEqual({ outputItemId: 102, producedWhileCraftingItemIds: [100] })
     execFileSync(process.execPath, [resolve('scripts/validate-dataset.mjs'), outPath])
+  })
+
+  it.each([
+    ['direct first', false],
+    ['byproduct first', true],
+  ])('preserves direct and byproduct rows with identical inputs regardless of order: %s', (_label, reverse) => {
+    const direct = { output: 102, type: 'COOK', inputs: [{ item: 200, count: 1 }] }
+    const byproduct = { output: 102, type: 'COOK', byproductOf: 100, inputs: [{ item: 200, count: 1 }] }
+    const collisionRows = reverse ? [byproduct, direct] : [direct, byproduct]
+    const { dataset } = importDataset([
+      { id: 100, name: 'Parent Cooking Output', weight: 0.1 },
+      { id: 101, name: 'Alchemy Output', weight: 0.1 },
+      { id: 102, name: 'Direct And Byproduct Output', weight: 0.1 },
+      { id: 200, name: 'Ingredient', weight: 0.2 },
+    ], [
+      { output: 100, type: 'COOK', inputs: [{ item: 200, count: 3 }] },
+      { output: 101, type: 'ALCHEMY', inputs: [{ item: 200, count: 2 }] },
+      ...collisionRows,
+    ])
+
+    expect(dataset.recipes['cooking:102']).toBeDefined()
+    expect(dataset.recipes['cooking:102'].variants).toHaveLength(1)
+    expect(dataset.recipes['cooking:102'].variants[0].inputs).toEqual([{ itemId: 200, count: 1 }])
+    expect(dataset.byproducts['102']).toEqual({ outputItemId: 102, producedWhileCraftingItemIds: [100] })
   })
 })

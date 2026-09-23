@@ -71,9 +71,13 @@ for (const source of recipesRaw) {
   if (inputs.some((input) => !Number.isFinite(input.count) || input.count <= 0)) fail(`invalid ingredient count for ${skill}:${outputItemId}`)
   const byproductOf = source.byproductOf ? itemIdFromRef(source.byproductOf) : null
   const signature = inputs.map((input) => `${input.itemId}:${input.count}`).sort().join('|')
+  const roleKey = byproductOf ? `byproduct:${byproductOf}` : 'direct'
+  // Ingredient equality is not recipe-role equality. A direct recipe row and a
+  // byproduct row may legitimately share the same inputs; keep both identities.
+  const dedupeKey = `${roleKey}|${signature}`
   const groupKey = `${skill}:${outputItemId}`
   const variants = grouped.get(groupKey) || []
-  variants.push({ signature, inputs, byproductOf })
+  variants.push({ dedupeKey, inputs, byproductOf })
   grouped.set(groupKey, variants)
 }
 
@@ -82,16 +86,16 @@ for (const [groupKey, rawVariants] of grouped) {
   const [skill, outputText] = groupKey.split(':'); const outputItemId = Number(outputText)
   const seen = new Set(), variants = []
   for (const candidate of rawVariants) {
-    if (seen.has(candidate.signature)) continue
-    seen.add(candidate.signature)
-    variants.push({ id: `v${variants.length + 1}`, inputs: candidate.inputs, byproductOf: candidate.byproductOf || undefined })
+    if (seen.has(candidate.dedupeKey)) continue
+    seen.add(candidate.dedupeKey)
+    variants.push({ inputs: candidate.inputs, byproductOf: candidate.byproductOf || undefined })
   }
   const normalVariants = variants.filter((variant) => !variant.byproductOf)
   const byproductVariants = variants.filter((variant) => variant.byproductOf)
-  if (byproductVariants.length) byproducts[String(outputItemId)] = { outputItemId, producedWhileCraftingItemIds: [...new Set(byproductVariants.map((variant) => variant.byproductOf))] }
+  if (byproductVariants.length) byproducts[String(outputItemId)] = { outputItemId, producedWhileCraftingItemIds: [...new Set(byproductVariants.map((variant) => variant.byproductOf))].sort((a, b) => a - b) }
   if (!normalVariants.length) continue
   const id = `${skill}:${outputItemId}`
-  recipes[id] = { id, skill, outputItemId, yield: { min: 1, max: 1, provenance: 'unknown-server-yield' }, variants: normalVariants.map(({ byproductOf: _x, ...variant }) => variant) }
+  recipes[id] = { id, skill, outputItemId, yield: { min: 1, max: 1, provenance: 'unknown-server-yield' }, variants: normalVariants.map(({ byproductOf: _x, ...variant }, index) => ({ id: `v${index + 1}`, ...variant })) }
   recipesByOutput[String(outputItemId)] = [...(recipesByOutput[String(outputItemId)] || []), id]
 }
 
