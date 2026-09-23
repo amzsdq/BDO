@@ -25,6 +25,8 @@ if (!counts.cooking || !counts.alchemy) fail('both Cooking and Alchemy coverage 
 if (dataset.metadata?.counts?.cooking !== counts.cooking || dataset.metadata?.counts?.alchemy !== counts.alchemy) fail('metadata recipe counts do not match dataset')
 const unresolvedIcons = Object.values(items).filter((item) => !item.iconPath && !item.iconUrl)
 if (unresolvedIcons.length) fail(`${unresolvedIcons.length} items have no icon resolution result`)
+const invalidLocalIconPaths = Object.values(items).filter((item) => typeof item.iconPath === 'string' && item.iconPath !== `icons/${item.id}.webp`)
+if (invalidLocalIconPaths.length) fail(`${invalidLocalIconPaths.length} items have non-canonical local icon paths; first ids: ${invalidLocalIconPaths.slice(0, 20).map((item) => item.id).join(', ')}`)
 const unresolvedNames = Object.values(items).filter((item) => !String(item.nameKo || '').trim() || /^아이템 #\d+$/.test(String(item.nameKo)))
 if (unresolvedNames.length) fail(`${unresolvedNames.length} items have unresolved Korean names`)
 const promoted = { ...dataset, metadata: { ...dataset.metadata, status: 'COMPLETE_VERIFIED', counts, verifiedAt: new Date().toISOString(), reconciliationStatus: 'ZERO_UNEXPLAINED_DIFF' } }
