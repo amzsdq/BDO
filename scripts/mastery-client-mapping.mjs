@@ -12,19 +12,19 @@ export function cookingClientNamedEffects(row) {
 }
 
 /**
- * Map extractor alchemystatdata raw layout:
- * [productAmount, royalBonus, commonKey, commonConditional,
- *  specialKey, specialConditional, rareKey, rareConditional, eventRate].
- * Published extra-item probabilities are derived by the client formulas documented
- * from panel_characterinfo_life_all_2.luac.
+ * Map extractor alchemystatdata raw layout. The current extractor divides every
+ * post-mastery u32 by 1e6, including the three channel keys, so keys are restored
+ * to integers here while actual rates remain probabilities.
  */
 export function alchemyClientNamedEffects(row) {
-  if (!Array.isArray(row?.rates) || row.rates.length !== 9) throw new Error('Alchemy client row must contain 9 raw rates')
-  const [maxOutputProbability, _royalBonus, commonKey, commonConditional, specialKey, specialConditional, rareKey, rareConditional, eventRate] = row.rates.map(Number)
-  if (![maxOutputProbability, commonKey, commonConditional, specialKey, specialConditional, rareKey, rareConditional, eventRate].every(Number.isFinite)) throw new Error('Alchemy client row contains non-finite raw rates')
+  if (!Array.isArray(row?.rates) || row.rates.length !== 9) throw new Error('Alchemy client row must contain 9 raw values')
+  const [maxOutputProbability, _royalBonus, commonKeyScaled, commonConditional, specialKeyScaled, specialConditional, rareKeyScaled, rareConditional, eventRate] = row.rates.map(Number)
+  if (![maxOutputProbability, commonKeyScaled, commonConditional, specialKeyScaled, specialConditional, rareKeyScaled, rareConditional, eventRate].every(Number.isFinite)) throw new Error('Alchemy client row contains non-finite raw values')
+  const channelKeys = [commonKeyScaled, specialKeyScaled, rareKeyScaled].map((value) => Math.round(value * 1e6))
+  if (JSON.stringify(channelKeys) !== JSON.stringify([15690, 15691, 15692])) throw new Error('Alchemy client event channel keys are unexpected')
   if (commonConditional !== 1) throw new Error('Alchemy common channel conditional rate must be 1')
   const normalExtraProbability = eventRate * (1 - rareConditional) * (1 - specialConditional)
   const specialExtraProbability = eventRate * (1 - rareConditional) * specialConditional
   const rareExtraProbability = eventRate * rareConditional
-  return { mastery: Number(row.mastery), maxOutputProbability, normalExtraProbability, specialExtraProbability, rareExtraProbability, channelKeys: [commonKey, specialKey, rareKey] }
+  return { mastery: Number(row.mastery), maxOutputProbability, normalExtraProbability, specialExtraProbability, rareExtraProbability, channelKeys }
 }
