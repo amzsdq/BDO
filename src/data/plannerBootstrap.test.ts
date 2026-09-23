@@ -23,6 +23,7 @@ describe('bootstrapPlanner', () => {
 
     expect(loaderCalled).toBe(true)
     expect(result.dataset).toBe(dataset)
+    expect(result.writesEnabled).toBe(true)
     expect(result.hydration.status).toBe('ready')
     if (result.hydration.status !== 'ready') throw new Error('expected ready hydration')
     expect(result.hydration.source).toBe('first-run')
@@ -31,7 +32,7 @@ describe('bootstrapPlanner', () => {
     ])
   })
 
-  it('does not manufacture a first-run target when persisted plan storage is corrupt', async () => {
+  it('does not manufacture a first-run target or enable writes when persisted plan storage is corrupt', async () => {
     const storage = {
       getItem(key: string) {
         return key === 'bdo-planner:plan-session:v1' ? '{broken-json' : null
@@ -39,6 +40,7 @@ describe('bootstrapPlanner', () => {
     }
     const result = await bootstrapPlanner(storage, async () => ({ dataset, mode: 'verified', message: 'verified test data' }))
 
+    expect(result.writesEnabled).toBe(false)
     expect(result.hydration.status).toBe('recovery-required')
     if (result.hydration.status !== 'recovery-required') throw new Error('expected recovery-required')
     expect(result.hydration.components).toContain('plan-session')
