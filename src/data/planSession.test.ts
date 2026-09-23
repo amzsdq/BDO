@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { readPlanSession, writePlanSession, type PlanSessionState } from './planSession'
+import { readPlanSession, readPlanSessionResult, writePlanSession, type PlanSessionState } from './planSession'
 
 function memoryStorage() {
   const data = new Map<string, string>()
@@ -25,14 +25,24 @@ describe('versioned plan session state', () => {
     }
     writePlanSession(state, storage)
     expect(readPlanSession(storage)).toEqual(state)
+    expect(readPlanSessionResult(storage)).toEqual({ status: 'valid', session: state })
+  })
+
+  it('distinguishes missing state from malformed persisted state', () => {
+    const storage = memoryStorage()
+    expect(readPlanSessionResult(storage).status).toBe('empty')
+    storage.setItem('bdo-planner:plan-session:v1', '{broken')
+    expect(readPlanSessionResult(storage).status).toBe('invalid-storage')
   })
 
   it('fails closed on unknown versions or invalid target quantities', () => {
     const storage = memoryStorage()
     storage.setItem('bdo-planner:plan-session:v1', JSON.stringify({ version: 2, targets: [] }))
     expect(readPlanSession(storage).targets).toEqual([])
+    expect(readPlanSessionResult(storage).status).toBe('invalid-storage')
     storage.setItem('bdo-planner:plan-session:v1', JSON.stringify({ version: 1, targets: [{ recipeId: 'x', mode: 'output', amount: -1 }], craftIntermediateItemIds: [], intermediateRecipeIdByItemId: {}, variantIdByRecipeId: {} }))
     expect(readPlanSession(storage).targets).toEqual([])
+    expect(readPlanSessionResult(storage).status).toBe('invalid-storage')
   })
 
   it('rejects Cooking preparation policy on a non-durability target', () => {
@@ -58,5 +68,6 @@ describe('versioned plan session state', () => {
     const storage = memoryStorage()
     storage.setItem('bdo-planner:plan-session:v1', JSON.stringify({ version: 1, targets: [], craftIntermediateItemIds: [], intermediateRecipeIdByItemId: {}, variantIdByRecipeId: {}, selectedSubstitutionItemIdByGroupId: { 'codex:6502': -1 } }))
     expect(readPlanSession(storage).selectedSubstitutionItemIdByGroupId).toEqual({})
+    expect(readPlanSessionResult(storage).status).toBe('invalid-storage')
   })
 })
