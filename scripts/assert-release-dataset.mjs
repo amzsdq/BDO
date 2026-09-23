@@ -6,6 +6,7 @@ import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.m
 
 function fail(message) { console.error(`release blocked: ${message}`); process.exit(1) }
 function fingerprint(value) { return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex') }
+function hasRecordedSourceRevision(value) { const revision = String(value ?? '').trim(); return revision !== '' && revision.toLowerCase() !== 'unrecorded' }
 const [file, reconciliationFile] = process.argv.slice(2)
 if (!file) fail('usage: node scripts/assert-release-dataset.mjs <dataset.json> [reconciliation-report.json]')
 if (!fs.existsSync(file)) fail(`dataset not found: ${file}`)
@@ -18,6 +19,7 @@ if (metadata.supportedRegion !== 'KR') fail(`supportedRegion is ${metadata.suppo
 if (!metadata.fingerprint) fail('dataset fingerprint missing')
 if (!metadata.generatedAt) fail('generatedAt missing')
 if (!Array.isArray(metadata.sources) || metadata.sources.length < 2) fail('source provenance incomplete')
+if (!hasRecordedSourceRevision(metadata.sourceRevision)) fail('sourceRevision must identify the canonical client snapshot; unrecorded provenance cannot be released')
 if (!metadata.counts || metadata.counts.cooking <= 0 || metadata.counts.alchemy <= 0) fail('Cooking/Alchemy counts missing or empty')
 const payloadWithoutHash = { ...dataset, metadata: { ...metadata } }
 delete payloadWithoutHash.metadata.fingerprint
