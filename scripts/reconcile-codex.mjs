@@ -3,7 +3,20 @@ import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.m
 import { validateAcceptedDiffs } from './reconciliation-review.mjs'
 
 function fail(message) { console.error(message); process.exit(1) }
-function args(argv) { const out = {}; for (let i = 0; i < argv.length; i += 2) out[String(argv[i] || '').replace(/^--/, '')] = argv[i + 1]; return out }
+const RECONCILE_FLAGS = new Set(['dataset', 'codex', 'review', 'out'])
+function args(argv) {
+  if (argv.length % 2 !== 0) fail('usage: --dataset <dataset.json> --codex <codex-manifest.json> [--review <review.json>] [--out <report.json>]')
+  const out = {}
+  for (let i = 0; i < argv.length; i += 2) {
+    const key = argv[i], value = argv[i + 1]
+    if (!key?.startsWith('--') || value == null || value.startsWith('--')) fail('usage: --dataset <dataset.json> --codex <codex-manifest.json> [--review <review.json>] [--out <report.json>]')
+    const name = key.slice(2)
+    if (!RECONCILE_FLAGS.has(name)) fail(`unknown argument: --${name}`)
+    if (Object.hasOwn(out, name)) fail(`duplicate argument: --${name}`)
+    out[name] = value
+  }
+  return out
+}
 function normalizedName(value) { return String(value || '').normalize('NFKC').replace(/[\s·・'\"]/g, '').toLocaleLowerCase('ko-KR') }
 function normalizedSkill(value) { return String(value || '').toLowerCase() }
 function outputItemIdFromCodex(entry) { const value = entry.outputItemId ?? entry.itemId; if (value === undefined || value === null || value === '') return undefined; const id = Number(value); return Number.isSafeInteger(id) && id >= 0 ? id : undefined }
