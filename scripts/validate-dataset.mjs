@@ -36,6 +36,21 @@ for (const [groupId, group] of Object.entries(substitutionGroups)) {
     if (seenMembers.has(itemId)) errors.push(`${groupId}: duplicate member item ${itemId}`)
     seenMembers.add(itemId)
   }
+  if (group.memberValueByItemId != null) {
+    if (!group.memberValueByItemId || typeof group.memberValueByItemId !== 'object' || Array.isArray(group.memberValueByItemId)) {
+      errors.push(`${groupId}: invalid memberValueByItemId`)
+    } else {
+      const valueKeys = Object.keys(group.memberValueByItemId)
+      for (const itemId of group.memberItemIds || []) {
+        const value = group.memberValueByItemId[String(itemId)]
+        if (!Number.isFinite(value) || value <= 0) errors.push(`${groupId}: missing/invalid sourced value for member ${itemId}`)
+      }
+      for (const itemKey of valueKeys) {
+        const itemId = Number(itemKey)
+        if (!Number.isInteger(itemId) || !seenMembers.has(itemId)) errors.push(`${groupId}: sourced value for non-member ${itemKey}`)
+      }
+    }
+  }
   if (!['BDO Codex KR', 'BDO client'].includes(group.source?.provider)) errors.push(`${groupId}: unsupported substitution evidence provider`)
   if (typeof group.source?.sourceId !== 'string' || !group.source.sourceId.trim()) errors.push(`${groupId}: substitution sourceId missing`)
   if (!group.source?.verifiedAt || Number.isNaN(Date.parse(group.source.verifiedAt))) errors.push(`${groupId}: substitution verifiedAt invalid`)
