@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { RecipeDataset } from '../domain/types'
-import { createInitialPlanSession } from './initialPlanSession'
+import { createDefaultPlanTarget, createInitialPlanSession } from './initialPlanSession'
 
 const dataset: RecipeDataset = {
   items: {
@@ -26,9 +26,16 @@ describe('createInitialPlanSession', () => {
     expect(session.variantIdByRecipeId).toEqual({ 'cooking-second': 'cooking-v1' })
   })
 
+  it('derives a skill-specific default for the add-target flow', () => {
+    expect(createDefaultPlanTarget(dataset, 'alchemy')).toEqual({ recipeId: 'alchemy-first', variantId: 'alchemy-v1', mode: 'servings', amount: 100 })
+    expect(createDefaultPlanTarget(dataset, 'cooking')).toEqual({ recipeId: 'cooking-second', variantId: 'cooking-v1', mode: 'servings', amount: 100 })
+  })
+
   it('returns an empty target list when the loaded dataset has no recipes', () => {
-    const session = createInitialPlanSession({ ...dataset, recipes: {}, recipesByOutput: {} })
+    const empty = { ...dataset, recipes: {}, recipesByOutput: {} }
+    const session = createInitialPlanSession(empty)
     expect(session.targets).toEqual([])
     expect(session.variantIdByRecipeId).toEqual({})
+    expect(createDefaultPlanTarget(empty)).toBeUndefined()
   })
 })
