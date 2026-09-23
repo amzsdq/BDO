@@ -8,7 +8,10 @@
     "build": "tsc -b && vite build",
     "test": "vitest run",
     "test:watch": "vitest",
-    "check": "npm test && npm run build",
+    "check": "npm test && npm run build && npm run e2e:harness",
+    "e2e:harness": "node scripts/assert-e2e-harness.mjs",
+    "e2e": "playwright test",
+    "e2e:ci": "playwright test",
     "data:import": "node scripts/import-scoped-bdo-extractor.mjs",
     "data:names-ko": "node scripts/apply-korean-name-evidence.mjs",
     "data:icons": "node scripts/install-icon-assets.mjs",
@@ -23,6 +26,7 @@
     "react-dom": "^19.1.1"
   },
   "devDependencies": {
+    "@playwright/test": "^1.55.0",
     "@types/react": "^19.1.16",
     "@types/react-dom": "^19.1.9",
     "@vitejs/plugin-react": "^5.0.2",
