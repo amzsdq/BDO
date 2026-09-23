@@ -17,16 +17,11 @@ function run(payload) {
 }
 
 describe('production mastery evidence envelope', () => {
-  it('preserves and fingerprints structurally valid client mastery without inventing semantic rate mapping', () => {
-    const evidence = run({ cooking: curve(5), alchemy: curve(9), processing: [] })
-    expect(evidence.cooking.rows).toBe(61)
-    expect(evidence.alchemy.rows).toBe(61)
-    expect(evidence.masterySha256).toMatch(/^[a-f0-9]{64}$/)
-    expect(evidence.semanticRateMapping).toBe('UNVERIFIED')
-    expect(evidence.releaseReady).toBe(false)
+  it('rejects structurally valid but semantically mismatched client curves instead of emitting release-ready evidence', () => {
+    expect(() => run({ cooking: curve(5), alchemy: curve(9), processing: [] })).toThrow(/cross-check failed|channel/)
   })
 
-  it('rejects malformed breakpoint/rate structure', () => {
+  it('rejects malformed breakpoint/rate structure before semantic promotion', () => {
     expect(() => run({ cooking: curve(4), alchemy: curve(9) })).toThrow()
     expect(() => run({ cooking: curve(5).slice(1), alchemy: curve(9) })).toThrow()
   })
