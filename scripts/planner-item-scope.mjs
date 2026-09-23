@@ -1,4 +1,4 @@
-export function referencedPlannerItemIds(recipes, byproducts = {}) {
+export function referencedPlannerItemIds(recipes, byproducts = {}, substitutionGroups = {}) {
   const ids = new Set()
   for (const recipe of Object.values(recipes || {})) {
     if (Number.isInteger(recipe.outputItemId) && recipe.outputItemId > 0) ids.add(recipe.outputItemId)
@@ -10,11 +10,14 @@ export function referencedPlannerItemIds(recipes, byproducts = {}) {
     if (Number.isInteger(entry.outputItemId) && entry.outputItemId > 0) ids.add(entry.outputItemId)
     for (const itemId of entry.producedWhileCraftingItemIds || []) if (Number.isInteger(itemId) && itemId > 0) ids.add(itemId)
   }
+  for (const group of Object.values(substitutionGroups || {})) {
+    for (const itemId of group.memberItemIds || []) if (Number.isInteger(itemId) && itemId > 0) ids.add(itemId)
+  }
   return ids
 }
 
-export function pruneItemsToPlannerScope(items, recipes, byproducts = {}) {
-  const referenced = referencedPlannerItemIds(recipes, byproducts)
+export function pruneItemsToPlannerScope(items, recipes, byproducts = {}, substitutionGroups = {}) {
+  const referenced = referencedPlannerItemIds(recipes, byproducts, substitutionGroups)
   const scoped = {}
   for (const itemId of [...referenced].sort((a, b) => a - b)) {
     const item = items[String(itemId)]
