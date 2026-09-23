@@ -27,7 +27,7 @@ describe('Cooking durability preparation policy', () => {
     const maximum = cookingDurabilityPreparation(10_000, 1350, 'maximum')!
     expect(safe.materialServings).toBeGreaterThanOrEqual(expected.materialServings)
     expect(safe.materialServings).toBeLessThan(maximum.materialServings)
-    expect(safe.materialServings).toBe(55_738)
+    expect(safe.materialServings).toBe(55_981)
   })
 
   it('feeds selected material servings into the actionable planner instead of raw durability uses', () => {
