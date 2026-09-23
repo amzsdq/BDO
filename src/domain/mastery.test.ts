@@ -38,9 +38,18 @@ describe('Cooking durability material forecast', () => {
     expect(forecast.massCookingProbability).toBe(0.6006)
     expect(forecast.minimumServings).toBe(100)
     expect(forecast.expectedServings).toBe(640.54)
+    expect(forecast.safe95Servings).toBe(712)
     expect(forecast.safe95Servings).toBeGreaterThanOrEqual(Math.ceil(forecast.expectedServings))
     expect(forecast.safe95Servings).toBeLessThan(forecast.maximumServings)
     expect(forecast.maximumServings).toBe(1000)
+  })
+
+  it('keeps a large 95% preparation target finite and below the absolute maximum', () => {
+    const forecast = forecastCookingMaterialServings(10_000, 1350)!
+    expect(forecast.safe95Servings).toBe(55_981)
+    expect(forecast.safe95Servings).toBeGreaterThanOrEqual(Math.ceil(forecast.expectedServings))
+    expect(forecast.safe95Servings).toBeLessThan(forecast.maximumServings)
+    expect(forecast.maximumServings).toBe(100_000)
   })
 
   it('collapses the 95% target to deterministic bounds at 0% and 100%', () => {
