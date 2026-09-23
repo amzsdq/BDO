@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest'
 import { collectReferencedSubstitutionEvidence } from './collect-substitution-evidence-from-recipes.mjs'
 
-const groupHtml = (itemA, itemB) => `<table><tr><td><a href="/kr/item/${itemA}/">A</a></td><td>1</td></tr><tr><td><a href="/kr/item/${itemB}/">B</a></td><td>6</td></tr></table>`
+const groupHtml = (itemA, itemB) => `<table><thead><tr><th>목</th><th>가치</th></tr></thead><tbody><tr><td><a href="/kr/item/${itemA}/">A</a></td><td>1</td></tr><tr><td><a href="/kr/item/${itemB}/">B</a></td><td>6</td></tr></tbody></table>`
 
 describe('collectReferencedSubstitutionEvidence', () => {
   it('fetches each explicitly referenced material group once', async () => {
