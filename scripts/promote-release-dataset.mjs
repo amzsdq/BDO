@@ -5,6 +5,10 @@ import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.m
 function fail(message) { console.error(`promotion blocked: ${message}`); process.exit(1) }
 function fingerprint(value) { return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex') }
 function hasRecordedSourceRevision(value) { const revision = String(value ?? '').trim(); return revision !== '' && revision.toLowerCase() !== 'unrecorded' }
+function hasVerifiedYield(recipe) {
+  const provenance = String(recipe?.yield?.provenance ?? '').trim().toLowerCase()
+  return provenance !== '' && provenance !== 'unknown-server-yield' && provenance !== 'unrecorded'
+}
 const [datasetFile, reconciliationFile, outFile = datasetFile] = process.argv.slice(2)
 if (!datasetFile || !reconciliationFile) fail('usage: node scripts/promote-release-dataset.mjs <dataset.json> <reconciliation-report.json> [out.json]')
 if (!fs.existsSync(datasetFile)) fail(`dataset not found: ${datasetFile}`)
@@ -23,6 +27,8 @@ if (reconciliation.datasetFingerprint !== expectedReconciliationFingerprint) fai
 const counts = { cooking: Object.values(recipes).filter((recipe) => recipe.skill === 'cooking').length, alchemy: Object.values(recipes).filter((recipe) => recipe.skill === 'alchemy').length }
 if (!counts.cooking || !counts.alchemy) fail('both Cooking and Alchemy coverage are required')
 if (dataset.metadata?.counts?.cooking !== counts.cooking || dataset.metadata?.counts?.alchemy !== counts.alchemy) fail('metadata recipe counts do not match dataset')
+const unresolvedYields = Object.values(recipes).filter((recipe) => !hasVerifiedYield(recipe))
+if (unresolvedYields.length) fail(`${unresolvedYields.length} recipes have unresolved yield provenance; first ids: ${unresolvedYields.slice(0, 20).map((recipe) => recipe.id).join(', ')}`)
 const unresolvedIcons = Object.values(items).filter((item) => !item.iconPath && !item.iconUrl)
 if (unresolvedIcons.length) fail(`${unresolvedIcons.length} items have no icon resolution result`)
 const unresolvedNames = Object.values(items).filter((item) => !String(item.nameKo || '').trim() || /^아이템 #\d+$/.test(String(item.nameKo)))
