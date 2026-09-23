@@ -7,13 +7,14 @@ import type { PlannerBootstrap } from './data/plannerBootstrap'
 import { buildActivePlanView } from './data/activePlanView'
 import { activeSessionTarget, updateActiveSessionTarget, updateActiveSessionTargetMode } from './data/activeSessionTarget'
 import { replacePlanTarget, selectTargetVariant } from './data/planSessionTargets'
-import { addDefaultTarget, removeTargetAndSelect } from './data/activeTargetSelection'
+import { addDefaultTarget, removeTargetAndSelect, switchTargetSkill } from './data/activeTargetSelection'
 import { buildPlanFromSession } from './data/sessionPlan'
 import { PlanTargetControls } from './PlanTargetControls'
 import { PlanTargetList } from './PlanTargetList'
 import { SessionPreparationChecklist } from './SessionPreparationChecklist'
 import { PlannerStateActions } from './PlannerStateActions'
 import { IntermediateCraftControls } from './IntermediateCraftControls'
+import { SkillTabs, type PlannerSkill } from './SkillTabs'
 import { useReadyPlannerState } from './useReadyPlannerState'
 
 type ReadyBootstrap = Omit<PlannerBootstrap, 'hydration'> & { hydration: Extract<PlannerBootstrap['hydration'], { status: 'ready' }> }
@@ -60,6 +61,7 @@ export function App({ bootstrap }: { bootstrap: ReadyBootstrap }) {
   function setIntermediateProducer(itemId: ItemId, nextRecipeId: RecipeId) { setSession((current) => ({ ...current, intermediateRecipeIdByItemId: { ...current.intermediateRecipeIdByItemId, [String(itemId)]: String(nextRecipeId) } })) }
   function addTarget() { const next = addDefaultTarget(dataset, session, skill); setSession(next.session); setActiveTargetIndex(next.activeIndex) }
   function removeTarget(index: number) { const next = removeTargetAndSelect(session, index, activeIndex); setSession(next.session); setActiveTargetIndex(next.activeIndex) }
+  function changeSkill(nextSkill: PlannerSkill) { if (nextSkill === skill) return; const next = switchTargetSkill(dataset, session, activeIndex, nextSkill); setSession(next.session); setActiveTargetIndex(next.activeIndex); setQuery(''); setActiveResultIndex(0) }
   const pct = (value: number) => `${(value * 100).toFixed(2)}%`
 
   if (!active || !selectedRecipe) return <main className="app-shell"><p className="data-notice" role="alert">저장된 제작 목표를 현재 데이터에서 찾을 수 없습니다.</p></main>
@@ -70,6 +72,7 @@ export function App({ bootstrap }: { bootstrap: ReadyBootstrap }) {
     <PlanTargetList dataset={dataset} session={session} activeIndex={activeIndex} onSelect={setActiveTargetIndex} onAdd={addTarget} onRemove={removeTarget} />
     <section className="planner-grid"><aside className="panel controls">
       <div className="section-heading"><span>01</span><div><strong>무엇을 만들까요?</strong><small>이름을 입력하면 바로 찾습니다.</small></div></div>
+      <SkillTabs skill={skill} onChange={changeSkill} />
       <div className="search-wrap"><label className="field"><span>제작물 검색</span><input value={query} onChange={(e) => { setQuery(e.target.value); setActiveResultIndex(0) }} onKeyDown={handleSearchKeyDown} placeholder={selectedItem?.nameKo ?? '예: 맥주'} aria-label="제작물 검색" role="combobox" aria-autocomplete="list" aria-expanded={searchOpen} aria-controls="recipe-search-results" aria-activedescendant={searchOpen && activeResult ? `recipe-option-${activeResult.recipe.id}` : undefined} autoComplete="off" /></label>{searchOpen && <div id="recipe-search-results" className="search-results" role="listbox" aria-label="검색 결과">{results.length ? results.map(({ recipe, item }, index) => <button id={`recipe-option-${recipe.id}`} key={recipe.id} role="option" aria-selected={index === activeResultIndex} onMouseEnter={() => setActiveResultIndex(index)} onClick={() => selectSearchResult(index)}><span>{item.nameKo}</span><small>{recipe.skill === 'cooking' ? '요리' : '연금'}</small></button>) : <p>일치하는 제작물이 없습니다.</p>}</div>}</div>
       <div className="selected-target"><small>선택한 제작물 · {skill === 'cooking' ? '요리' : '연금'}</small><strong>{selectedItem?.nameKo ?? '선택 필요'}</strong></div>
       {selectedRecipe.variants.length > 1 && <label className="field"><span>재료 조합</span><select value={selectedVariant?.id ?? ''} onChange={(e) => setSession((current) => selectTargetVariant(current, active.index, selectedRecipe.id, e.target.value))}>{selectedRecipe.variants.map((variant, index) => <option key={variant.id} value={variant.id}>조합 {index + 1} · {variant.inputs.map((input) => `${dataset.items[String(input.itemId)]?.nameKo ?? `#${input.itemId}`} ×${input.count}`).join(' + ')}</option>)}</select><small>선택한 조합은 준비 목록과 무게 계산에 동일하게 적용됩니다.</small></label>}
