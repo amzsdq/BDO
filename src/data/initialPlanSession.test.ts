@@ -3,14 +3,19 @@ import type { RecipeDataset } from '../domain/types'
 import { createInitialPlanSession } from './initialPlanSession'
 
 const dataset: RecipeDataset = {
-  meta: { source: 'test', extractedAt: '2026-09-23T00:00:00Z' },
   items: {
     '1': { id: 1, nameKo: '연금 결과' },
     '2': { id: 2, nameKo: '요리 결과' },
   },
   recipes: {
-    'alchemy-first': { id: 'alchemy-first', skill: 'alchemy', outputItemId: 1, variants: [{ id: 'alchemy-v1', inputs: [] }] },
-    'cooking-second': { id: 'cooking-second', skill: 'cooking', outputItemId: 2, variants: [{ id: 'cooking-v1', inputs: [] }] },
+    'alchemy-first': { id: 'alchemy-first', skill: 'alchemy', outputItemId: 1, yield: { min: 1, max: 1 }, variants: [{ id: 'alchemy-v1', inputs: [] }] },
+    'cooking-second': { id: 'cooking-second', skill: 'cooking', outputItemId: 2, yield: { min: 1, max: 1 }, variants: [{ id: 'cooking-v1', inputs: [] }] },
+  },
+  recipesByOutput: { '1': ['alchemy-first'], '2': ['cooking-second'] },
+  metadata: {
+    generatedAt: '2026-09-23T00:00:00Z',
+    sources: ['test'],
+    supportedRegion: 'KR',
   },
 }
 
@@ -22,7 +27,7 @@ describe('createInitialPlanSession', () => {
   })
 
   it('returns an empty target list when the loaded dataset has no recipes', () => {
-    const session = createInitialPlanSession({ ...dataset, recipes: {} })
+    const session = createInitialPlanSession({ ...dataset, recipes: {}, recipesByOutput: {} })
     expect(session.targets).toEqual([])
     expect(session.variantIdByRecipeId).toEqual({})
   })
