@@ -1,4 +1,4 @@
-import { execFileSync } from 'node:child_process'
+import { execFileSync, spawnSync } from 'node:child_process'
 import crypto from 'node:crypto'
 import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
@@ -97,5 +97,15 @@ describe('bdo extractor importer icon contract', () => {
       expectedVariantId('direct|201:3'),
     ].sort())
     expect(first.every((variant) => /^v-[0-9a-f]{12}$/.test(variant.id))).toBe(true)
+  })
+
+  it.each([
+    [['--bogus', 'x'], 'unknown argument: --bogus'],
+    [['--items', 'a', '--items', 'b'], 'duplicate argument: --items'],
+    [['--items', '--recipes'], 'usage:'],
+  ])('rejects malformed CLI arguments instead of silently accepting them: %j', (extraArgs, expectedError) => {
+    const result = spawnSync(process.execPath, [resolve('scripts/import-bdo-extractor.mjs'), ...extraArgs], { encoding: 'utf8' })
+    expect(result.status).not.toBe(0)
+    expect(result.stderr).toContain(expectedError)
   })
 })
