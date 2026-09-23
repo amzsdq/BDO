@@ -6,15 +6,17 @@ if (!inputPath) throw new Error('usage: node scripts/scope-planner-dataset.mjs <
 
 const dataset = JSON.parse(fs.readFileSync(inputPath, 'utf8'))
 const before = Object.keys(dataset.items || {}).length
-const referencedBySubstitutions = new Set(
-  Object.values(dataset.substitutionGroups || {}).flatMap((group) => group?.memberItemIds || []).map(String),
+const plannerScoped = pruneItemsToPlannerScope(
+  dataset.items || {},
+  dataset.recipes || {},
+  dataset.byproducts || {},
+  dataset.substitutionGroups || {},
 )
-const plannerScoped = pruneItemsToPlannerScope(dataset.items || {}, dataset.recipes || {}, dataset.byproducts || {})
-for (const itemId of referencedBySubstitutions) {
-  if (dataset.items?.[itemId]) plannerScoped[itemId] = dataset.items[itemId]
-}
 dataset.items = plannerScoped
 const after = Object.keys(dataset.items).length
+const substitutionMembers = new Set(
+  Object.values(dataset.substitutionGroups || {}).flatMap((group) => group?.memberItemIds || []).map(String),
+).size
 
 if (dataset.metadata) {
   delete dataset.metadata.fingerprint
@@ -23,4 +25,4 @@ if (dataset.metadata) {
   dataset.metadata.scopedItemCount = after
 }
 fs.writeFileSync(outPath, JSON.stringify(dataset, null, 2) + '\n')
-console.log(JSON.stringify({ ok: true, itemScope: dataset.metadata?.itemScope, importedItems: before, scopedItems: after, substitutionMembers: referencedBySubstitutions.size }))
+console.log(JSON.stringify({ ok: true, itemScope: dataset.metadata?.itemScope, importedItems: before, scopedItems: after, substitutionMembers }))
