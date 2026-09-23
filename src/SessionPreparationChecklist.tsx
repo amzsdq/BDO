@@ -4,6 +4,7 @@ import type { ChecklistState, InventoryState } from './data/storage'
 import type { SessionPlanResult } from './data/sessionPlan'
 import { parseNonNegativeFiniteOrZero } from './data/numericInput'
 import { ItemIcon } from './ItemIcon'
+import './SessionPreparationChecklist.css'
 
 export type SessionPreparationChecklistProps = {
   dataset: RecipeDataset
@@ -20,11 +21,16 @@ export function SessionPreparationChecklist({ dataset, result, checked, setCheck
     const value = parseNonNegativeFiniteOrZero(raw)
     setInventory((current) => ({ ...current, [itemId]: value }))
   }
+  const materialKeys = result.plan?.materials.map((material) => String(material.itemId)) ?? []
+  function setAllPrepared(value: boolean) {
+    setChecked((current) => ({ ...current, ...Object.fromEntries(materialKeys.map((key) => [key, value])) }))
+  }
 
   return <section className="panel checklist">
     <div className="section-heading"><span>02</span><div><strong>준비 체크리스트</strong><small>모든 동시 제작 목표의 재료를 합산합니다. 보유 수량과 체크 상태는 이 기기에 자동 저장됩니다.</small></div></div>
     {result.errors.length > 0 && <div className="data-notice" role="alert"><strong>전체 준비 목록을 계산할 수 없습니다.</strong>{result.errors.map((error) => <small key={error}>{error}</small>)}</div>}
     {result.plan?.warnings.map((warning) => <p className="data-notice" role="status" key={warning}>{warning}</p>)}
+    {materialKeys.length > 0 && <div className="checklist-bulk-actions" aria-label="체크리스트 일괄 작업"><button type="button" onClick={() => setAllPrepared(true)}>모두 준비 완료</button><button type="button" onClick={() => setAllPrepared(false)}>체크 모두 해제</button></div>}
     <div className="material-list">{result.plan?.materials.map((material) => {
       const key = String(material.itemId)
       const item = dataset.items[key]
