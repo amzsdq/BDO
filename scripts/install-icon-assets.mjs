@@ -10,13 +10,14 @@ if (!fs.existsSync(extractorIconsDir)) fail(`extractor icons directory not found
 
 const dataset = JSON.parse(fs.readFileSync(datasetFile, 'utf8'))
 const items = Object.values(dataset.items || {})
-const required = items.filter((item) => typeof item.iconPath === 'string' && /^icons\/\d+\.webp$/.test(item.iconPath))
-if (!required.length) fail('dataset contains no canonical local icon paths')
+if (!items.length) fail('dataset contains no items')
+const invalidPaths = items.filter((item) => !Number.isInteger(item.id) || item.id <= 0 || item.iconPath !== `icons/${item.id}.webp`)
+if (invalidPaths.length) fail(`${invalidPaths.length} items do not declare the canonical local icon path icons/<itemId>.webp; first ids: ${invalidPaths.slice(0, 20).map((item) => item.id ?? '?').join(', ')}`)
 
 fs.mkdirSync(outDir, { recursive: true })
 const missing = []
 let copied = 0
-for (const item of required) {
+for (const item of items) {
   const filename = `${item.id}.webp`
   const source = path.join(extractorIconsDir, filename)
   const destination = path.join(outDir, filename)
@@ -26,4 +27,4 @@ for (const item of required) {
 }
 
 if (missing.length) fail(`${missing.length} canonical item icons are missing from extractor output; first ids: ${missing.slice(0, 20).join(', ')}`)
-console.log(JSON.stringify({ ok: true, required: required.length, copied, outDir }))
+console.log(JSON.stringify({ ok: true, required: items.length, copied, outDir }))
