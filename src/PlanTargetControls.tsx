@@ -1,5 +1,6 @@
 import type { CookingPreparationPolicy } from './domain/durabilityPlan'
 import type { PlanInputMode } from './data/planSession'
+import { parseOptionalNonNegativeFinite } from './data/numericInput'
 import './PlanTargetControls.css'
 
 const POLICIES: Array<{ value: CookingPreparationPolicy; label: string }> = [
@@ -22,7 +23,8 @@ export interface PlanTargetControlsProps {
 export function PlanTargetControls(props: PlanTargetControlsProps) {
   const { skill, mode, amount, cookingPreparationPolicy } = props
   const changeAmount = (raw: string) => {
-    const positive = Math.max(1, Number(raw) || 1)
+    const parsed = parseOptionalNonNegativeFinite(raw)
+    const positive = parsed != null && parsed > 0 ? parsed : 1
     props.onAmountChange(mode === 'durability' ? Math.floor(positive) : positive)
   }
   return (
