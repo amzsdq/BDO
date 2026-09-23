@@ -27,7 +27,13 @@ export interface IngredientSubstitutionGroup {
   }
 }
 export interface RecipeVariant { id: string; inputs: Ingredient[] }
-export interface RecipeYield { min: number; max: number; expected?: number }
+export interface RecipeYield {
+  min: number
+  max: number
+  expected?: number
+  /** `unknown-server-yield` means min/max=1 is only a conservative client-data baseline, not a verified exact output distribution. */
+  provenance?: 'unknown-server-yield' | string
+}
 
 export interface Recipe {
   id: RecipeId

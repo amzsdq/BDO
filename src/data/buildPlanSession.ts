@@ -5,6 +5,7 @@ import type { PlanSessionState } from './planSession'
 import { planOptionsFromSession } from './planSessionOptions'
 import { resolvePlanTargets } from './planSessionResolve'
 import { validatePlanSessionAgainstDataset } from './planSessionValidation'
+import { appendYieldProvenanceWarnings } from './yieldWarnings'
 
 export interface BuiltPlanSession {
   plan?: PlanResult
@@ -29,8 +30,9 @@ export function buildPlanFromSession(
   if (resolved.errors.length) return { errors: resolved.errors, hasEstimatedPreparation: resolved.hasEstimatedPreparation }
 
   try {
+    const rawPlan = buildPlan(dataset, resolved.targets, planOptionsFromSession(session, inventory))
     return {
-      plan: buildPlan(dataset, resolved.targets, planOptionsFromSession(session, inventory)),
+      plan: appendYieldProvenanceWarnings(dataset, resolved.targets, rawPlan),
       errors: [],
       hasEstimatedPreparation: resolved.hasEstimatedPreparation,
     }

@@ -3,6 +3,7 @@ import type { PlanOptions, PlanResult, RecipeDataset } from '../domain/types'
 import type { CharacterProfileState } from './storage'
 import { activePlanTarget, type ActivePlanTargetInput } from './activePlanTarget'
 import { resolvePlanTarget } from './planSessionResolve'
+import { appendYieldProvenanceWarnings } from './yieldWarnings'
 
 export interface BuiltActivePlan {
   plan?: PlanResult
@@ -25,13 +26,14 @@ export function buildActivePlan(
     const persisted = activePlanTarget(input)
     const resolved = resolvePlanTarget(dataset, persisted, { cookingMastery: profile.cookingMastery })
     if (resolved.error || !resolved.target) return { error: resolved.error ?? 'target resolution failed', estimatedPreparation: resolved.estimatedPreparation === true }
-    const plan = buildPlan(dataset, [resolved.target], {
+    const rawPlan = buildPlan(dataset, [resolved.target], {
       craftIntermediateItemIds: options.craftIntermediateItemIds ?? new Set(),
       haveByItemId: inventory,
       intermediateRecipeIdByItemId: options.intermediateRecipeIdByItemId,
       variantIdByRecipeId: options.variantIdByRecipeId,
       selectedSubstitutionItemIdByGroupId: options.selectedSubstitutionItemIdByGroupId,
     })
+    const plan = appendYieldProvenanceWarnings(dataset, [resolved.target], rawPlan)
     return { plan, materialServings: plan.crafts[0]?.attempts, estimatedPreparation: resolved.estimatedPreparation === true }
   } catch (error) {
     return { error: error instanceof Error ? error.message : 'planner failed', estimatedPreparation: false }
