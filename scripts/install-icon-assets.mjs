@@ -3,8 +3,11 @@ import path from 'node:path'
 
 function fail(message) { console.error(`icon install blocked: ${message}`); process.exit(1) }
 
-const [datasetFile, extractorIconsDir, outDir = 'public/icons'] = process.argv.slice(2)
-if (!datasetFile || !extractorIconsDir) fail('usage: node scripts/install-icon-assets.mjs <dataset.json> <extractor-icons-dir> [out-dir]')
+const args = process.argv.slice(2)
+if (args.length < 2 || args.length > 3 || args.some((value) => !value || value.startsWith('--'))) {
+  fail('usage: node scripts/install-icon-assets.mjs <dataset.json> <extractor-icons-dir> [out-dir]')
+}
+const [datasetFile, extractorIconsDir, outDir = 'public/icons'] = args
 if (!fs.existsSync(datasetFile)) fail(`dataset not found: ${datasetFile}`)
 if (!fs.existsSync(extractorIconsDir)) fail(`extractor icons directory not found: ${extractorIconsDir}`)
 
