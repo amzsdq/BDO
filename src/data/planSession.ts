@@ -21,6 +21,11 @@ export interface PlanSessionState {
   selectedSubstitutionItemIdByGroupId: Record<string, number>
 }
 
+export type PlanSessionReadResult =
+  | { status: 'empty'; session: PlanSessionState }
+  | { status: 'valid'; session: PlanSessionState }
+  | { status: 'invalid-storage'; session: PlanSessionState }
+
 export const EMPTY_PLAN_SESSION: PlanSessionState = {
   version: 1,
   targets: [],
@@ -69,30 +74,41 @@ function groupItemRecord(value: unknown): Record<string, number> | undefined {
   return Object.fromEntries(entries.map(([key, entry]) => [key, Number(entry)]))
 }
 
-export function readPlanSession(storage: Pick<Storage, 'getItem'> = localStorage): PlanSessionState {
+export function readPlanSessionResult(storage: Pick<Storage, 'getItem'> = localStorage): PlanSessionReadResult {
+  const empty = emptyPlanSession()
+  let raw: string | null
+  try { raw = storage.getItem(PLAN_SESSION_KEY) } catch { return { status: 'invalid-storage', session: empty } }
+  if (!raw) return { status: 'empty', session: empty }
+
   try {
-    const raw = storage.getItem(PLAN_SESSION_KEY)
-    if (!raw) return emptyPlanSession()
     const parsed: unknown = JSON.parse(raw)
-    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return emptyPlanSession()
+    if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return { status: 'invalid-storage', session: empty }
     const value = parsed as Record<string, unknown>
-    if (value.version !== 1 || !Array.isArray(value.targets) || !value.targets.every(validTarget)) return emptyPlanSession()
-    if (!Array.isArray(value.craftIntermediateItemIds) || value.craftIntermediateItemIds.some((id) => !Number.isInteger(id) || Number(id) <= 0)) return emptyPlanSession()
+    if (value.version !== 1 || !Array.isArray(value.targets) || !value.targets.every(validTarget)) return { status: 'invalid-storage', session: empty }
+    if (!Array.isArray(value.craftIntermediateItemIds) || value.craftIntermediateItemIds.some((id) => !Number.isInteger(id) || Number(id) <= 0)) return { status: 'invalid-storage', session: empty }
     const intermediateRecipeIdByItemId = itemRecipeRecord(value.intermediateRecipeIdByItemId)
     const variantIdByRecipeId = recipeVariantRecord(value.variantIdByRecipeId)
     const selectedSubstitutionItemIdByGroupId = groupItemRecord(value.selectedSubstitutionItemIdByGroupId)
-    if (!intermediateRecipeIdByItemId || !variantIdByRecipeId || !selectedSubstitutionItemIdByGroupId) return emptyPlanSession()
+    if (!intermediateRecipeIdByItemId || !variantIdByRecipeId || !selectedSubstitutionItemIdByGroupId) return { status: 'invalid-storage', session: empty }
     return {
-      version: 1,
-      targets: value.targets as PersistedPlanTarget[],
-      craftIntermediateItemIds: [...new Set(value.craftIntermediateItemIds as number[])],
-      intermediateRecipeIdByItemId,
-      variantIdByRecipeId,
-      selectedSubstitutionItemIdByGroupId,
+      status: 'valid',
+      session: {
+        version: 1,
+        targets: value.targets as PersistedPlanTarget[],
+        craftIntermediateItemIds: [...new Set(value.craftIntermediateItemIds as number[])],
+        intermediateRecipeIdByItemId,
+        variantIdByRecipeId,
+        selectedSubstitutionItemIdByGroupId,
+      },
     }
   } catch {
-    return emptyPlanSession()
+    return { status: 'invalid-storage', session: empty }
   }
+}
+
+/** Backward-compatible convenience reader. Use readPlanSessionResult when corruption must be surfaced. */
+export function readPlanSession(storage: Pick<Storage, 'getItem'> = localStorage): PlanSessionState {
+  return readPlanSessionResult(storage).session
 }
 
 export function writePlanSession(value: PlanSessionState, storage: Pick<Storage, 'setItem'> = localStorage): void {
