@@ -1,7 +1,30 @@
 import { describe, expect, it } from 'vitest'
+import type { RecipeDataset } from '../domain/types'
 import { sampleDataset } from './sample'
 import type { PlanSessionState } from './planSession'
 import { addDefaultTarget, removeTargetAndSelect } from './activeTargetSelection'
+
+const mixedDataset: RecipeDataset = {
+  ...sampleDataset,
+  items: {
+    ...sampleDataset.items,
+    '900003': { id: 900003, nameKo: '샘플 연금' },
+  },
+  recipes: {
+    ...sampleDataset.recipes,
+    'sample-alchemy': {
+      id: 'sample-alchemy',
+      skill: 'alchemy',
+      outputItemId: 900003,
+      yield: { min: 1, max: 1 },
+      variants: [{ id: 'default', inputs: [{ itemId: 900002, count: 2 }] }],
+    },
+  },
+  recipesByOutput: {
+    ...sampleDataset.recipesByOutput,
+    '900003': ['sample-alchemy'],
+  },
+}
 
 const base: PlanSessionState = {
   version: 1,
@@ -25,11 +48,11 @@ describe('active target selection', () => {
   })
 
   it('can add the opposite life skill without replacing the existing target', () => {
-    const result = addDefaultTarget(sampleDataset, { ...base, targets: base.targets.slice(0, 1) }, 'alchemy')
+    const result = addDefaultTarget(mixedDataset, { ...base, targets: base.targets.slice(0, 1) }, 'alchemy')
     expect(result.session.targets).toHaveLength(2)
     expect(result.session.targets[0]).toEqual(base.targets[0])
     const added = result.session.targets[result.activeIndex]
-    expect(sampleDataset.recipes[added.recipeId]?.skill).toBe('alchemy')
+    expect(mixedDataset.recipes[added.recipeId]?.skill).toBe('alchemy')
   })
 
   it('keeps the same logical active sibling when removing an earlier target', () => {
