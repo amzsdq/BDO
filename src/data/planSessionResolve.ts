@@ -21,7 +21,10 @@ export function resolvePlanTarget(
   const recipe = dataset.recipes[persisted.recipeId]
   if (!recipe) return { error: `unknown target recipe: ${persisted.recipeId}` }
 
-  if (persisted.mode === 'output') return { target: { recipeId: persisted.recipeId, variantId: persisted.variantId, mode: 'output', amount: persisted.amount } }
+  if (persisted.mode === 'output') {
+    if (!Number.isInteger(persisted.amount)) return { error: 'desired output quantity must be a positive integer' }
+    return { target: { recipeId: persisted.recipeId, variantId: persisted.variantId, mode: 'output', amount: persisted.amount } }
+  }
   if (persisted.mode === 'servings') {
     if (!Number.isInteger(persisted.amount)) return { error: 'recipe servings must be a positive integer' }
     return { target: { recipeId: persisted.recipeId, variantId: persisted.variantId, mode: 'attempts', amount: persisted.amount } }
