@@ -24,10 +24,11 @@ describe('carry profile validation', () => {
     expect(result.warnings.some((warning) => warning.includes('계산하지 않았습니다'))).toBe(true)
   })
 
-  it('still allows reserved LT above max LT and safely yields zero capacity', () => {
+  it('allows reserved LT above max LT, yields zero capacity, and explains why', () => {
     const result = calculateBatchCapacity(variant, items, { maxWeightLT: 100, reservedWeightLT: 150 })
     expect(result.availableWeightLT).toBe(0)
     expect(result.maxServings).toBe(0)
     expect(result.loadServings).toBe(0)
+    expect(result.warnings).toContain('예약 무게가 최대 무게보다 커서 가용 무게를 0 LT로 처리했습니다.')
   })
 })
