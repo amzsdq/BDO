@@ -16,8 +16,8 @@ function fixture() {
     recipesByOutput: { '10': ['cook'], '11': ['alch'] },
   }
 }
-function reportFor(dataset, overrides = {}) { return { status: 'ZERO_UNEXPLAINED_DIFF', unresolved: [], clientRecipeGroups: 2, codexLivePages: 2, datasetFingerprint: reconciliationDatasetFingerprint(dataset), ...overrides } }
-function catalog(overrides = {}) { return { source: 'BDO Codex KR', complete: true, catalogs: [{ skill: 'cooking', complete: true, recipeCount: 1, endpointUsed: 'https://example.invalid/c', endpointEvidence: { recordsReported: 1 }, countMatchesExpected: null }, { skill: 'alchemy', complete: true, recipeCount: 1, endpointUsed: 'https://example.invalid/a', endpointEvidence: { recordsReported: 1 }, countMatchesExpected: null }], ...overrides } }
+function reportFor(dataset, overrides = {}) { return { status: 'ZERO_UNEXPLAINED_DIFF', unresolved: [], clientRecipeGroups: 2, codexLivePages: 2, codexLiveRecipeIds: [101, 201], datasetFingerprint: reconciliationDatasetFingerprint(dataset), ...overrides } }
+function catalog(overrides = {}) { return { source: 'BDO Codex KR', complete: true, catalogs: [{ skill: 'cooking', complete: true, recipeCount: 1, recipeIds: [101], endpointUsed: 'https://example.invalid/c', endpointEvidence: { recordsReported: 1 }, countMatchesExpected: null }, { skill: 'alchemy', complete: true, recipeCount: 1, recipeIds: [201], endpointUsed: 'https://example.invalid/a', endpointEvidence: { recordsReported: 1 }, countMatchesExpected: null }], ...overrides } }
 function run(dataset, reconciliation, catalogEvidence = catalog()) {
   const dir = mkdtempSync(join(tmpdir(), 'bdo-promote-')); const datasetFile = join(dir, 'dataset.json'), reportFile = join(dir, 'report.json'), catalogFile = join(dir, 'catalog.json'), outFile = join(dir, 'promoted.json')
   writeFileSync(datasetFile, JSON.stringify(dataset)); writeFileSync(reportFile, JSON.stringify(reconciliation)); writeFileSync(catalogFile, JSON.stringify(catalogEvidence)); const result = spawnSync(process.execPath, ['scripts/promote-release-dataset.mjs', datasetFile, reportFile, catalogFile, outFile], { cwd: process.cwd(), encoding: 'utf8' }); return { result, promoted: result.status === 0 ? JSON.parse(readFileSync(outFile, 'utf8')) : null }
@@ -39,5 +39,8 @@ describe('release dataset promotion', () => {
   })
   it('blocks promotion when reconciliation covers fewer pages than the complete catalog', () => {
     const dataset = fixture(); const result = run(dataset, reportFor(dataset, { codexLivePages: 1 })); expect(result.result.status).toBe(1); expect(result.result.stderr).toContain('does not match independently complete catalog count')
+  })
+  it('blocks a same-sized reconciliation built from different Codex recipe ids', () => {
+    const dataset = fixture(); const result = run(dataset, reportFor(dataset, { codexLiveRecipeIds: [102, 201] })); expect(result.result.status).toBe(1); expect(result.result.stderr).toContain('recipe-id set does not match')
   })
 })
