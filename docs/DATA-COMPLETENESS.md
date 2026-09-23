@@ -28,6 +28,8 @@ For automated JSON collection, a candidate URL must remain on HTTPS BDO Codex af
 
 The release pipeline requires an independently complete catalog artifact for both Cooking and Alchemy. Each skill entry must record the endpoint/evidence used, a positive independently supported recipe count, and the exact unique recipe-page ID set. The reconciliation report must cover the same total page count and the same recipe-page ID set. A partial manifest that agrees with itself is not completeness proof.
 
+Promotion binds the exact external evidence used to justify `COMPLETE_VERIFIED`: the Codex catalog collection timestamp + raw-artifact SHA-256 and the reconciliation generation timestamp + raw-artifact SHA-256 are copied into promoted dataset metadata. The final release gate recomputes those hashes from the supplied evidence files. A semantically similar or same-count replacement artifact is not interchangeable after promotion; re-run reconciliation/promotion instead.
+
 ### 3. Secondary community cross-check
 
 Use a second independent source for unexplained differences where practical. This is a reconciliation aid, not authority to silently overwrite client-derived structure.
@@ -47,9 +49,9 @@ A dataset may be marked `COMPLETE_VERIFIED` only when all of these hold:
 9. independently complete Cooking and Alchemy Codex catalogs exist, with exact positive counts and recipe-page ID sets;
 10. Codex reconciliation covers exactly that complete catalog count and recipe-page ID set and has zero unexplained canonical output/signature differences; differing Codex page IDs alone are never a missing-recipe signal;
 11. every UI-visible item has an icon resolution result (local extracted icon, approved remote icon, or explicit reviewed fallback);
-12. provenance records extraction/source timestamps, a non-placeholder canonical client source revision, and dataset fingerprint.
+12. provenance records extraction/source timestamps, a non-placeholder canonical client source revision, dataset fingerprint, and exact hashes/timestamps for the Codex catalog and reconciliation evidence used at promotion.
 
-Any unexplained diff, incomplete catalog evidence, catalog/reconciliation count mismatch, or recipe-ID-set mismatch keeps the dataset unreleasable.
+Any unexplained diff, incomplete catalog evidence, catalog/reconciliation count mismatch, recipe-ID-set mismatch, or evidence-artifact hash mismatch keeps the dataset unreleasable.
 
 ## Yield correctness
 
