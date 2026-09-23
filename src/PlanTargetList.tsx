@@ -32,7 +32,7 @@ export function PlanTargetList({ dataset, session, activeIndex, onSelect, onAdd,
         return <div role="listitem" key={`${index}:${target.recipeId}`} className="target-chip">
           <button type="button" aria-pressed={index === activeIndex} onClick={() => onSelect(index)}>
             <ItemIcon item={item} />
-            <span>{label} · {target.amount.toLocaleString()}</span>
+            <span className="target-chip-label"><span>{label} · {target.amount.toLocaleString()}</span>{item && <small>#{item.id}</small>}</span>
           </button>
           {session.targets.length > 1 && <button type="button" aria-label={`${label} 목표 제거`} onClick={() => onRemove(index)}>×</button>}
         </div>
