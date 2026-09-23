@@ -2,6 +2,8 @@
 .target-chips { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
 .target-chip { display: inline-flex; align-items: stretch; border: 1px solid currentColor; border-radius: .65rem; overflow: hidden; }
 .target-chip > button { border: 0; border-radius: 0; min-height: 2.25rem; }
+.target-chip > button:first-child { display: inline-flex; align-items: center; gap: .45rem; }
+.target-chip .item-icon { width: 1.5rem; height: 1.5rem; flex: 0 0 1.5rem; }
 .target-chip > button[aria-pressed='true'] { font-weight: 700; text-decoration: underline; text-underline-offset: .2em; }
 .target-chip > button:last-child:not(:first-child) { min-width: 2.25rem; }
 .target-chips button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
