@@ -40,7 +40,7 @@ function setup() {
   writeFileSync(datasetFile, JSON.stringify(source))
   writeFileSync(reportFile, JSON.stringify({ status: 'ZERO_UNEXPLAINED_DIFF', unresolved: [], clientRecipeGroups: 2, codexLivePages: 2, datasetFingerprint: reconciliationDatasetFingerprint(source) }))
   writeFileSync(catalogFile, JSON.stringify(completeCatalog()))
-  const promoted = spawnSync(process.execPath, ['scripts/promote-release-dataset.mjs', datasetFile, reportFile], { cwd: process.cwd(), encoding: 'utf8' })
+  const promoted = spawnSync(process.execPath, ['scripts/promote-release-dataset.mjs', datasetFile, reportFile, catalogFile], { cwd: process.cwd(), encoding: 'utf8' })
   expect(promoted.status).toBe(0)
   return { datasetFile, reportFile, catalogFile }
 }
