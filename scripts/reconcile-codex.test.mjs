@@ -4,16 +4,20 @@ import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 
-function run(dataset, manifest) {
+function run(dataset, manifest, review) {
   const dir = mkdtempSync(join(tmpdir(), 'bdo-reconcile-'))
-  const datasetPath = join(dir, 'dataset.json'), codexPath = join(dir, 'codex.json'), reportPath = join(dir, 'report.json')
+  const datasetPath = join(dir, 'dataset.json'), codexPath = join(dir, 'codex.json'), reviewPath = join(dir, 'review.json'), reportPath = join(dir, 'report.json')
   writeFileSync(datasetPath, JSON.stringify(dataset)); writeFileSync(codexPath, JSON.stringify(manifest))
-  const result = spawnSync(process.execPath, ['scripts/reconcile-codex.mjs', '--dataset', datasetPath, '--codex', codexPath, '--out', reportPath], { cwd: process.cwd(), encoding: 'utf8' })
+  const argv = ['scripts/reconcile-codex.mjs', '--dataset', datasetPath, '--codex', codexPath]
+  if (review) { writeFileSync(reviewPath, JSON.stringify(review)); argv.push('--review', reviewPath) }
+  argv.push('--out', reportPath)
+  const result = spawnSync(process.execPath, argv, { cwd: process.cwd(), encoding: 'utf8' })
   return { exitCode: result.status, report: JSON.parse(readFileSync(reportPath, 'utf8')) }
 }
 
 const dataset = { items: { '10': { id: 10, nameKo: '결과' }, '20': { id: 20, nameKo: '재료' } }, recipes: { r: { id: 'r', skill: 'cooking', outputItemId: 10, variants: [{ id: 'v1', inputs: [{ itemId: 20, count: 2 }] }] } } }
 const matchingManifest = { recipes: [{ recipeId: 999, skill: 'cooking', outputItemId: 10, titleKo: '결과', ingredients: [{ itemId: 20, name: '다른 표기여도 ID가 우선', count: 2 }] }] }
+const mismatchManifest = { recipes: [{ recipeId: 999, skill: 'cooking', outputItemId: 10, titleKo: '결과', ingredients: [{ itemId: 20, name: '재료', count: 3 }] }] }
 
 describe('Codex reconciliation', () => {
   it('earns ZERO_UNEXPLAINED_DIFF when canonical item ids and counts agree', () => {
@@ -21,8 +25,33 @@ describe('Codex reconciliation', () => {
     expect(exitCode).toBe(0); expect(report.status).toBe('ZERO_UNEXPLAINED_DIFF'); expect(report.unresolved).toEqual([])
   })
   it('reports a deterministic signature mismatch when canonical ingredient counts differ', () => {
-    const { exitCode, report } = run(dataset, { recipes: [{ recipeId: 999, skill: 'cooking', outputItemId: 10, titleKo: '결과', ingredients: [{ itemId: 20, name: '재료', count: 3 }] }] })
+    const { exitCode, report } = run(dataset, mismatchManifest)
     expect(exitCode).toBe(2); expect(report.status).toBe('INCOMPLETE_REVIEW'); expect(report.unresolved.some((entry) => entry.kind === 'SIGNATURE_MISMATCH')).toBe(true)
+  })
+  it('rejects a bare key waiver without matching kind and evidence', () => {
+    const key = 'SIGNATURE:999:cooking:item:10'
+    const { exitCode, report } = run(dataset, mismatchManifest, { acceptedDiffs: [{ key }] })
+    expect(exitCode).toBe(2)
+    expect(report.acceptedDiffKeys).toEqual([])
+    expect(report.reviewErrors.length).toBeGreaterThan(0)
+    expect(report.unresolved).toEqual(expect.arrayContaining([expect.objectContaining({ key })]))
+  })
+  it('accepts a current diff only with matching kind, rationale, evidence and reviewedAt', () => {
+    const key = 'SIGNATURE:999:cooking:item:10'
+    const review = { acceptedDiffs: [{ key, kind: 'SIGNATURE_MISMATCH', rationale: 'Verified live-client exception against source evidence.', evidence: ['https://bdocodex.com/kr/'], reviewedAt: '2026-09-23T00:00:00Z' }] }
+    const { exitCode, report } = run(dataset, mismatchManifest, review)
+    expect(exitCode).toBe(0)
+    expect(report.status).toBe('ZERO_UNEXPLAINED_DIFF')
+    expect(report.acceptedDiffKeys).toEqual([key])
+    expect(report.reviewErrors).toEqual([])
+    expect(report.unresolved).toEqual([])
+  })
+  it('blocks a stale waiver key even when the current graph has no diffs', () => {
+    const review = { acceptedDiffs: [{ key: 'SIGNATURE:old:cooking:item:10', kind: 'SIGNATURE_MISMATCH', rationale: 'Historical exception with sufficient rationale.', evidence: ['https://bdocodex.com/kr/'], reviewedAt: '2026-09-23T00:00:00Z' }] }
+    const { exitCode, report } = run(dataset, matchingManifest, review)
+    expect(exitCode).toBe(2)
+    expect(report.status).toBe('INCOMPLETE_REVIEW')
+    expect(report.reviewErrors[0]).toMatch(/not present in current reconciliation/)
   })
   it('blocks a client alternative variant that has no Codex counterpart', () => {
     const withExtraVariant = structuredClone(dataset)
