@@ -69,4 +69,24 @@ describe('bdo extractor importer icon contract', () => {
     expect(dataset.recipes['cooking:102'].variants[0].inputs).toEqual([{ itemId: 200, count: 1 }])
     expect(dataset.byproducts['102']).toEqual({ outputItemId: 102, producedWhileCraftingItemIds: [100] })
   })
+
+  it('preserves alternative direct recipes with deterministic identities across source row ordering', () => {
+    const items = [
+      { id: 100, name: 'Cooking Output', weight: 0.1 },
+      { id: 101, name: 'Alchemy Output', weight: 0.1 },
+      { id: 200, name: 'Ingredient A', weight: 0.2 },
+      { id: 201, name: 'Ingredient B', weight: 0.3 },
+    ]
+    const cookingA = { output: 100, type: 'COOK', inputs: [{ item: 200, count: 2 }] }
+    const cookingB = { output: 100, type: 'COOK', inputs: [{ item: 201, count: 3 }] }
+    const alchemy = { output: 101, type: 'ALCHEMY', inputs: [{ item: 200, count: 1 }] }
+
+    const first = importDataset(items, [cookingA, cookingB, alchemy]).dataset.recipes['cooking:100'].variants
+    const second = importDataset(items, [cookingB, cookingA, alchemy]).dataset.recipes['cooking:100'].variants
+
+    expect(first).toHaveLength(2)
+    expect(second).toEqual(first)
+    expect(new Set(first.map((variant) => variant.id)).size).toBe(2)
+    expect(first.every((variant) => /^v-[0-9a-f]{12}$/.test(variant.id))).toBe(true)
+  })
 })

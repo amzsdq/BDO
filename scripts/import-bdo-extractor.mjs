@@ -34,6 +34,12 @@ function normalizeWeight(item) {
   return Number.isFinite(value) && value >= 0 ? value : undefined
 }
 function fingerprint(value) { return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex') }
+function variantSignature(inputs) {
+  return inputs.map((input) => `${input.itemId}:${input.count}`).sort().join('|')
+}
+function variantId(signature) {
+  return `v-${crypto.createHash('sha256').update(signature).digest('hex').slice(0, 12)}`
+}
 
 const args = parseArgs(process.argv.slice(2))
 if (!args.items || !args.recipes || !args.out) fail('required: --items --recipes --out')
@@ -70,14 +76,14 @@ for (const source of recipesRaw) {
   if (!inputs.length) continue
   if (inputs.some((input) => !Number.isFinite(input.count) || input.count <= 0)) fail(`invalid ingredient count for ${skill}:${outputItemId}`)
   const byproductOf = source.byproductOf ? itemIdFromRef(source.byproductOf) : null
-  const signature = inputs.map((input) => `${input.itemId}:${input.count}`).sort().join('|')
+  const signature = variantSignature(inputs)
   const roleKey = byproductOf ? `byproduct:${byproductOf}` : 'direct'
   // Ingredient equality is not recipe-role equality. A direct recipe row and a
   // byproduct row may legitimately share the same inputs; keep both identities.
   const dedupeKey = `${roleKey}|${signature}`
   const groupKey = `${skill}:${outputItemId}`
   const variants = grouped.get(groupKey) || []
-  variants.push({ dedupeKey, inputs, byproductOf })
+  variants.push({ dedupeKey, signature, inputs, byproductOf })
   grouped.set(groupKey, variants)
 }
 
@@ -85,17 +91,26 @@ const recipes = {}, recipesByOutput = {}, byproducts = {}
 for (const [groupKey, rawVariants] of grouped) {
   const [skill, outputText] = groupKey.split(':'); const outputItemId = Number(outputText)
   const seen = new Set(), variants = []
-  for (const candidate of rawVariants) {
+  // Upstream documents repeated producing blocks as alternative recipes but does
+  // not expose a source recipe id. Sort by canonical content so variant identity
+  // is stable across extractor row ordering and never fabricate source identity.
+  for (const candidate of rawVariants.sort((a, b) => a.dedupeKey.localeCompare(b.dedupeKey))) {
     if (seen.has(candidate.dedupeKey)) continue
     seen.add(candidate.dedupeKey)
-    variants.push({ inputs: candidate.inputs, byproductOf: candidate.byproductOf || undefined })
+    variants.push({ signature: candidate.signature, inputs: candidate.inputs, byproductOf: candidate.byproductOf })
   }
   const normalVariants = variants.filter((variant) => !variant.byproductOf)
   const byproductVariants = variants.filter((variant) => variant.byproductOf)
   if (byproductVariants.length) byproducts[String(outputItemId)] = { outputItemId, producedWhileCraftingItemIds: [...new Set(byproductVariants.map((variant) => variant.byproductOf))].sort((a, b) => a - b) }
   if (!normalVariants.length) continue
   const id = `${skill}:${outputItemId}`
-  recipes[id] = { id, skill, outputItemId, yield: { min: 1, max: 1, provenance: 'unknown-server-yield' }, variants: normalVariants.map(({ byproductOf: _x, ...variant }, index) => ({ id: `v${index + 1}`, ...variant })) }
+  recipes[id] = {
+    id,
+    skill,
+    outputItemId,
+    yield: { min: 1, max: 1, provenance: 'unknown-server-yield' },
+    variants: normalVariants.map(({ byproductOf: _x, signature, ...variant }) => ({ id: variantId(signature), ...variant })),
+  }
   recipesByOutput[String(outputItemId)] = [...(recipesByOutput[String(outputItemId)] || []), id]
 }
 
@@ -113,7 +128,7 @@ const payloadWithoutHash = {
     generatedAt: new Date().toISOString(), supportedRegion: 'KR', status: 'CLIENT_IMPORTED_UNRECONCILED',
     sources: ['bdo-data-extractor:items.json', 'bdo-data-extractor:recipes.json'],
     sourceRevision: args['source-revision'] || 'unrecorded',
-    extractorContract: 'items.json + recipes.json; EntityRef serialized as URN text; decoded icons resolved as icons/<itemId>.webp; Korean names not supplied by extractor',
+    extractorContract: 'items.json + recipes.json; repeated producing blocks are alternative recipes; no separate source recipe id; EntityRef serialized as URN text; decoded icons resolved as icons/<itemId>.webp; Korean names not supplied by extractor',
     koreanNamesVerified: false,
     counts,
   }, items, recipes, recipesByOutput, byproducts,
