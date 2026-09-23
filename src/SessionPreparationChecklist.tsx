@@ -33,7 +33,7 @@ export function SessionPreparationChecklist({ dataset, result, checked, setCheck
       return <label className={`material-row ${done ? 'done' : ''}`} key={material.itemId}>
         <input type="checkbox" checked={done} onChange={(event) => setChecked((current) => ({ ...current, [key]: event.target.checked }))} />
         <ItemIcon item={item} />
-        <div className="material-name"><strong>{item?.nameKo ?? `아이템 #${material.itemId}`}</strong><small>{material.craftedIntermediate ? '중간재' : '재료'}</small></div>
+        <div className="material-name"><strong>{item?.nameKo ?? `아이템 #${material.itemId}`}</strong><small>{material.craftedIntermediate ? '중간재' : '재료'} · #{material.itemId}</small></div>
         <div className="quantity"><span>필요</span><strong>{material.required.toLocaleString()}</strong></div>
         <div className="quantity owned"><span>보유</span><input aria-label={`${item?.nameKo ?? `아이템 #${material.itemId}`} 보유 수량`} type="number" min="0" value={owned} onChange={(event) => setOwned(key, event.target.value)} /></div>
         <div className="quantity missing"><span>부족</span><strong>{material.missing.toLocaleString()}</strong></div>
