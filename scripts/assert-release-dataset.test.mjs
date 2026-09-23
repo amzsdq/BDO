@@ -16,8 +16,8 @@ function fixture() {
       '20': { id: 20, nameKo: '재료', iconUrl: 'https://example.invalid/20.png' },
     },
     recipes: {
-      cook: { id: 'cook', skill: 'cooking', outputItemId: 10, yield: { min: 1, max: 1 }, variants: [{ id: 'v1', inputs: [{ itemId: 20, count: 1 }] }] },
-      alch: { id: 'alch', skill: 'alchemy', outputItemId: 11, yield: { min: 1, max: 1 }, variants: [{ id: 'v1', inputs: [{ itemId: 20, count: 1 }] }] },
+      cook: { id: 'cook', skill: 'cooking', outputItemId: 10, yield: { min: 1, max: 1, provenance: 'codex-kr:recipe-10' }, variants: [{ id: 'v1', inputs: [{ itemId: 20, count: 1 }] }] },
+      alch: { id: 'alch', skill: 'alchemy', outputItemId: 11, yield: { min: 1, max: 1, provenance: 'codex-kr:recipe-11' }, variants: [{ id: 'v1', inputs: [{ itemId: 20, count: 1 }] }] },
     },
     recipesByOutput: { '10': ['cook'], '11': ['alch'] },
   }
@@ -38,6 +38,9 @@ describe('final release gate', () => {
   it('accepts a promoted structurally valid dataset', () => { const { datasetFile, reportFile } = setup(); expect(gate(datasetFile, reportFile).status).toBe(0) })
   it('rejects unrecorded source provenance even with a recomputed dataset fingerprint', () => {
     const { datasetFile, reportFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); dataset.metadata.sourceRevision = 'unrecorded'; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile); expect(result.status).toBe(1); expect(result.stderr).toContain('sourceRevision')
+  })
+  it('rejects unresolved recipe yield provenance even with a recomputed dataset fingerprint', () => {
+    const { datasetFile, reportFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); dataset.recipes.cook.yield.provenance = 'unknown-server-yield'; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile); expect(result.status).toBe(1); expect(result.stderr).toContain('unresolved yield provenance')
   })
   it('rejects structural corruption even when fingerprint is recomputed', () => {
     const { datasetFile, reportFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); dataset.recipesByOutput['10'] = ['alch']; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile); expect(result.status).toBe(1); expect(result.stderr).toContain('structural validation failed')
