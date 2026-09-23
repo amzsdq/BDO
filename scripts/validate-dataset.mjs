@@ -35,6 +35,16 @@ for (const [groupId, group] of Object.entries(substitutionGroups)) {
   if (!['BDO Codex KR', 'BDO client'].includes(group.source?.provider)) errors.push(`${groupId}: unsupported substitution evidence provider`)
   if (typeof group.source?.sourceId !== 'string' || !group.source.sourceId.trim()) errors.push(`${groupId}: substitution sourceId missing`)
   if (!group.source?.verifiedAt || Number.isNaN(Date.parse(group.source.verifiedAt))) errors.push(`${groupId}: substitution verifiedAt invalid`)
+  if (group.source?.provider === 'BDO Codex KR') {
+    const values = group.memberValueByItemId
+    if (!values || typeof values !== 'object' || Array.isArray(values)) errors.push(`${groupId}: Codex substitution Worth map missing`)
+    else {
+      const valueKeys = Object.keys(values).sort()
+      const memberKeys = [...seenMembers].map(String).sort()
+      if (JSON.stringify(valueKeys) !== JSON.stringify(memberKeys)) errors.push(`${groupId}: Worth map must cover exactly the substitution members`)
+      for (const [itemId, value] of Object.entries(values)) if (!Number.isFinite(value) || value <= 0) errors.push(`${groupId}: invalid Worth for ${itemId}`)
+    }
+  }
 }
 
 for (const [recipeId, recipe] of Object.entries(recipes)) {
