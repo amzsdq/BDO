@@ -2,8 +2,9 @@ import fs from 'node:fs'
 import crypto from 'node:crypto'
 
 function fail(message) { console.error(message); process.exit(1) }
-const file = process.argv[2]
-if (!file) fail('usage: node scripts/validate-dataset.mjs <dataset.json>')
+const args = process.argv.slice(2)
+if (args.length !== 1 || !args[0] || args[0].startsWith('-')) fail('usage: node scripts/validate-dataset.mjs <dataset.json>')
+const [file] = args
 const dataset = JSON.parse(fs.readFileSync(file, 'utf8'))
 const errors = []
 const items = dataset.items || {}
