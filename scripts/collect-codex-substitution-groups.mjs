@@ -54,12 +54,25 @@ export async function collectCodexSubstitutionGroups(groupIds, fetchImpl = fetch
   return { schemaVersion: 1, source: 'BDO Codex KR', collectedAt, groups }
 }
 
+export function parseCollectorArgs(args) {
+  const allowed = new Set(['--groups', '--out'])
+  if (args.length !== 4) throw new Error('usage: node scripts/collect-codex-substitution-groups.mjs --groups 3001,6002 --out data/codex-substitutions.json')
+  const parsed = new Map()
+  for (let index = 0; index < args.length; index += 2) {
+    const flag = args[index]
+    const value = args[index + 1]
+    if (!allowed.has(flag) || parsed.has(flag) || !value || value.startsWith('--')) throw new Error('usage: node scripts/collect-codex-substitution-groups.mjs --groups 3001,6002 --out data/codex-substitutions.json')
+    parsed.set(flag, value)
+  }
+  if (!parsed.has('--groups') || !parsed.has('--out')) throw new Error('usage: node scripts/collect-codex-substitution-groups.mjs --groups 3001,6002 --out data/codex-substitutions.json')
+  return parsed
+}
+
 if (process.argv[1] && process.argv[1].endsWith('collect-codex-substitution-groups.mjs')) {
-  const args = process.argv.slice(2)
-  const groupsIndex = args.indexOf('--groups'); const outIndex = args.indexOf('--out')
-  if (groupsIndex < 0 || outIndex < 0 || !args[groupsIndex + 1] || !args[outIndex + 1]) throw new Error('usage: node scripts/collect-codex-substitution-groups.mjs --groups 3001,6002 --out data/codex-substitutions.json')
-  const groupIds = args[groupsIndex + 1].split(',').map((value) => value.trim()).filter(Boolean)
+  const parsed = parseCollectorArgs(process.argv.slice(2))
+  const groupIds = parsed.get('--groups').split(',').map((value) => value.trim()).filter(Boolean)
+  if (!groupIds.length) throw new Error('--groups must contain at least one material group id')
   const result = await collectCodexSubstitutionGroups(groupIds)
-  fs.writeFileSync(args[outIndex + 1], `${JSON.stringify(result, null, 2)}\n`)
+  fs.writeFileSync(parsed.get('--out'), `${JSON.stringify(result, null, 2)}\n`)
   console.log(`collected ${result.groups.length} Codex material groups`)
 }
