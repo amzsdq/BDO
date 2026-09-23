@@ -7,6 +7,7 @@ import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.m
 function fail(message) { console.error(`release blocked: ${message}`); process.exit(1) }
 function fingerprint(value) { return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex') }
 function hasRecordedSourceRevision(value) { const revision = String(value ?? '').trim(); return revision !== '' && revision.toLowerCase() !== 'unrecorded' }
+function hasVerifiedYield(recipe) { const provenance = String(recipe?.yield?.provenance ?? '').trim().toLowerCase(); return provenance !== '' && provenance !== 'unknown-server-yield' && provenance !== 'unrecorded' }
 const [file, reconciliationFile] = process.argv.slice(2)
 if (!file) fail('usage: node scripts/assert-release-dataset.mjs <dataset.json> [reconciliation-report.json]')
 if (!fs.existsSync(file)) fail(`dataset not found: ${file}`)
@@ -27,6 +28,8 @@ const actualFingerprint = fingerprint(payloadWithoutHash)
 if (actualFingerprint !== metadata.fingerprint) fail(`fingerprint mismatch: recorded=${metadata.fingerprint} actual=${actualFingerprint}`)
 const actualCounts = { cooking: Object.values(recipes).filter((recipe) => recipe.skill === 'cooking').length, alchemy: Object.values(recipes).filter((recipe) => recipe.skill === 'alchemy').length }
 if (actualCounts.cooking !== metadata.counts.cooking || actualCounts.alchemy !== metadata.counts.alchemy) fail(`recipe count mismatch: metadata=${JSON.stringify(metadata.counts)} actual=${JSON.stringify(actualCounts)}`)
+const unresolvedYields = Object.values(recipes).filter((recipe) => !hasVerifiedYield(recipe))
+if (unresolvedYields.length) fail(`${unresolvedYields.length} recipes have unresolved yield provenance; first ids: ${unresolvedYields.slice(0, 20).map((recipe) => recipe.id).join(', ')}`)
 const unresolvedIcons = Object.values(items).filter((item) => !item.iconPath && !item.iconUrl)
 if (unresolvedIcons.length) fail(`${unresolvedIcons.length} items have no icon resolution result`)
 const localIconRoot = path.resolve(path.dirname(file), '..')
