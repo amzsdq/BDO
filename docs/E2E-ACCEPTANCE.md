@@ -5,6 +5,7 @@ These scenarios are the minimum real-user flows required before `PROGRAM_COMPLET
 ## Global preconditions
 
 - production dataset passes `data:release-gate` with `ZERO_UNEXPLAINED_DIFF`;
+- the exact production `mastery.json` passes the release mastery-evidence gate: its SHA-256 matches the evidence envelope, semantic rate mapping is `VERIFIED`, and both Cooking and Alchemy runtime/client cross-checks pass;
 - every referenced local icon asset is installed and resolvable;
 - fresh browser profile starts with no planner local state;
 - desktop and narrow/mobile viewport runs are both required;
@@ -94,4 +95,4 @@ Pass: completeness and provenance failures are visible and fail closed.
 
 ## Completion evidence
 
-For release acceptance, record the exact main commit, dataset fingerprint, reconciliation report fingerprint/timestamp, browser(s), viewport(s), and pass/fail result for every scenario. Any failed scenario keeps the program in `CONTINUE`.
+For release acceptance, record the exact main commit, dataset fingerprint, reconciliation report fingerprint/timestamp, exact production `mastery.json` SHA-256 plus mastery-evidence fingerprint/provenance, browser(s), viewport(s), and pass/fail result for every scenario. Any failed scenario keeps the program in `CONTINUE`.
