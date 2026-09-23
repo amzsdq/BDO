@@ -39,12 +39,14 @@ if (!datasetFile || !reconciliationFile || !catalogFile) fail('usage: node scrip
 if (!fs.existsSync(datasetFile)) fail(`dataset not found: ${datasetFile}`)
 if (!fs.existsSync(reconciliationFile)) fail(`reconciliation report not found: ${reconciliationFile}`)
 const dataset = JSON.parse(fs.readFileSync(datasetFile, 'utf8'))
-const reconciliation = JSON.parse(fs.readFileSync(reconciliationFile, 'utf8'))
+const reconciliationBytes = fs.readFileSync(reconciliationFile)
+const reconciliation = JSON.parse(reconciliationBytes.toString('utf8'))
 const items = dataset.items || {}, recipes = dataset.recipes || {}
 if (dataset.metadata?.supportedRegion !== 'KR') fail('supportedRegion must be KR')
 if (!Array.isArray(dataset.metadata?.sources) || dataset.metadata.sources.length < 2) fail('source provenance incomplete')
 if (!hasRecordedSourceRevision(dataset.metadata?.sourceRevision)) fail('sourceRevision must identify the canonical client snapshot; unrecorded provenance cannot be promoted')
 if (!dataset.metadata?.generatedAt) fail('generatedAt missing')
+if (!hasValidTimestamp(reconciliation.generatedAt)) fail('reconciliation generatedAt timestamp is missing or invalid')
 if (reconciliation.status !== 'ZERO_UNEXPLAINED_DIFF' || (reconciliation.unresolved || []).length) fail('reconciliation is not ZERO_UNEXPLAINED_DIFF')
 if (reconciliation.clientRecipeGroups !== Object.keys(recipes).length) fail('reconciliation recipe count does not match dataset')
 const expectedReconciliationFingerprint = reconciliationDatasetFingerprint(dataset)
@@ -60,8 +62,8 @@ const missingLocalIcons = Object.values(items).filter((item) => !fs.existsSync(p
 if (missingLocalIcons.length) fail(`${missingLocalIcons.length} canonical local icon assets are missing; first ids: ${missingLocalIcons.slice(0, 20).map((item) => item.id).join(', ')}`)
 const unresolvedNames = Object.values(items).filter((item) => !String(item.nameKo || '').trim() || /^아이템 #\d+$/.test(String(item.nameKo)))
 if (unresolvedNames.length) fail(`${unresolvedNames.length} items have unresolved Korean names`)
-const promoted = { ...dataset, metadata: { ...dataset.metadata, status: 'COMPLETE_VERIFIED', counts, verifiedAt: new Date().toISOString(), reconciliationStatus: 'ZERO_UNEXPLAINED_DIFF', codexCatalogPages: codexCatalog.pages, codexCatalogCollectedAt: codexCatalog.collectedAt, codexCatalogSha256: codexCatalog.sha256 } }
+const promoted = { ...dataset, metadata: { ...dataset.metadata, status: 'COMPLETE_VERIFIED', counts, verifiedAt: new Date().toISOString(), reconciliationStatus: 'ZERO_UNEXPLAINED_DIFF', reconciliationGeneratedAt: reconciliation.generatedAt, reconciliationSha256: sha256(reconciliationBytes), codexCatalogPages: codexCatalog.pages, codexCatalogCollectedAt: codexCatalog.collectedAt, codexCatalogSha256: codexCatalog.sha256 } }
 delete promoted.metadata.fingerprint
 promoted.metadata.fingerprint = fingerprint(promoted)
 fs.writeFileSync(outFile, JSON.stringify(promoted, null, 2) + '\n')
-console.log(JSON.stringify({ ok: true, outFile, counts, codexCatalogPages: codexCatalog.pages, codexCatalogSha256: codexCatalog.sha256, fingerprint: promoted.metadata.fingerprint }))
+console.log(JSON.stringify({ ok: true, outFile, counts, reconciliationSha256: promoted.metadata.reconciliationSha256, codexCatalogPages: codexCatalog.pages, codexCatalogSha256: codexCatalog.sha256, fingerprint: promoted.metadata.fingerprint }))
