@@ -1,5 +1,6 @@
+import type { CookingPreparationPolicy } from '../domain/durabilityPlan'
 import type { RecipeDataset, RecipeId } from '../domain/types'
-import type { PersistedPlanTarget, PlanSessionState } from './planSession'
+import type { PersistedPlanTarget, PlanInputMode, PlanSessionState } from './planSession'
 import { replacePlanTarget } from './planSessionTargets'
 
 export interface ActiveSessionTarget {
@@ -35,4 +36,18 @@ export function updateActiveSessionTarget(
   const next = { ...current, ...patch }
   if (patch.mode != null && patch.mode !== 'durability') delete next.cookingPreparationPolicy
   return replacePlanTarget(session, index, next)
+}
+
+/** Keep Cooking durability transitions immediately resolvable while Alchemy stays separate. */
+export function updateActiveSessionTargetMode(
+  session: PlanSessionState,
+  index: number,
+  skill: 'cooking' | 'alchemy',
+  mode: PlanInputMode,
+  cookingPolicy: CookingPreparationPolicy = 'safe95',
+): PlanSessionState {
+  return updateActiveSessionTarget(session, index, {
+    mode,
+    cookingPreparationPolicy: mode === 'durability' && skill === 'cooking' ? cookingPolicy : undefined,
+  })
 }
