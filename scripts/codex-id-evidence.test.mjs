@@ -15,4 +15,15 @@ describe('Codex recipe identity evidence', () => {
       { id: 900002, category: { id: 3 } },
     ] })).toEqual([])
   })
+
+  it('rejects zero, negative and unsafe recipe identities', () => {
+    expect(recipeIdsFromJson({ data: [
+      { recipe_id: 0 },
+      { recipeId: -7 },
+      { recipe_id: Number.MAX_SAFE_INTEGER + 1 },
+      { recipe_id: 12 },
+      { href: '/kr/recipe/0/' },
+      { href: '/kr/recipe/13/' },
+    ] })).toEqual([12, 13])
+  })
 })
