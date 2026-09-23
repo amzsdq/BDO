@@ -4,6 +4,7 @@ import crypto from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.mjs'
 import { normalizeExpectedCountEvidence } from './catalog-count-evidence.mjs'
+import { validateResolvedCatalogEndpoint } from './codex-catalog-endpoint.mjs'
 
 function fail(message) { console.error(`release blocked: ${message}`); process.exit(1) }
 function fingerprint(value) { return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex') }
@@ -52,6 +53,9 @@ for (const skill of ['cooking', 'alchemy']) {
   const entry = catalogBySkill.get(skill)
   if (!entry || entry.complete !== true || !Number.isSafeInteger(entry.recipeCount) || entry.recipeCount <= 0) fail(`Codex ${skill} catalog completeness is not proven`)
   if (!entry.endpointUsed || !entry.endpointEvidence) fail(`Codex ${skill} catalog lacks endpoint evidence`)
+  const configuredScope = validateResolvedCatalogEndpoint(entry.endpointUsed, skill)
+  const finalScope = validateResolvedCatalogEndpoint(entry.endpointFinalUrl || entry.endpointUsed, skill)
+  if (!configuredScope.ok || !finalScope.ok) fail(`Codex ${skill} catalog endpoint scope is invalid`)
   const endpointCountMatches = entry.endpointEvidence.recordsReported === entry.recipeCount
   const expectedEvidence = normalizeExpectedCountEvidence({ [skill]: entry.expectedCountEvidence }, skill)
   const independentCountMatches = entry.countMatchesExpected === true && expectedEvidence?.valid === true && expectedEvidence.count === entry.recipeCount
