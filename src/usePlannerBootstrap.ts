@@ -1,10 +1,15 @@
 import { useEffect, useState } from 'react'
 import { bootstrapPlanner, type PlannerBootstrap } from './data/plannerBootstrap'
 
+type ReadyHydration = Extract<PlannerBootstrap['hydration'], { status: 'ready' }>
+type RecoveryHydration = Extract<PlannerBootstrap['hydration'], { status: 'recovery-required' }>
+type ReadyBootstrap = Omit<PlannerBootstrap, 'hydration'> & { hydration: ReadyHydration }
+type RecoveryBootstrap = Omit<PlannerBootstrap, 'hydration'> & { hydration: RecoveryHydration }
+
 export type PlannerBootstrapState =
   | { status: 'loading' }
-  | { status: 'ready'; value: PlannerBootstrap & { hydration: Extract<PlannerBootstrap['hydration'], { status: 'ready' }> } }
-  | { status: 'recovery-required'; value: PlannerBootstrap & { hydration: Extract<PlannerBootstrap['hydration'], { status: 'recovery-required' }> } }
+  | { status: 'ready'; value: ReadyBootstrap }
+  | { status: 'recovery-required'; value: RecoveryBootstrap }
   | { status: 'load-error'; error: string }
 
 /**
@@ -20,9 +25,9 @@ export function usePlannerBootstrap(): PlannerBootstrapState {
       .then((value) => {
         if (cancelled) return
         if (value.hydration.status === 'ready') {
-          setState({ status: 'ready', value: value as PlannerBootstrapState & never extends never ? never : typeof value & { hydration: Extract<typeof value.hydration, { status: 'ready' }> } })
+          setState({ status: 'ready', value: { ...value, hydration: value.hydration } })
         } else {
-          setState({ status: 'recovery-required', value: value as typeof value & { hydration: Extract<typeof value.hydration, { status: 'recovery-required' }> } })
+          setState({ status: 'recovery-required', value: { ...value, hydration: value.hydration } })
         }
       })
       .catch((error: unknown) => {
