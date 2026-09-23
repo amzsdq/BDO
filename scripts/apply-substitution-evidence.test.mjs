@@ -31,4 +31,8 @@ describe('applySubstitutionEvidence', () => {
   it('rejects non-Codex material-group URLs', () => {
     expect(() => applySubstitutionEvidence(dataset, { ...evidence, groups: [{ ...evidence.groups[0], sourceUrl: 'https://example.com/group/3001' }] })).toThrow(/unsupported evidence URL/)
   })
+
+  it('rejects duplicate group records instead of letting the last one silently win', () => {
+    expect(() => applySubstitutionEvidence(dataset, { ...evidence, groups: [evidence.groups[0], { ...evidence.groups[0] }] })).toThrow(/duplicate group evidence/)
+  })
 })
