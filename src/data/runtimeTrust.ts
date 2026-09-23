@@ -5,6 +5,7 @@ interface ReleaseMetadata {
   reconciliationStatus?: string
   verifiedAt?: string
   fingerprint?: string
+  sourceRevision?: string
   counts?: { cooking?: number; alchemy?: number }
 }
 
@@ -24,6 +25,8 @@ export async function hasRuntimeVerifiedEvidence(dataset: RecipeDataset): Promis
   if (metadata.status !== 'COMPLETE_VERIFIED' || metadata.reconciliationStatus !== 'ZERO_UNEXPLAINED_DIFF') return false
   if (!metadata.verifiedAt || !metadata.fingerprint) return false
   if (!Array.isArray(metadata.sources) || metadata.sources.length < 2) return false
+  const sourceRevision = String(metadata.sourceRevision ?? '').trim()
+  if (!sourceRevision || sourceRevision.toLowerCase() === 'unrecorded') return false
 
   const recipes = Object.values(dataset.recipes)
   const cooking = recipes.filter((recipe) => recipe.skill === 'cooking').length
