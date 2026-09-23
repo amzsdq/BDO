@@ -35,10 +35,16 @@ describe('versioned plan session state', () => {
     expect(readPlanSessionResult(storage).status).toBe('invalid-storage')
   })
 
-  it('fails closed on unknown versions or invalid target quantities', () => {
+  it('preserves a distinct recovery signal for newer persisted versions', () => {
     const storage = memoryStorage()
-    storage.setItem('bdo-planner:plan-session:v1', JSON.stringify({ version: 2, targets: [] }))
+    storage.setItem('bdo-planner:plan-session:v1', JSON.stringify({ version: 2, targets: [{ recipeId: 'future:1', mode: 'output', amount: 1 }], futureField: true }))
     expect(readPlanSession(storage).targets).toEqual([])
+    expect(readPlanSessionResult(storage)).toMatchObject({ status: 'unsupported-version', persistedVersion: 2 })
+  })
+
+  it('fails closed on malformed versions or invalid target quantities', () => {
+    const storage = memoryStorage()
+    storage.setItem('bdo-planner:plan-session:v1', JSON.stringify({ version: '2', targets: [] }))
     expect(readPlanSessionResult(storage).status).toBe('invalid-storage')
     storage.setItem('bdo-planner:plan-session:v1', JSON.stringify({ version: 1, targets: [{ recipeId: 'x', mode: 'output', amount: -1 }], craftIntermediateItemIds: [], intermediateRecipeIdByItemId: {}, variantIdByRecipeId: {} }))
     expect(readPlanSession(storage).targets).toEqual([])
