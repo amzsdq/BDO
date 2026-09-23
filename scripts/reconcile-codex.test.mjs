@@ -36,13 +36,19 @@ describe('Codex reconciliation', () => {
     expect(report.reviewErrors.length).toBeGreaterThan(0)
     expect(report.unresolved).toEqual(expect.arrayContaining([expect.objectContaining({ key })]))
   })
-  it('accepts a current diff only with matching kind, rationale, evidence and reviewedAt', () => {
-    const key = 'SIGNATURE:999:cooking:item:10'
-    const review = { acceptedDiffs: [{ key, kind: 'SIGNATURE_MISMATCH', rationale: 'Verified live-client exception against source evidence.', evidence: ['https://bdocodex.com/kr/'], reviewedAt: '2026-09-23T00:00:00Z' }] }
+  it('accepts current directional diffs only with matching kind, rationale, evidence and reviewedAt', () => {
+    const signatureKey = 'SIGNATURE:999:cooking:item:10'
+    const clientVariantKey = 'CLIENT_VARIANT_ONLY:r:v1:cooking:item:10'
+    const evidence = ['https://bdocodex.com/kr/']
+    const reviewedAt = '2026-09-23T00:00:00Z'
+    const review = { acceptedDiffs: [
+      { key: signatureKey, kind: 'SIGNATURE_MISMATCH', rationale: 'Verified Codex-side exception against source evidence.', evidence, reviewedAt },
+      { key: clientVariantKey, kind: 'CLIENT_VARIANT_ONLY', rationale: 'Verified client-side exception against source evidence.', evidence, reviewedAt },
+    ] }
     const { exitCode, report } = run(dataset, mismatchManifest, review)
     expect(exitCode).toBe(0)
     expect(report.status).toBe('ZERO_UNEXPLAINED_DIFF')
-    expect(report.acceptedDiffKeys).toEqual([key])
+    expect(report.acceptedDiffKeys).toEqual([clientVariantKey, signatureKey].sort())
     expect(report.reviewErrors).toEqual([])
     expect(report.unresolved).toEqual([])
   })
