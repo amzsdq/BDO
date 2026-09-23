@@ -5,6 +5,7 @@ export interface BatchLine { itemId: number; countPerServing: number; countToCar
 export interface BatchCapacity { availableWeightLT: number; ingredientWeightPerServingLT?: number; maxServings?: number; loadServings?: number; totalStartingIngredientWeightLT?: number; lines: BatchLine[]; unknownWeightItemIds: number[]; warnings: string[] }
 
 function finiteNonNegative(value: number | undefined): number { return Number.isFinite(value) && (value ?? 0) >= 0 ? value! : 0 }
+function finiteFloorNonNegative(value: number): number { return Number.isFinite(value) && value >= 0 ? Math.floor(value) : 0 }
 
 /** Exact starting ingredient math. `totalStartingIngredientWeightLT` covers the requested work; carry lines describe one capacity-safe trip/load. */
 export function calculateBatchCapacity(
@@ -33,8 +34,9 @@ export function calculateBatchCapacity(
     return { availableWeightLT, ingredientWeightPerServingLT, lines: [], unknownWeightItemIds: [], warnings }
   }
   const maxServings = Math.floor(availableWeightLT / ingredientWeightPerServingLT)
-  const requested = requestedServings == null ? maxServings : Math.max(0, Math.floor(requestedServings))
+  const requested = requestedServings == null ? maxServings : finiteFloorNonNegative(requestedServings)
   const loadServings = Math.min(requested, maxServings)
+  if (requestedServings != null && !Number.isFinite(requestedServings)) warnings.push('요청 회분이 유효한 유한 숫자가 아니어서 0회분으로 처리했습니다.')
   if (requested > maxServings) warnings.push(`요청한 ${requested}회분은 현재 가용 무게에서 한 번에 들 수 없습니다. 아래 휴대 수량은 최대 ${maxServings}회분 기준입니다.`)
   const lines = variant.inputs.map((input) => {
     const weightPerItemLT = items[String(input.itemId)]!.weightLT!
