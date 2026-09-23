@@ -34,6 +34,16 @@ describe('calculateBatchCapacity', () => {
     expect(result.warnings[0]).toContain('최대 10회분 기준')
   })
 
+  it('does not leak NaN or Infinity from invalid requested servings', () => {
+    for (const requested of [Number.NaN, Number.POSITIVE_INFINITY]) {
+      const result = calculateBatchCapacity(variant, items, { maxWeightLT: 10 }, requested)
+      expect(result.loadServings).toBe(0)
+      expect(result.totalStartingIngredientWeightLT).toBe(0)
+      expect(result.lines.every((line) => Number.isFinite(line.countToCarry) && Number.isFinite(line.weightToCarryLT))).toBe(true)
+      expect(result.warnings[0]).toContain('유효한 유한 숫자')
+    }
+  })
+
   it('floors at the capacity boundary rather than exceeding max LT', () => { expect(calculateBatchCapacity(variant, items, { maxWeightLT: 10.99 }).maxServings).toBe(10) })
   it('refuses to invent capacity when an ingredient weight is unknown', () => {
     const result = calculateBatchCapacity(variant, { ...items, '2': { id: 2, nameKo: '재료 B' } }, { maxWeightLT: 2000 })
