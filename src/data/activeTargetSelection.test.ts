@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import type { RecipeDataset } from '../domain/types'
 import { sampleDataset } from './sample'
 import type { PlanSessionState } from './planSession'
-import { addDefaultTarget, removeTargetAndSelect } from './activeTargetSelection'
+import { addDefaultTarget, removeTargetAndSelect, switchTargetSkill } from './activeTargetSelection'
 
 const mixedDataset: RecipeDataset = {
   ...sampleDataset,
@@ -53,6 +53,17 @@ describe('active target selection', () => {
     expect(result.session.targets[0]).toEqual(base.targets[0])
     const added = result.session.targets[result.activeIndex]
     expect(mixedDataset.recipes[added.recipeId]?.skill).toBe('alchemy')
+  })
+
+  it('switches only the active target skill while preserving siblings and amount', () => {
+    const session = { ...base, targets: base.targets.slice(0, 2) }
+    const sibling = session.targets[0]
+    const result = switchTargetSkill(mixedDataset, session, 1, 'alchemy')
+    expect(result.activeIndex).toBe(1)
+    expect(result.session.targets[0]).toEqual(sibling)
+    expect(result.session.targets[1].amount).toBe(3)
+    expect(mixedDataset.recipes[result.session.targets[1].recipeId]?.skill).toBe('alchemy')
+    expect(result.session.targets[1].cookingPreparationPolicy).toBeUndefined()
   })
 
   it('keeps the same logical active sibling when removing an earlier target', () => {
