@@ -15,8 +15,8 @@ function fixture(): RecipeDataset {
       '3': { id: 3, nameKo: '재료', iconPath: 'icons/3.webp' },
     },
     recipes: {
-      cook: { id: 'cook', skill: 'cooking', outputItemId: 1, yield: { min: 1, max: 1 }, variants: [{ id: 'v1', inputs: [{ itemId: 3, count: 1 }] }] },
-      alch: { id: 'alch', skill: 'alchemy', outputItemId: 2, yield: { min: 1, max: 1 }, variants: [{ id: 'v1', inputs: [{ itemId: 3, count: 1 }] }] },
+      cook: { id: 'cook', skill: 'cooking', outputItemId: 1, yield: { min: 1, max: 1, provenance: 'codex-kr:recipe-1' }, variants: [{ id: 'v1', inputs: [{ itemId: 3, count: 1 }] }] },
+      alch: { id: 'alch', skill: 'alchemy', outputItemId: 2, yield: { min: 1, max: 1, provenance: 'codex-kr:recipe-2' }, variants: [{ id: 'v1', inputs: [{ itemId: 3, count: 1 }] }] },
     },
     recipesByOutput: { '1': ['cook'], '2': ['alch'] },
   }
@@ -31,11 +31,21 @@ async function promoteFixture(): Promise<RecipeDataset> {
   return dataset
 }
 
+async function withFingerprint(dataset: RecipeDataset): Promise<RecipeDataset> {
+  const bytes = new TextEncoder().encode(JSON.stringify(dataset))
+  const digest = await crypto.subtle.digest('SHA-256', bytes)
+  ;(dataset.metadata as any).fingerprint = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
+  return dataset
+}
+
 describe('hasRuntimeVerifiedEvidence', () => {
   it('accepts a structurally consistent promoted artifact with a matching payload fingerprint', async () => { expect(await hasRuntimeVerifiedEvidence(await promoteFixture())).toBe(true) })
   it('rejects status-only claims', async () => { const dataset = await promoteFixture(); delete (dataset.metadata as any).reconciliationStatus; expect(await hasRuntimeVerifiedEvidence(dataset)).toBe(false) })
   it('rejects missing or unrecorded canonical client revision even when the artifact fingerprint matches', async () => {
-    for (const sourceRevision of [undefined, '', 'unrecorded', 'UNRECORDED']) { const dataset = fixture(); (dataset.metadata as any).sourceRevision = sourceRevision; const bytes = new TextEncoder().encode(JSON.stringify(dataset)); const digest = await crypto.subtle.digest('SHA-256', bytes); (dataset.metadata as any).fingerprint = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join(''); expect(await hasRuntimeVerifiedEvidence(dataset)).toBe(false) }
+    for (const sourceRevision of [undefined, '', 'unrecorded', 'UNRECORDED']) { const dataset = fixture(); (dataset.metadata as any).sourceRevision = sourceRevision; expect(await hasRuntimeVerifiedEvidence(await withFingerprint(dataset))).toBe(false) }
+  })
+  it('rejects unresolved recipe yield provenance even when the artifact fingerprint matches', async () => {
+    for (const provenance of [undefined, '', 'unknown-server-yield', 'UNRECORDED']) { const dataset = fixture(); (dataset.recipes.cook.yield as any).provenance = provenance; expect(await hasRuntimeVerifiedEvidence(await withFingerprint(dataset))).toBe(false) }
   })
   it('rejects stale recipe counts', async () => { const dataset = await promoteFixture(); (dataset.metadata as any).counts.cooking = 2; expect(await hasRuntimeVerifiedEvidence(dataset)).toBe(false) })
   it('rejects unresolved names and icons', async () => {
