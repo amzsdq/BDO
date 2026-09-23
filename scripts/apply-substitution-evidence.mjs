@@ -34,6 +34,20 @@ export function applySubstitutionEvidence(dataset, evidence) {
       source: { provider: 'BDO Codex KR', sourceId: String(group.sourceId || id), sourceUrl: group.sourceUrl, verifiedAt: collectedAt },
     }
   }
+
+  // Bind only when the sourced evidence makes membership unambiguous. This turns
+  // group evidence into planner behavior without guessing from item quality/name.
+  const groups = Object.values(next.substitutionGroups)
+  for (const recipe of Object.values(next.recipes || {})) {
+    for (const variant of recipe.variants || []) {
+      for (const input of variant.inputs || []) {
+        const matches = groups.filter((group) => group.memberItemIds.includes(input.itemId))
+        if (matches.length > 1) throw new Error(`${recipe.id}/${variant.id}: item ${input.itemId} belongs to multiple sourced substitution groups`)
+        if (matches.length === 1) input.substitutionGroupId = matches[0].id
+      }
+    }
+  }
+
   next.metadata ||= {}
   next.metadata.sources = [...new Set([...(next.metadata.sources || []), 'BDO Codex KR material-group Worth evidence'])]
   return next
