@@ -36,7 +36,7 @@ export function PlanTargetControls(props: PlanTargetControlsProps) {
       </div>
       <label className="field">
         {mode === 'output' ? '목표 결과물 수량' : mode === 'servings' ? '준비할 재료 회분' : '사용할 도구 내구도'}
-        <input type="number" min="1" step="1" value={amount} onChange={(event) => changeAmount(event.target.value)} />
+        <input type="number" min="1" step="1" value={amount} onFocus={(event) => event.currentTarget.select()} onChange={(event) => changeAmount(event.target.value)} />
       </label>
       {mode === 'durability' && skill === 'cooking' ? (
         <label className="field plan-policy-field">
