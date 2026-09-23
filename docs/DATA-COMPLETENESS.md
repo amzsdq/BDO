@@ -24,6 +24,8 @@ Codex recipe-page IDs are provenance identifiers, not canonical recipe identity:
 
 Catalog acquisition itself is fail-closed. A generic JSON `id` field is not accepted as recipe identity because the same payload may contain item, category, row, or other identifiers. Automated catalog evidence must expose a recipe-specific id field or canonical `/kr/recipe/<id>/` URL, and a non-empty list alone never proves pagination completeness.
 
+The release pipeline requires an independently complete catalog artifact for both Cooking and Alchemy. Each skill entry must record the endpoint/evidence used, a positive independently supported recipe count, and the exact unique recipe-page ID set. The reconciliation report must cover the same total page count and the same recipe-page ID set. A partial manifest that agrees with itself is not completeness proof.
+
 ### 3. Secondary community cross-check
 
 Use a second independent source for unexplained differences where practical. This is a reconciliation aid, not authority to silently overwrite client-derived structure.
@@ -40,11 +42,12 @@ A dataset may be marked `COMPLETE_VERIFIED` only when all of these hold:
 6. duplicate recipe identities are resolved deterministically;
 7. alternative recipe blocks remain distinct;
 8. extractor-marked byproduct-only outputs are not exposed as directly craftable target recipes;
-9. Cooking/Alchemy Codex reconciliation has zero unexplained canonical output/signature differences; differing Codex page IDs alone are never a missing-recipe signal;
-10. every UI-visible item has an icon resolution result (local extracted icon, approved remote icon, or explicit reviewed fallback);
-11. provenance records extraction/source timestamps and dataset fingerprint.
+9. independently complete Cooking and Alchemy Codex catalogs exist, with exact positive counts and recipe-page ID sets;
+10. Codex reconciliation covers exactly that complete catalog count and recipe-page ID set and has zero unexplained canonical output/signature differences; differing Codex page IDs alone are never a missing-recipe signal;
+11. every UI-visible item has an icon resolution result (local extracted icon, approved remote icon, or explicit reviewed fallback);
+12. provenance records extraction/source timestamps, a non-placeholder canonical client source revision, and dataset fingerprint.
 
-Any unexplained diff keeps the dataset in `INCOMPLETE_REVIEW`.
+Any unexplained diff, incomplete catalog evidence, catalog/reconciliation count mismatch, or recipe-ID-set mismatch keeps the dataset unreleasable.
 
 ## Yield correctness
 
