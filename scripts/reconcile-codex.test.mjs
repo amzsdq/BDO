@@ -91,4 +91,13 @@ describe('Codex reconciliation', () => {
     const { exitCode, report } = run(dataset, { recipes: [...matchingManifest.recipes, { recipeId: 1000, skill: 'alchemy', outputItemId: 77, titleKo: '퇴역', available: false, ingredients: [] }] })
     expect(exitCode).toBe(0); expect(report.status).toBe('ZERO_UNEXPLAINED_DIFF'); expect(report.codexDisabledPages).toBe(1); expect(report.codexLiveRecipeIds).toEqual([999])
   })
+  it.each([
+    [['--bogus', 'x'], 'unknown argument: --bogus'],
+    [['--dataset', 'a', '--dataset', 'b'], 'duplicate argument: --dataset'],
+    [['--dataset', '--codex'], 'usage:'],
+  ])('fails closed on malformed CLI arguments: %j', (argv, expectedError) => {
+    const result = spawnSync(process.execPath, ['scripts/reconcile-codex.mjs', ...argv], { cwd: process.cwd(), encoding: 'utf8' })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain(expectedError)
+  })
 })
