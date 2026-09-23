@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { createInitialPlanSession, writePlanSession } from './planSession'
+import { createInitialPlanSession } from './initialPlanSession'
+import { writePlanSession } from './planSession'
 import { sampleDataset } from './sample'
 import { exportPlannerState, resetPlannerState, writeCharacterProfile, writeChecklist, writeInventory } from './storage'
 
