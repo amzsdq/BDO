@@ -30,8 +30,9 @@ describe('applySubstitutionEvidence', () => {
     expect(() => applySubstitutionEvidence(dataset, { ...evidence, groups: [{ ...evidence.groups[0], members: [{ itemId: 1, value: 1 }, { itemId: 99, value: 6 }] }] })).toThrow(/unknown\/invalid member/)
   })
 
-  it('rejects non-Codex material-group URLs', () => {
-    expect(() => applySubstitutionEvidence(dataset, { ...evidence, groups: [{ ...evidence.groups[0], sourceUrl: 'https://example.com/group/3001' }] })).toThrow(/unsupported evidence URL/)
+  it('requires canonical id, sourceId, and KR Codex URL to identify the same group', () => {
+    expect(() => applySubstitutionEvidence(dataset, { ...evidence, groups: [{ ...evidence.groups[0], sourceUrl: 'https://example.com/group/3001' }] })).toThrow(/evidence URL does not match sourceId/)
+    expect(() => applySubstitutionEvidence(dataset, { ...evidence, groups: [{ ...evidence.groups[0], sourceId: '3002' }] })).toThrow(/sourceId does not match canonical group id/)
   })
 
   it('rejects duplicate group records instead of letting the last one silently win', () => {
