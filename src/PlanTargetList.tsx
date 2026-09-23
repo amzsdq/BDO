@@ -1,5 +1,6 @@
 import type { RecipeDataset } from './domain/types'
 import type { PlanSessionState } from './data/planSession'
+import './PlanTargetList.css'
 
 export interface PlanTargetListProps {
   dataset: RecipeDataset
