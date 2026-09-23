@@ -1,4 +1,4 @@
-import { forecastCookingMaterialServings } from './mastery'
+import { stableForecastCookingMaterialServings } from './stableCookingForecast'
 
 export type CookingPreparationPolicy = 'minimum' | 'expected' | 'safe95' | 'maximum'
 
@@ -20,7 +20,7 @@ export function cookingDurabilityPreparation(
   mastery: number,
   policy: CookingPreparationPolicy,
 ): CookingDurabilityPreparation | undefined {
-  const forecast = forecastCookingMaterialServings(durabilityUses, mastery)
+  const forecast = stableForecastCookingMaterialServings(durabilityUses, mastery)
   if (!forecast) return undefined
 
   const materialServings = policy === 'minimum'
