@@ -75,8 +75,11 @@ describe('final release gate', () => {
   it('rejects catalog evidence when collectedAt is missing or invalid', () => {
     for (const collectedAt of [undefined, '', 'not-a-date']) { const { datasetFile, reportFile, catalogFile } = setup(); const catalog = completeCatalog(); catalog.collectedAt = collectedAt; writeFileSync(catalogFile, JSON.stringify(catalog)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('collectedAt timestamp') }
   })
+  it('rejects a different Codex artifact after promotion even when recipe ids and counts still match', () => {
+    const { datasetFile, reportFile, catalogFile } = setup(); const catalog = completeCatalog(); catalog.discoveredEndpointCandidates = ['https://example.invalid/semantically-irrelevant']; writeFileSync(catalogFile, JSON.stringify(catalog)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('artifact does not match promoted evidence')
+  })
   it('rejects catalog evidence whose endpoint scope does not match the declared skill', () => {
-    const { datasetFile, reportFile, catalogFile } = setup(); const catalog = completeCatalog(); catalog.catalogs[0].endpointFinalUrl = 'https://bdocodex.com/query.php?a=recipes&type=alchemy&l=kr'; writeFileSync(catalogFile, JSON.stringify(catalog)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('endpoint scope is invalid')
+    const { datasetFile, reportFile, catalogFile } = setup(); const catalog = completeCatalog(); catalog.catalogs[0].endpointFinalUrl = 'https://bdocodex.com/query.php?a=recipes&type=alchemy&l=kr'; writeFileSync(catalogFile, JSON.stringify(catalog)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toMatch(/artifact does not match promoted evidence|endpoint scope is invalid/)
   })
   it('rejects reconciliation performed against fewer Codex pages than the complete catalog', () => {
     const { datasetFile, reportFile, catalogFile } = setup(); const report = JSON.parse(readFileSync(reportFile, 'utf8')); report.codexLivePages = 1; writeFileSync(reportFile, JSON.stringify(report)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('does not match independently complete catalog count')
