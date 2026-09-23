@@ -3,6 +3,7 @@
 import { writeFile } from 'node:fs/promises'
 import { recipeIdsFromJson } from './codex-id-evidence.mjs'
 import { catalogEndpointForSkill, validateCatalogEndpointTemplate, validateResolvedCatalogEndpoint } from './codex-catalog-endpoint.mjs'
+import { normalizeExpectedCountEvidence } from './catalog-count-evidence.mjs'
 
 const BASE = 'https://bdocodex.com/kr'
 const CATALOGS = [
@@ -50,10 +51,11 @@ async function collectCatalog(catalog) {
       recordsFiltered: Number.isSafeInteger(Number(parsed?.recordsFiltered)) ? Number(parsed.recordsFiltered) : null,
     }
   }
-  const expectedCount = expectedCounts?.[catalog.skill] ?? null
+  const expectedCountEvidence = normalizeExpectedCountEvidence(expectedCounts, catalog.skill)
+  const expectedCount = expectedCountEvidence?.valid ? expectedCountEvidence.count : null
   const countMatchesExpected = expectedCount == null ? null : ids.length === expectedCount
   const complete = endpointValidation.ok && endpointUsed !== null && ids.length > 0 && (countMatchesExpected === true || endpointEvidence?.recordsReported === ids.length)
-  return { skill: catalog.skill, catalogUrl: catalog.url, catalogFinalUrl: page.finalUrl, recipeIds: ids, recipeCount: ids.length, directHtmlRecipeIds: directIds.length, discoveredEndpointCandidates: discoveredEndpoints, endpointUsed, endpointFinalUrl, endpointEvidence, expectedCount, countMatchesExpected, complete }
+  return { skill: catalog.skill, catalogUrl: catalog.url, catalogFinalUrl: page.finalUrl, recipeIds: ids, recipeCount: ids.length, directHtmlRecipeIds: directIds.length, discoveredEndpointCandidates: discoveredEndpoints, endpointUsed, endpointFinalUrl, endpointEvidence, expectedCountEvidence, expectedCount, countMatchesExpected, complete }
 }
 
 const catalogs = []
@@ -63,7 +65,7 @@ const result = {
   source: 'BDO Codex KR',
   collectedAt: new Date().toISOString(),
   complete: catalogs.every((catalog) => catalog.complete),
-  completenessRule: 'A non-empty list is insufficient. Each catalog requires a skill/category-bound, non-product-scoped bdocodex.com endpoint (including final redirect target) plus either an independently supplied expected count or endpoint recordsTotal equal to the unique recipe count. Ambiguous generic JSON id fields are not recipe identity evidence.',
+  completenessRule: 'A non-empty list is insufficient. Each catalog requires a skill/category-bound, non-product-scoped bdocodex.com recipe endpoint (including final redirect target) plus either provenance-bearing independent expected-count evidence or endpoint recordsTotal equal to the unique recipe count. Bare caller-supplied counts and ambiguous generic JSON id fields are not completeness evidence.',
   catalogs,
 }
 await writeFile(outPath, `${JSON.stringify(result, null, 2)}\n`)
