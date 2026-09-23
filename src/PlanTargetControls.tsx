@@ -25,7 +25,7 @@ export function PlanTargetControls(props: PlanTargetControlsProps) {
   const changeAmount = (raw: string) => {
     const parsed = parseOptionalNonNegativeFinite(raw)
     const positive = parsed != null && parsed > 0 ? parsed : 1
-    props.onAmountChange(mode === 'durability' ? Math.floor(positive) : positive)
+    props.onAmountChange(Math.max(1, Math.floor(positive)))
   }
   return (
     <>
