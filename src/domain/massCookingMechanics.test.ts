@@ -17,12 +17,21 @@ describe('Mass Cooking first-party mechanics evidence', () => {
     expect(MASS_COOKING_MECHANICS.source.verifiedAt).toBe('2026-09-23')
   })
 
-  it('keeps the durability forecast consistent with the sourced multiplier at 100% Mass Cooking', () => {
+  it('keeps the deterministic forecast consistent with the sourced multiplier at 100% Mass Cooking', () => {
     const durabilityUses = 37
     const forecast = forecastCookingMaterialServings(durabilityUses, 2000)!
+    const deterministicServings = durabilityUses * MASS_COOKING_MECHANICS.servingsPerActivation
     expect(forecast.massCookingProbability).toBe(1)
-    expect(forecast.expectedServings).toBe(durabilityUses * MASS_COOKING_MECHANICS.servingsPerActivation)
-    expect(forecast.safe95Servings).toBe(durabilityUses * MASS_COOKING_MECHANICS.servingsPerActivation)
-    expect(forecast.maximumServings).toBe(durabilityUses * MASS_COOKING_MECHANICS.servingsPerActivation)
+    expect(forecast.expectedServings).toBe(deterministicServings)
+    expect(forecast.safe95Servings).toBe(deterministicServings)
+    expect(forecast.maximumServings).toBe(deterministicServings)
+  })
+
+  it('keeps stochastic expectation bound to n + extra-servings × expected activations', () => {
+    const durabilityUses = 100
+    const forecast = forecastCookingMaterialServings(durabilityUses, 1500)!
+    expect(forecast.expectedServings).toBeCloseTo(
+      durabilityUses * (1 + MASS_COOKING_EXTRA_SERVINGS * forecast.massCookingProbability),
+    )
   })
 })
