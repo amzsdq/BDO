@@ -34,8 +34,23 @@ npm run build
 
 라이브 클라이언트 추출물 `items.json`과 `recipes.json`, 그리고 `bdo-data-extractor icons`가 만든 `<extractor-data>/icons/<itemId>.webp`를 준비합니다. runtime이 실제로 읽는 dataset과 브라우저가 실제로 제공하는 icon asset을 함께 설치합니다.
 
+기본 구조 import:
+
 ```bash
 npm run data:import -- --items <items.json> --recipes <recipes.json> --out public/data/dataset.json --source-revision <extractor-tag-or-sha>
+```
+
+Codex 재료 그룹을 사용하는 production import에서는 recipe evidence에서 명시적인 material-group id를 추출하고, KR Codex의 행 단위 Worth 증거를 수집한 뒤 `--substitution-evidence`로 함께 적용합니다. Worth가 누락되거나 그룹 멤버와 정확히 일치하지 않으면 검증이 실패합니다. 추측 비율은 허용하지 않습니다.
+
+```bash
+node scripts/codex-material-group-ids.mjs <codex-recipe-evidence.json>
+node scripts/collect-codex-substitution-groups.mjs --groups <3001,6002,...> --out <codex-substitutions.json>
+npm run data:import -- --items <items.json> --recipes <recipes.json> --out public/data/dataset.json --source-revision <extractor-tag-or-sha> --substitution-evidence <codex-substitutions.json>
+```
+
+이후 release gate:
+
+```bash
 npm run data:icons -- public/data/dataset.json <extractor-data>/icons public/icons
 npm run data:validate -- public/data/dataset.json
 npm run data:reconcile -- --dataset public/data/dataset.json --codex <codex-manifest.json> --out <reconciliation-report.json>

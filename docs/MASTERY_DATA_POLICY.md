@@ -11,9 +11,18 @@ Current verified source snapshot:
 - Page: `[업데이트] 1월 8일(수) 업데이트 안내`
 - URL: https://www.kr.playblackdesert.com/ko-kr/News/Detail?countryType=ko-kr&groupContentNo=13398
 - Page last-modified marker observed by source review: 2025-02-12 11:56
-- Verified by project: 2026-09-22 KST
+- Verified by project: 2026-09-23 KST
 
 The source explicitly publishes separate Cooking and Alchemy mastery tables. Cooking includes `요리 시 대량 요리 발동 확률`; Alchemy instead publishes maximum/additional result probabilities. Therefore the two skills MUST NOT share a generic mastery formula.
+
+The current Pearl Abyss KR Cooking Adventurer Guide is also first-party semantic evidence for Mass Cooking itself:
+- Page: `[모험가 가이드] 요리`
+- URL: https://www.kr.playblackdesert.com/ko-KR/Wiki?wikiNo=102
+- Section: `4. 대량 요리와 부산물(마녀의 별미)`
+- Verified by project: 2026-09-23 KST
+- It states that Mass Cooking can activate during a continuous run of at least 10 crafts, consumes 10 crafts' worth of ingredients at once, produces 10 crafts' worth of results, and decreases Cooking Utensil durability by 1.
+
+This first-party guide removes the previous uncertainty around the 10-serving Mass Cooking consumption multiplier. The probability still comes from the source-verified mastery breakpoint table; the multiplier/durability semantics come from the Cooking guide.
 
 ## Runtime data contract
 
@@ -55,11 +64,11 @@ This makes stale checked-in mastery data detectable while preserving the distinc
 
 `utensil durability uses` and `recipe material servings` are distinct quantities.
 
-For Cooking, one durability use can consume more than one material serving when Mass Cooking triggers. Any material forecast derived from mastery probability is probabilistic and must be labelled as such. The deterministic weight planner remains exact input-load math and must not silently absorb probabilistic mastery assumptions.
+For Cooking, one normal craft consumes one serving and one durability use. A Mass Cooking activation consumes 10 servings while still decreasing utensil durability by 1, per the first-party Cooking guide above. Therefore, for `n` durability uses and `M` Mass Cooking activations, material servings are exactly `n + 9M`. Since `M` is probabilistic below 100% Mass Cooking chance, minimum/expected/safe/maximum material-serving forecasts must remain explicitly probabilistic except at deterministic breakpoints.
 
-Before exposing expected/safe/max material forecasts in production, verify the current game's Mass Cooking consumption multiplier from first-party evidence (or client data if the multiplier is encoded there). Do not promote a community-only multiplier into canonical runtime data.
+The deterministic weight planner remains exact input-load math for whichever explicit material-serving preparation target the user selected. It must not silently absorb an expected/probabilistic output estimate or equate durability uses with material servings.
 
-Alchemy mastery must remain separate; do not apply Cooking Mass Cooking behavior to Alchemy.
+Alchemy mastery remains separate; do not apply Cooking Mass Cooking behavior to Alchemy.
 
 ## Release checks
 
@@ -70,4 +79,5 @@ Alchemy mastery must remain separate; do not apply Cooking Mass Cooking behavior
 - tests cover exact published mastery breakpoints and out-of-range handling;
 - unknown/unverified mastery data disables probabilistic forecasts rather than guessing;
 - updating the source table requires updating `verifiedAt` and rerunning tests;
+- Mass Cooking multiplier/durability semantics remain tied to the recorded first-party Cooking guide evidence;
 - the UI distinguishes exact LT/carry quantities from expected/probabilistic forecasts.
