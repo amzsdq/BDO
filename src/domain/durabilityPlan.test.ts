@@ -13,12 +13,21 @@ describe('Cooking durability preparation policy', () => {
     expect(cookingDurabilityPreparation(100, 1500, 'expected')).toMatchObject({ materialServings: 641, estimated: true })
   })
 
-  it('uses the existing exact-binomial 95% preparation target', () => {
+  it('uses the exact-binomial 95% preparation target', () => {
     const safe = cookingDurabilityPreparation(100, 1500, 'safe95')!
     const expected = cookingDurabilityPreparation(100, 1500, 'expected')!
     expect(safe.estimated).toBe(true)
     expect(safe.materialServings).toBeGreaterThanOrEqual(expected.materialServings)
     expect(safe.materialServings).toBeLessThan(1000)
+  })
+
+  it('keeps large durability safe95 useful instead of collapsing to the absolute maximum', () => {
+    const safe = cookingDurabilityPreparation(10_000, 1350, 'safe95')!
+    const expected = cookingDurabilityPreparation(10_000, 1350, 'expected')!
+    const maximum = cookingDurabilityPreparation(10_000, 1350, 'maximum')!
+    expect(safe.materialServings).toBeGreaterThanOrEqual(expected.materialServings)
+    expect(safe.materialServings).toBeLessThan(maximum.materialServings)
+    expect(safe.materialServings).toBe(55_738)
   })
 
   it('feeds selected material servings into the actionable planner instead of raw durability uses', () => {
