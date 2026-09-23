@@ -53,12 +53,13 @@ npm run data:import -- --items <items.json> --recipes <recipes.json> --out publi
 ```bash
 npm run data:icons -- public/data/dataset.json <extractor-data>/icons public/icons
 npm run data:validate -- public/data/dataset.json
+node scripts/collect-codex-catalog.mjs --endpoint '<complete-catalog-endpoint-template-with-{skill}>' --out <codex-catalog.json>
 npm run data:reconcile -- --dataset public/data/dataset.json --codex <codex-manifest.json> --out <reconciliation-report.json>
 npm run data:promote -- public/data/dataset.json <reconciliation-report.json> <codex-catalog.json>
 npm run data:release-gate -- public/data/dataset.json <reconciliation-report.json> <codex-catalog.json>
 ```
 
-`<codex-catalog.json>`은 Cooking과 Alchemy 각각에 대해 endpoint 기반 전체 목록, 독립 count evidence, 정확한 recipe-id set이 있어야 `complete=true`로 인정됩니다. 현재 저장소에는 이 production catalog를 획득하는 검증 완료 collector가 아직 없으므로 임의의 부분 목록을 complete artifact로 만들면 안 됩니다. promotion과 최종 release gate는 complete catalog의 총 recipe page 수와 정확한 recipe-id set이 reconciliation report와 일치하는지 검증합니다.
+`collect-codex-catalog.mjs`는 Cooking과 Alchemy 각각에 대해 구성된 endpoint에서 recipe-specific ID를 추출합니다. endpoint의 `recordsTotal`이 unique recipe-id 수와 일치하거나 별도의 `--expected-counts` 증거가 일치해야 해당 skill을 `complete=true`로 표시합니다. product-scoped/부분 endpoint나 단순 non-empty 응답은 complete catalog 증거가 아닙니다. promotion과 최종 release gate는 complete catalog의 총 recipe page 수와 정확한 recipe-id set이 reconciliation report와 일치하는지 다시 검증합니다.
 
 `data:icons`는 dataset이 참조하는 canonical `icons/<itemId>.webp`만 설치하며, extractor output에서 필요한 icon 하나라도 빠져 있으면 실패합니다. source DDS 경로를 브라우저 asset 경로로 취급하지 않습니다.
 
