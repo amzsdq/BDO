@@ -15,7 +15,9 @@ if (substitutionIndex >= 0 && !substitutionEvidencePath) throw new Error('requir
 // The structural importer must see the broad client item catalog first. Codex
 // substitution evidence can introduce valid planner members that are not direct
 // recipe inputs, so apply that evidence before final planner scoping.
-const importerArgs = args.filter((_, index) => index !== substitutionIndex && index !== substitutionIndex + 1)
+const importerArgs = substitutionIndex >= 0
+  ? args.filter((_, index) => index !== substitutionIndex && index !== substitutionIndex + 1)
+  : args
 execFileSync(process.execPath, [resolve('scripts/import-bdo-extractor.mjs'), ...importerArgs], { stdio: 'inherit' })
 let dataset = JSON.parse(fs.readFileSync(outPath, 'utf8'))
 const before = Object.keys(dataset.items || {}).length
