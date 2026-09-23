@@ -9,6 +9,7 @@ import { activeSessionTarget, updateActiveSessionTarget, updateActiveSessionTarg
 import { replacePlanTarget, selectTargetVariant } from './data/planSessionTargets'
 import { addDefaultTarget, removeTargetAndSelect, switchTargetSkill } from './data/activeTargetSelection'
 import { buildPlanFromSession } from './data/sessionPlan'
+import { parseOptionalNonNegativeFinite } from './data/numericInput'
 import { PlanTargetControls } from './PlanTargetControls'
 import { PlanTargetList } from './PlanTargetList'
 import { SessionPreparationChecklist } from './SessionPreparationChecklist'
@@ -56,7 +57,7 @@ export function App({ bootstrap }: { bootstrap: ReadyBootstrap }) {
   function chooseRecipe(nextRecipeId: RecipeId) { if (!active) return; const recipe = dataset.recipes[nextRecipeId]; if (!recipe) return; setSession((current) => replacePlanTarget(current, active.index, { ...current.targets[active.index], recipeId: recipe.id, variantId: recipe.variants[0]?.id, cookingPreparationPolicy: current.targets[active.index].mode === 'durability' && recipe.skill === 'cooking' ? cookingPreparationPolicy : undefined })) }
   function selectSearchResult(index: number) { const result = results[index]; if (!result) return; chooseRecipe(result.recipe.id); setQuery(''); setActiveResultIndex(0) }
   function handleSearchKeyDown(event: React.KeyboardEvent<HTMLInputElement>) { if (event.key === 'Escape' && searchOpen) { event.preventDefault(); setQuery(''); setActiveResultIndex(0); return } if (!searchOpen || !results.length) return; if (event.key === 'ArrowDown') { event.preventDefault(); setActiveResultIndex((current) => (current + 1) % results.length) } else if (event.key === 'ArrowUp') { event.preventDefault(); setActiveResultIndex((current) => (current - 1 + results.length) % results.length) } else if (event.key === 'Enter') { event.preventDefault(); selectSearchResult(activeResultIndex) } }
-  function setProfileNumber(key: 'maxWeightLT' | 'reservedWeightLT' | 'cookingMastery' | 'alchemyMastery', raw: string) { const value = raw === '' ? undefined : Math.max(0, Number(raw) || 0); setProfile((current) => ({ ...current, [key]: value })) }
+  function setProfileNumber(key: 'maxWeightLT' | 'reservedWeightLT' | 'cookingMastery' | 'alchemyMastery', raw: string) { const value = parseOptionalNonNegativeFinite(raw); setProfile((current) => ({ ...current, [key]: value })) }
   function setIntermediateCraft(itemId: ItemId, craft: boolean) { setSession((current) => ({ ...current, craftIntermediateItemIds: craft ? [...new Set([...current.craftIntermediateItemIds, Number(itemId)])] : current.craftIntermediateItemIds.filter((id) => id !== Number(itemId)) })) }
   function setIntermediateProducer(itemId: ItemId, nextRecipeId: RecipeId) { setSession((current) => ({ ...current, intermediateRecipeIdByItemId: { ...current.intermediateRecipeIdByItemId, [String(itemId)]: String(nextRecipeId) } })) }
   function addTarget() { const next = addDefaultTarget(dataset, session, skill); setSession(next.session); setActiveTargetIndex(next.activeIndex) }
