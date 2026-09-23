@@ -12,10 +12,14 @@ export function applySubstitutionEvidence(dataset, evidence) {
   const seenGroupIds = new Set()
   for (const group of evidence.groups) {
     const id = String(group.id || '')
-    if (!id || !Array.isArray(group.members) || group.members.length < 2) throw new Error(`invalid substitution group ${id || '<missing>'}`)
+    const idMatch = id.match(/^codex:(\d+)$/)
+    if (!idMatch || !Array.isArray(group.members) || group.members.length < 2) throw new Error(`invalid substitution group ${id || '<missing>'}`)
+    const sourceId = String(group.sourceId || '')
+    if (sourceId !== idMatch[1]) throw new Error(`${id}: sourceId does not match canonical group id`)
     if (seenGroupIds.has(id)) throw new Error(`${id}: duplicate group evidence`)
     seenGroupIds.add(id)
-    if (!/^https:\/\/bdocodex\.com\/kr\/materialgroup\//.test(String(group.sourceUrl || ''))) throw new Error(`${id}: unsupported evidence URL`)
+    const sourceUrl = String(group.sourceUrl || '')
+    if (sourceUrl !== `https://bdocodex.com/kr/materialgroup/${sourceId}/`) throw new Error(`${id}: evidence URL does not match sourceId`)
     const memberItemIds = []
     const memberValueByItemId = {}
     for (const member of group.members) {
@@ -31,12 +35,10 @@ export function applySubstitutionEvidence(dataset, evidence) {
       id,
       memberItemIds,
       memberValueByItemId,
-      source: { provider: 'BDO Codex KR', sourceId: String(group.sourceId || id), sourceUrl: group.sourceUrl, verifiedAt: collectedAt },
+      source: { provider: 'BDO Codex KR', sourceId, sourceUrl, verifiedAt: collectedAt },
     }
   }
 
-  // Bind only when the sourced evidence makes membership unambiguous. This turns
-  // group evidence into planner behavior without guessing from item quality/name.
   const groups = Object.values(next.substitutionGroups)
   for (const recipe of Object.values(next.recipes || {})) {
     for (const variant of recipe.variants || []) {
