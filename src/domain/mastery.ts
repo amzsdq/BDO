@@ -36,27 +36,23 @@ export interface CookingMaterialForecast {
   minimumServings: number
   expectedServings: number
   safe95Servings: number
+  safe95Method: 'exact-binomial' | 'bernstein-conservative'
   maximumServings: number
 }
 
-/**
- * Exact 95% binomial quantile using probabilities relative to the distribution
- * mode. Starting at the mode avoids P(X=0) underflow for large durability
- * counts while retaining an exact discrete percentile.
- */
+const EXACT_BINOMIAL_MAX_USES = 100_000
+
+/** Exact 95% binomial quantile, stabilized by measuring probabilities relative to the mode. */
 function binomialQuantile95(n: number, p: number): number {
   if (p <= 0) return 0
   if (p >= 1) return n
-
   const mode = Math.floor((n + 1) * p)
   let totalRelative = 1
-
   let weight = 1
   for (let k = mode; k > 0; k -= 1) {
     weight *= (k / (n - k + 1)) * ((1 - p) / p)
     totalRelative += weight
   }
-
   let upperTailRelative = 0
   weight = 1
   for (let k = mode; k < n; k += 1) {
@@ -64,7 +60,6 @@ function binomialQuantile95(n: number, p: number): number {
     upperTailRelative += weight
     totalRelative += weight
   }
-
   let quantile = mode
   let tailRelative = upperTailRelative
   weight = 1
@@ -78,11 +73,20 @@ function binomialQuantile95(n: number, p: number): number {
 }
 
 /**
- * One Mass Cooking proc consumes 10 servings while one normal durability use
- * consumes one. Expected value is 1 + 9p. safe95Servings is the exact 95th
- * percentile under an independent Bernoulli-per-use model and is explicitly an
- * estimate, not a guarantee. Maximum remains the guaranteed upper bound.
+ * O(1) one-sided Bernstein bound for very large user-entered workloads.
+ * For X~Bin(n,p), P[X-np >= t] <= exp(-t²/(2(np(1-p)+t/3))).
+ * Solving the RHS at 0.05 yields a conservative >=95% preparation bound.
  */
+function bernsteinUpper95(n: number, p: number): number {
+  if (p <= 0) return 0
+  if (p >= 1) return n
+  const log20 = Math.log(20)
+  const variance = n * p * (1 - p)
+  const third = log20 / 3
+  const deviation = third + Math.sqrt(third * third + 2 * log20 * variance)
+  return Math.min(n, Math.ceil(n * p + deviation))
+}
+
 export function forecastCookingMaterialServings(
   durabilityUses: number,
   mastery: number,
@@ -91,13 +95,17 @@ export function forecastCookingMaterialServings(
   const row = cookingMasteryRow(mastery)
   if (!row) return undefined
   const p = row.massCookingProbability
-  const safe95MassProcs = binomialQuantile95(durabilityUses, p)
+  const useExact = durabilityUses <= EXACT_BINOMIAL_MAX_USES
+  const safe95MassProcs = useExact
+    ? binomialQuantile95(durabilityUses, p)
+    : bernsteinUpper95(durabilityUses, p)
   return {
     durabilityUses,
     massCookingProbability: p,
     minimumServings: durabilityUses,
     expectedServings: durabilityUses * (1 + 9 * p),
     safe95Servings: durabilityUses + 9 * safe95MassProcs,
+    safe95Method: useExact ? 'exact-binomial' : 'bernstein-conservative',
     maximumServings: durabilityUses * 10,
   }
 }
