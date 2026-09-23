@@ -10,6 +10,8 @@ export type PlannerBootstrap = {
   hydration: PlannerBundleHydration
 }
 
+type RuntimeDatasetLoader = typeof loadRuntimeDataset
+
 /**
  * The only supported startup order for persisted planner state:
  * runtime dataset first, then validation/hydration against that exact dataset.
@@ -17,8 +19,9 @@ export type PlannerBootstrap = {
  */
 export async function bootstrapPlanner(
   storage: Pick<Storage, 'getItem'> = localStorage,
+  runtimeLoader: RuntimeDatasetLoader = loadRuntimeDataset,
 ): Promise<PlannerBootstrap> {
-  const loaded = await loadRuntimeDataset()
+  const loaded = await runtimeLoader()
   const hydration = hydratePlannerBundle(loaded.dataset, storage)
 
   if (hydration.status === 'ready' && hydration.source === 'first-run') {
