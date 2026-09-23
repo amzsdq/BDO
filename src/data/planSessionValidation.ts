@@ -14,7 +14,8 @@ export function validatePlanSessionAgainstDataset(dataset: RecipeDataset, sessio
     const recipe = dataset.recipes[target.recipeId]
     if (!recipe) { errors.push(`unknown target recipe: ${target.recipeId}`); continue }
     if (target.variantId && !recipe.variants.some((variant) => variant.id === target.variantId)) errors.push(`unknown target variant: ${target.recipeId}/${target.variantId}`)
-    if (target.cookingPreparationPolicy && recipe.skill !== 'cooking') errors.push(`Cooking preparation policy used by non-Cooking recipe: ${target.recipeId}`)
+    if (target.mode === 'durability' && recipe.skill === 'cooking' && !target.cookingPreparationPolicy) errors.push(`Cooking durability target is missing preparation policy: ${target.recipeId}`)
+    if (target.cookingPreparationPolicy && (target.mode !== 'durability' || recipe.skill !== 'cooking')) errors.push(`Cooking preparation policy used outside Cooking durability: ${target.recipeId}`)
   }
 
   for (const itemId of session.craftIntermediateItemIds) {
