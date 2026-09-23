@@ -4,6 +4,7 @@ import type { ChecklistState, InventoryState } from './data/storage'
 import type { SessionPlanResult } from './data/sessionPlan'
 import { parseNonNegativeFiniteOrZero } from './data/numericInput'
 import { ItemIcon } from './ItemIcon'
+import './SessionPreparationChecklist.css'
 
 export type SessionPreparationChecklistProps = {
   dataset: RecipeDataset
