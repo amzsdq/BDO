@@ -31,6 +31,14 @@ describe('Codex reconciliation', () => {
     expect(exitCode).toBe(2)
     expect(report.unresolved).toEqual(expect.arrayContaining([expect.objectContaining({ kind: 'CLIENT_VARIANT_ONLY', variantId: 'v2' })]))
   })
+  it('accepts multiple alternatives when both signature sets are fully matched', () => {
+    const withAlternative = structuredClone(dataset)
+    withAlternative.recipes.r.variants.push({ id: 'v2', inputs: [{ itemId: 20, count: 3 }] })
+    const manifest = { recipes: [...matchingManifest.recipes, { recipeId: 1001, skill: 'cooking', outputItemId: 10, titleKo: '결과', ingredients: [{ itemId: 20, count: 3 }] }] }
+    const { exitCode, report } = run(withAlternative, manifest)
+    expect(exitCode).toBe(0)
+    expect(report.status).toBe('ZERO_UNEXPLAINED_DIFF')
+  })
   it('keeps unavailable Codex recipes out of live completeness diffs', () => {
     const { exitCode, report } = run(dataset, { recipes: [...matchingManifest.recipes, { recipeId: 1000, skill: 'alchemy', outputItemId: 77, titleKo: '퇴역', available: false, ingredients: [] }] })
     expect(exitCode).toBe(0); expect(report.status).toBe('ZERO_UNEXPLAINED_DIFF'); expect(report.codexDisabledPages).toBe(1)
