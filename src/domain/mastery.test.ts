@@ -38,14 +38,39 @@ describe('Cooking durability material forecast', () => {
     expect(forecast.massCookingProbability).toBe(0.6006)
     expect(forecast.minimumServings).toBe(100)
     expect(forecast.expectedServings).toBe(640.54)
+    expect(forecast.safe95Servings).toBe(712)
+    expect(forecast.safe95Method).toBe('exact-binomial')
     expect(forecast.safe95Servings).toBeGreaterThanOrEqual(Math.ceil(forecast.expectedServings))
     expect(forecast.safe95Servings).toBeLessThan(forecast.maximumServings)
     expect(forecast.maximumServings).toBe(1000)
   })
 
-  it('collapses the 95% target to deterministic bounds at 0% and 100%', () => {
-    expect(forecastCookingMaterialServings(100, 0)?.safe95Servings).toBe(100)
-    expect(forecastCookingMaterialServings(100, 2000)?.safe95Servings).toBe(1000)
+  it('keeps a large exact 95% preparation target finite and below the absolute maximum', () => {
+    const forecast = forecastCookingMaterialServings(10_000, 1350)!
+    expect(forecast.safe95Servings).toBe(55_981)
+    expect(forecast.safe95Method).toBe('exact-binomial')
+    expect(forecast.safe95Servings).toBeGreaterThanOrEqual(Math.ceil(forecast.expectedServings))
+    expect(forecast.safe95Servings).toBeLessThan(forecast.maximumServings)
+    expect(forecast.maximumServings).toBe(100_000)
+  })
+
+  it('switches very large stochastic workloads to an O(1) conservative Bernstein bound', () => {
+    const forecast = forecastCookingMaterialServings(1_000_000, 1350)!
+    expect(forecast.safe95Method).toBe('bernstein-conservative')
+    expect(forecast.safe95Servings).toBeGreaterThanOrEqual(Math.ceil(forecast.expectedServings))
+    expect(forecast.safe95Servings).toBeLessThan(forecast.maximumServings)
+  })
+
+  it('uses the exact path through the practical ceiling and conservative path above it', () => {
+    expect(forecastCookingMaterialServings(100_000, 1350)?.safe95Method).toBe('exact-binomial')
+    expect(forecastCookingMaterialServings(100_001, 1350)?.safe95Method).toBe('bernstein-conservative')
+  })
+
+  it('keeps deterministic 0% and 100% mastery exact even above the stochastic ceiling', () => {
+    expect(forecastCookingMaterialServings(1_000_000, 0)?.safe95Method).toBe('exact-binomial')
+    expect(forecastCookingMaterialServings(1_000_000, 0)?.safe95Servings).toBe(1_000_000)
+    expect(forecastCookingMaterialServings(1_000_000, 2000)?.safe95Method).toBe('exact-binomial')
+    expect(forecastCookingMaterialServings(1_000_000, 2000)?.safe95Servings).toBe(10_000_000)
   })
 
   it('supports low mastery expected values', () => {
