@@ -1,5 +1,7 @@
 import crypto from 'node:crypto'
 import fs from 'node:fs'
+import { assertMasteryCurvesMatch } from './mastery-crosscheck.mjs'
+import { loadRuntimeMasteryRows } from './load-runtime-mastery.mjs'
 
 function fail(message) { throw new Error(message) }
 function arg(name) { const index = process.argv.indexOf(`--${name}`); return index >= 0 ? process.argv[index + 1] : undefined }
@@ -34,6 +36,12 @@ function validateCurve(name, curve, rateColumns) {
 
 const cooking = validateCurve('cooking', mastery.cooking, 5)
 const alchemy = validateCurve('alchemy', mastery.alchemy, 9)
+const runtime = await loadRuntimeMasteryRows()
+const crossCheck = assertMasteryCurvesMatch({
+  cookingClientRows: mastery.cooking,
+  alchemyClientRows: mastery.alchemy,
+  ...runtime,
+})
 const evidence = {
   schemaVersion: 1,
   source: 'iDevelopThings/bdo-data-extractor mastery.json',
@@ -43,9 +51,12 @@ const evidence = {
   masterySha256: sha256(raw),
   cooking,
   alchemy,
-  semanticRateMapping: 'UNVERIFIED',
-  releaseReady: false,
-  note: 'Raw client rate columns are preserved and structurally verified, but must not be mapped to named Pearl Abyss effects until source-backed per-skill column semantics are established.',
+  semanticRateMapping: 'VERIFIED',
+  semanticMappingProvenance: 'scripts/mastery-client-mapping.mjs',
+  runtimeSource: ['src/domain/mastery.ts', 'src/domain/alchemyMastery.ts'],
+  crossCheck,
+  releaseReady: true,
+  note: 'Client mastery raw columns were mapped with reviewed per-skill semantics and matched the exact checked-in runtime curves at every mastery breakpoint.',
 }
 fs.writeFileSync(outPath, `${JSON.stringify(evidence, null, 2)}\n`)
-console.log(JSON.stringify({ ok: true, masterySha256: evidence.masterySha256, cookingRows: cooking.rows, alchemyRows: alchemy.rows, releaseReady: false }))
+console.log(JSON.stringify({ ok: true, masterySha256: evidence.masterySha256, cookingRows: cooking.rows, alchemyRows: alchemy.rows, releaseReady: true }))
