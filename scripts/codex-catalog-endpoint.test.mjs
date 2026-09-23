@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { catalogEndpointForSkill, validateCatalogEndpointTemplate } from './codex-catalog-endpoint.mjs'
+import { catalogEndpointForSkill, validateCatalogEndpointTemplate, validateResolvedCatalogEndpoint } from './codex-catalog-endpoint.mjs'
 
 describe('Codex complete-catalog endpoint scope', () => {
   it('requires explicit per-skill or per-category binding', () => {
@@ -19,10 +19,13 @@ describe('Codex complete-catalog endpoint scope', () => {
       expect(result.ok).toBe(false)
       expect(result.reason).toContain('cannot prove complete')
     }
+    expect(validateResolvedCatalogEndpoint('https://bdocodex.com/query.php?a=recipes&type=product&item_id=123&l=kr').ok).toBe(false)
   })
 
-  it('requires HTTPS and a Codex host', () => {
+  it('requires HTTPS and a Codex host for templates and resolved redirects', () => {
     expect(validateCatalogEndpointTemplate('http://bdocodex.com/query.php?a=recipes&skill={skill}').ok).toBe(false)
     expect(validateCatalogEndpointTemplate('https://example.invalid/catalog?skill={skill}').ok).toBe(false)
+    expect(validateResolvedCatalogEndpoint('https://example.invalid/catalog?skill=cooking').ok).toBe(false)
+    expect(validateResolvedCatalogEndpoint('https://bdocodex.com/query.php?a=recipes&type=culinary').ok).toBe(true)
   })
 })
