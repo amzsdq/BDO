@@ -3,12 +3,17 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 
 function fail(message) { throw new Error(message) }
+const IMPORTER_FLAGS = new Set(['items', 'recipes', 'out', 'source-revision'])
 function parseArgs(argv) {
+  if (argv.length % 2 !== 0) fail('usage: --items <items.json> --recipes <recipes.json> --out <dataset.json> [--source-revision <sha/tag>]')
   const out = {}
   for (let i = 0; i < argv.length; i += 2) {
     const key = argv[i], value = argv[i + 1]
-    if (!key?.startsWith('--') || value == null) fail('usage: --items <items.json> --recipes <recipes.json> --out <dataset.json> [--source-revision <sha/tag>]')
-    out[key.slice(2)] = value
+    if (!key?.startsWith('--') || value == null || value.startsWith('--')) fail('usage: --items <items.json> --recipes <recipes.json> --out <dataset.json> [--source-revision <sha/tag>]')
+    const name = key.slice(2)
+    if (!IMPORTER_FLAGS.has(name)) fail(`unknown argument: --${name}`)
+    if (Object.hasOwn(out, name)) fail(`duplicate argument: --${name}`)
+    out[name] = value
   }
   return out
 }
