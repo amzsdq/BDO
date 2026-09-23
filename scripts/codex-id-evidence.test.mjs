@@ -16,6 +16,12 @@ describe('Codex recipe identity evidence', () => {
     ] })).toEqual([])
   })
 
+  it('accepts Codex aaData first-column recipe ids only when the caller has validated catalog scope', () => {
+    const payload = { aaData: [[42, 'row'], ['7', 'row'], [0, 'bad'], ['not-an-id', 'bad']] }
+    expect(recipeIdsFromJson(payload)).toEqual([])
+    expect(recipeIdsFromJson(payload, { allowCodexAaData: true })).toEqual([7, 42])
+  })
+
   it('rejects zero, negative and unsafe recipe identities', () => {
     expect(recipeIdsFromJson({ data: [
       { recipe_id: 0 },
