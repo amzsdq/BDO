@@ -30,4 +30,15 @@ describe('buildPlanFromSession', () => {
     expect(result.plan).toBeUndefined()
     expect(result.errors.join('\n')).toMatch(/unknown target recipe/)
   })
+
+  it('keeps unknown server-yield warnings on the multi-target/session path', () => {
+    const dataset = structuredClone(sampleDataset)
+    dataset.recipes['sample-cooking'].yield.provenance = 'unknown-server-yield'
+    const session = baseSession()
+    session.targets = [{ recipeId: 'sample-cooking', variantId: 'default', mode: 'output', amount: 20 }]
+    const result = buildPlanFromSession(dataset, session, {}, {})
+    expect(result.errors).toEqual([])
+    expect(result.plan?.warnings.join(' ')).toMatch(/보수적 준비량/)
+    expect(result.plan?.warnings.join(' ')).toMatch(/예상 산출량을 뜻하지 않습니다/)
+  })
 })
