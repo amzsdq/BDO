@@ -20,7 +20,7 @@ function readObjectResult(storage: Pick<Storage, 'getItem'>, key: string): Persi
     return parsed && typeof parsed === 'object' && !Array.isArray(parsed)
       ? { status: 'valid', value: parsed as Record<string, unknown> }
       : { status: 'invalid-storage', value: {} }
-  } catch { return { status: 'invalid-storage', value: {} }
+  } catch { return { status: 'invalid-storage', value: {} } }
 }
 
 export function readChecklistResult(storage: Pick<Storage, 'getItem'> = localStorage): PersistedReadResult<ChecklistState> {
