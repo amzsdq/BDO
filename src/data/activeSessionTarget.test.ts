@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import type { RecipeDataset } from '../domain/types'
-import type { PlanSessionState } from './planSession'
+import { readPlanSession, writePlanSession, type PlanSessionState } from './planSession'
 import { activeSessionTarget, updateActiveSessionTarget, updateActiveSessionTargetMode } from './activeSessionTarget'
 
 const dataset: RecipeDataset = {
@@ -34,6 +34,21 @@ describe('active session target bridge', () => {
     const next = updateActiveSessionTarget(session, 0, { mode: 'servings', amount: 77 })
     expect(next.targets[0]?.amount).toBe(77)
     expect(next.targets[1]).toEqual(session.targets[1])
+  })
+
+  it('preserves sibling targets across edit, persistence, and reload', () => {
+    const values = new Map<string, string>()
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => { values.set(key, value) },
+    }
+    const edited = updateActiveSessionTarget(session, 0, { amount: 77 })
+    writePlanSession(edited, storage)
+    const restored = readPlanSession(storage)
+
+    expect(restored.targets[0]).toEqual({ recipeId: 'a', mode: 'servings', amount: 77 })
+    expect(restored.targets[1]).toEqual(session.targets[1])
+    expect(restored.variantIdByRecipeId).toEqual(session.variantIdByRecipeId)
   })
 
   it('clears durability-only policy when the active target changes to another mode', () => {
