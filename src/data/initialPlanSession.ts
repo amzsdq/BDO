@@ -1,5 +1,20 @@
 import type { RecipeDataset } from '../domain/types'
-import type { PlanSessionState } from './planSession'
+import type { PersistedPlanTarget, PlanSessionState } from './planSession'
+
+export function createDefaultPlanTarget(
+  dataset: RecipeDataset,
+  preferredSkill: 'cooking' | 'alchemy' = 'cooking',
+): PersistedPlanTarget | undefined {
+  const recipe = Object.values(dataset.recipes).find((candidate) => candidate.skill === preferredSkill)
+    ?? Object.values(dataset.recipes)[0]
+  if (!recipe) return undefined
+  return {
+    recipeId: recipe.id,
+    variantId: recipe.variants[0]?.id,
+    mode: 'servings',
+    amount: 100,
+  }
+}
 
 /**
  * Build first-run UI state only after the runtime dataset is known. This avoids
@@ -7,21 +22,15 @@ import type { PlanSessionState } from './planSession'
  * verified data hydration completes.
  */
 export function createInitialPlanSession(dataset: RecipeDataset): PlanSessionState {
-  const firstCooking = Object.values(dataset.recipes).find((recipe) => recipe.skill === 'cooking')
-    ?? Object.values(dataset.recipes)[0]
+  const target = createDefaultPlanTarget(dataset, 'cooking')
 
   return {
     version: 1,
-    targets: firstCooking ? [{
-      recipeId: firstCooking.id,
-      variantId: firstCooking.variants[0]?.id,
-      mode: 'servings',
-      amount: 100,
-    }] : [],
+    targets: target ? [target] : [],
     craftIntermediateItemIds: [],
     intermediateRecipeIdByItemId: {},
-    variantIdByRecipeId: firstCooking?.variants[0]?.id
-      ? { [String(firstCooking.id)]: firstCooking.variants[0].id }
+    variantIdByRecipeId: target?.variantId
+      ? { [String(target.recipeId)]: target.variantId }
       : {},
     selectedSubstitutionItemIdByGroupId: {},
   }
