@@ -34,18 +34,21 @@ npm run build
 
 라이브 클라이언트 추출물 `items.json`, `recipes.json`, `mastery.json`, 그리고 `bdo-data-extractor icons`가 만든 `<extractor-data>/icons/<itemId>.webp`를 준비합니다. runtime이 실제로 읽는 dataset과 브라우저가 실제로 제공하는 icon asset을 함께 설치합니다. Codex reconciliation 전에 Cooking/Alchemy 카탈로그 전체를 독립적으로 수집하고 completeness가 증명된 `<codex-catalog.json>` artifact를 보존해야 합니다. 부분 manifest끼리 서로 일치하는 것만으로는 release gate를 통과할 수 없습니다.
 
-기본 구조 import:
+기본 구조 import는 extractor가 한국어를 제공하지 않으므로 의도적으로 `아이템 #<id>` placeholder를 만듭니다. 따라서 import 직후 BDO Codex KR item-id 증거를 적용하는 단계가 필수입니다. 이 단계를 생략한 dataset은 promotion이 거부됩니다.
 
 ```bash
-npm run data:import -- --items <items.json> --recipes <recipes.json> --out public/data/dataset.json --source-revision <extractor-tag-or-sha>
+npm run data:import -- --items <items.json> --recipes <recipes.json> --out <client-dataset.json> --source-revision <extractor-tag-or-sha>
+node scripts/apply-korean-name-evidence.mjs <client-dataset.json> <korean-name-evidence.json> public/data/dataset.json
 ```
 
-Codex 재료 그룹을 사용하는 production import에서는 recipe evidence에서 명시적인 material-group id를 추출하고, KR Codex의 행 단위 Worth 증거를 수집한 뒤 `--substitution-evidence`로 함께 적용합니다. Worth가 누락되거나 그룹 멤버와 정확히 일치하지 않으면 검증이 실패합니다. 추측 비율은 허용하지 않습니다.
+`<korean-name-evidence.json>`은 canonical item id별 한국어 이름과 `https://bdocodex.com/kr/item/<id>/` 증거 URL을 포함해야 하며, 중복 item id·알 수 없는 item id·placeholder 이름·item id와 맞지 않는 URL은 fail closed 합니다. 모든 planner-scoped item의 이름이 해소되어야 `metadata.koreanNamesVerified=true`가 됩니다. 부분 증거는 중간 작업에는 사용할 수 있지만 production promotion은 통과하지 못합니다.
+
+Codex 재료 그룹을 사용하는 production import에서는 recipe evidence에서 명시적인 material-group id를 추출하고, KR Codex의 행 단위 Worth 증거를 수집한 뒤 substitution evidence를 적용합니다. Worth가 누락되거나 그룹 멤버와 정확히 일치하지 않으면 검증이 실패합니다. 추측 비율은 허용하지 않습니다.
 
 ```bash
 node scripts/codex-material-group-ids.mjs <codex-recipe-evidence.json>
 node scripts/collect-codex-substitution-groups.mjs --groups <3001,6002,...> --out <codex-substitutions.json>
-npm run data:import -- --items <items.json> --recipes <recipes.json> --out public/data/dataset.json --source-revision <extractor-tag-or-sha> --substitution-evidence <codex-substitutions.json>
+node scripts/apply-substitution-evidence.mjs public/data/dataset.json <codex-substitutions.json> public/data/dataset.json
 ```
 
 숙련도 증거는 production client의 `mastery.json`에 extractor revision, client fingerprint, extraction timestamp를 결합해 보존합니다. 구조만 맞는 raw mastery 파일은 릴리스 증거가 아닙니다. Cooking/Alchemy raw columns가 검증된 semantic mapping을 거쳐 현재 runtime mastery curve와 모두 일치한 cross-check PASS artifact만 최종 gate에 사용할 수 있습니다.
