@@ -76,14 +76,17 @@ Pass: multi-target aggregation does not double-spend owned inventory.
 
 Pass: the production dataset itself must not rely on missing local assets; fallback is resilience, not release acceptance.
 
-## E2E-08 Persistence, export and reset
+## E2E-08 Persistence, export, import and reset
 
-1. Set profile, inventory and checklist state.
-2. Reload and verify state restoration.
-3. Export and verify a versioned snapshot contains the same persisted state.
+1. Set plan targets/variants, profile, inventory and checklist state.
+2. Reload and verify all persisted planner state is restored.
+3. Export a versioned JSON snapshot and preserve it as the round-trip fixture.
 4. Reset explicitly and verify all persisted planner state is cleared in one action.
+5. Import the exported snapshot, reload, and verify plan session, checklist, inventory and character profile exactly restore the exported state.
+6. Attempt a malformed/unsupported import while valid state exists; verify the existing state is unchanged.
+7. In a controlled browser-storage failure fixture, fail a write during import and verify rollback prevents a partially replaced planner state. If the storage layer also prevents rollback, verify the explicit rollback-failure error is surfaced rather than reporting success.
 
-Pass: reset is deliberate and export is usable without hidden setup.
+Pass: export is genuinely restorable, invalid imports are non-mutating, reset is deliberate, and import failure cannot silently leave a mixed old/new state.
 
 ## E2E-09 Data failure states
 
