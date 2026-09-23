@@ -12,8 +12,9 @@ function sha256(bytes) { return crypto.createHash('sha256').update(bytes).digest
 function hasRecordedSourceRevision(value) { const revision = String(value ?? '').trim(); return revision !== '' && revision.toLowerCase() !== 'unrecorded' }
 function hasValidTimestamp(value) { return typeof value === 'string' && value.trim() !== '' && Number.isFinite(Date.parse(value)) }
 function sortedIds(values) { return [...new Set(values.map(Number).filter((id) => Number.isSafeInteger(id) && id > 0))].sort((a, b) => a - b) }
-const [file, reconciliationFile, catalogFile] = process.argv.slice(2)
-if (!file) fail('usage: node scripts/assert-release-dataset.mjs <dataset.json> <reconciliation-report.json> <codex-catalog.json>')
+const args = process.argv.slice(2)
+if (args.length !== 3 || args.some((value) => !value || value.startsWith('--'))) fail('usage: node scripts/assert-release-dataset.mjs <dataset.json> <reconciliation-report.json> <codex-catalog.json>')
+const [file, reconciliationFile, catalogFile] = args
 if (!fs.existsSync(file)) fail(`dataset not found: ${file}`)
 const structural = spawnSync(process.execPath, ['scripts/validate-dataset.mjs', file], { cwd: process.cwd(), encoding: 'utf8' })
 if (structural.status !== 0) fail(`structural validation failed:\n${(structural.stderr || structural.stdout || 'unknown validator failure').trim()}`)
@@ -39,14 +40,14 @@ const missingLocalIcons = Object.values(items).filter((item) => !fs.existsSync(p
 if (missingLocalIcons.length) fail(`${missingLocalIcons.length} canonical local icon assets are missing; first ids: ${missingLocalIcons.slice(0, 20).map((item) => item.id).join(', ')}`)
 const placeholderKoreanNames = Object.values(items).filter((item) => /^아이템 #\d+$/.test(String(item.nameKo || '')))
 if (placeholderKoreanNames.length) fail(`${placeholderKoreanNames.length} items still have placeholder Korean names`)
-if (!reconciliationFile || !fs.existsSync(reconciliationFile)) fail('ZERO_UNEXPLAINED_DIFF reconciliation report is required')
+if (!fs.existsSync(reconciliationFile)) fail('ZERO_UNEXPLAINED_DIFF reconciliation report is required')
 const reconciliation = JSON.parse(fs.readFileSync(reconciliationFile, 'utf8'))
 if (reconciliation.status !== 'ZERO_UNEXPLAINED_DIFF' || (reconciliation.unresolved || []).length !== 0) fail('reconciliation evidence is not ZERO_UNEXPLAINED_DIFF')
 const datasetRecipeCount = Object.keys(recipes).length
 if (!Number.isSafeInteger(reconciliation.clientRecipes) || reconciliation.clientRecipes !== datasetRecipeCount) fail(`reconciliation client recipe count ${reconciliation.clientRecipes ?? 'missing'} does not match dataset recipe count ${datasetRecipeCount}`)
 const expectedReconciliationFingerprint = reconciliationDatasetFingerprint(dataset)
 if (reconciliation.datasetFingerprint !== expectedReconciliationFingerprint) fail(`reconciliation report belongs to different dataset content: recorded=${reconciliation.datasetFingerprint || 'missing'} actual=${expectedReconciliationFingerprint}`)
-if (!catalogFile || !fs.existsSync(catalogFile)) fail('independently complete Codex catalog evidence is required')
+if (!fs.existsSync(catalogFile)) fail('independently complete Codex catalog evidence is required')
 const catalogBytes = fs.readFileSync(catalogFile)
 const catalog = JSON.parse(catalogBytes.toString('utf8'))
 if (catalog.source !== 'BDO Codex KR' || catalog.complete !== true || !Array.isArray(catalog.catalogs)) fail('Codex catalog completeness is not independently proven')
