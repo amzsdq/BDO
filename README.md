@@ -54,7 +54,7 @@ npm run data:import -- --items <items.json> --recipes <recipes.json> --out publi
 npm run data:mastery-evidence -- --mastery <mastery.json> --out <mastery-evidence.json> --source-revision <extractor-tag-or-sha> --client-fingerprint <client-fingerprint> --extracted-at <iso-timestamp>
 ```
 
-현재 evidence generator는 semantic cross-check가 결합되기 전까지 의도적으로 `releaseReady=false`를 출력하므로 그 상태의 artifact는 최종 gate를 통과하지 못합니다. 최종 gate는 evidence에 기록된 SHA-256을 전달된 원본 `mastery.json` 바이트와 다시 계산·대조하여 다른 client snapshot의 evidence 재사용도 거부합니다.
+현재 evidence generator는 raw client mastery의 검증된 semantic channel mapping을 적용한 뒤, checked-in Cooking/Alchemy runtime curve와 deterministic cross-check를 수행합니다. 두 skill의 의미 매핑과 curve가 모두 일치할 때만 `releaseReady=true`를 출력하며, 불일치·미확인 channel·구조 오류는 fail closed 합니다. 최종 gate는 evidence에 기록된 SHA-256을 전달된 원본 `mastery.json` 바이트와 다시 계산·대조하여 다른 client snapshot의 evidence 재사용도 거부합니다.
 
 이후 release gate:
 
