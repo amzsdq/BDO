@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { exportPlannerState, resetPlannerState } from './data/storage'
+import { MasterySourceNotice } from './MasterySourceNotice'
 import './PlannerStateActions.css'
 
 export interface PlannerStateActionsProps {
@@ -34,9 +35,12 @@ export function PlannerStateActions({ onReset, exportDisabled = false }: Planner
     onReset()
   }
 
-  return <div className="state-actions" aria-label="저장 데이터 관리">
-    <button type="button" onClick={downloadExport} disabled={exportDisabled}>계획 내보내기</button>
-    <button type="button" onClick={reset}>저장 데이터 초기화</button>
-    {exportError && <p className="data-notice" role="alert">{exportError}</p>}
-  </div>
+  return <>
+    <MasterySourceNotice />
+    <div className="state-actions" aria-label="저장 데이터 관리">
+      <button type="button" onClick={downloadExport} disabled={exportDisabled}>계획 내보내기</button>
+      <button type="button" onClick={reset}>저장 데이터 초기화</button>
+      {exportError && <p className="data-notice" role="alert">{exportError}</p>}
+    </div>
+  </>
 }
