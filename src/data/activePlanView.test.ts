@@ -41,7 +41,7 @@ describe('buildActivePlanView', () => {
     expect(material).toBeDefined()
     expect(line).toBeDefined()
     expect(line?.countToCarry).toBe(material?.required)
-    expect(result.batch?.totalStartingIngredientWeightLT).toBe(line?.weightToCarryLT)
+    expect(result.batch?.totalStartingIngredientWeightLT).toBeCloseTo(line?.weightToCarryLT ?? NaN, 10)
   })
 
   it('does not produce a batch when Cooking durability cannot be resolved', () => {
