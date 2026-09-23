@@ -3,6 +3,7 @@ import { clearPlanSession, readPlanSession, readPlanSessionResult, writePlanSess
 const CHECKLIST_KEY = 'bdo-planner:checklist:v1'
 const CHARACTER_PROFILE_KEY = 'bdo-planner:character-profile:v1'
 const INVENTORY_KEY = 'bdo-planner:inventory:v1'
+const PLAN_SESSION_KEY = 'bdo-planner:plan-session:v1'
 
 export type ChecklistState = Record<string, boolean>
 export type InventoryState = Record<string, number>
@@ -77,23 +78,41 @@ function importValidationStorage(value: unknown): Storage {
     [CHECKLIST_KEY, JSON.stringify(bundle.checklist)],
     [INVENTORY_KEY, JSON.stringify(bundle.inventory)],
     [CHARACTER_PROFILE_KEY, JSON.stringify(bundle.characterProfile)],
-    ['bdo-planner:plan-session:v1', JSON.stringify(bundle.planSession)],
+    [PLAN_SESSION_KEY, JSON.stringify(bundle.planSession)],
   ])
   return { length: values.size, clear: () => values.clear(), getItem: (key) => values.get(key) ?? null, key: (index) => [...values.keys()][index] ?? null, removeItem: (key) => { values.delete(key) }, setItem: (key, next) => { values.set(key, next) } }
 }
 
-export function importPlannerState(value: unknown, storage: Pick<Storage, 'setItem'> = localStorage): PlannerStateExport {
+function restoreRawStorage(storage: Pick<Storage, 'setItem' | 'removeItem'>, key: string, value: string | null): void {
+  if (value == null) storage.removeItem(key)
+  else storage.setItem(key, value)
+}
+
+export function importPlannerState(value: unknown, storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> = localStorage): PlannerStateExport {
   const validationStorage = importValidationStorage(value)
   const checklist = readChecklistResult(validationStorage)
   const inventory = readInventoryResult(validationStorage)
   const characterProfile = readCharacterProfileResult(validationStorage)
   const planSession = readPlanSessionResult(validationStorage)
   if (checklist.status !== 'valid' || inventory.status !== 'valid' || characterProfile.status !== 'valid' || planSession.status !== 'valid') throw new Error('플래너 내보내기 파일의 저장 상태가 손상되었거나 지원되지 않습니다.')
+
+  const keys = [CHECKLIST_KEY, INVENTORY_KEY, CHARACTER_PROFILE_KEY, PLAN_SESSION_KEY]
+  const previous = new Map(keys.map((key) => [key, storage.getItem(key)]))
+  try {
+    writeChecklist(checklist.value, storage)
+    writeInventory(inventory.value, storage)
+    writeCharacterProfile(characterProfile.value, storage)
+    writePlanSession(planSession.session, storage)
+  } catch (error) {
+    try {
+      for (const key of keys) restoreRawStorage(storage, key, previous.get(key) ?? null)
+    } catch {
+      throw new Error('계획 가져오기 중 저장소 오류가 발생했고 이전 상태 복구에도 실패했습니다. 페이지를 새로고침하기 전에 현재 저장 상태를 확인하세요.')
+    }
+    throw error
+  }
+
   const bundle = value as PlannerStateExport
-  writeChecklist(checklist.value, storage)
-  writeInventory(inventory.value, storage)
-  writeCharacterProfile(characterProfile.value, storage)
-  writePlanSession(planSession.session, storage)
   return { version: 2, exportedAt: bundle.exportedAt, checklist: checklist.value, inventory: inventory.value, characterProfile: characterProfile.value, planSession: planSession.session }
 }
 
