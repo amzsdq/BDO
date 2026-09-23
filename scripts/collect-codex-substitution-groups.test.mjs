@@ -19,6 +19,15 @@ describe('Codex substitution evidence collector', () => {
     expect(() => parseCodexMaterialGroupHtml('<a href="/kr/item/5401/">one</a><td>1</td>', '3001')).toThrow(/could not prove/)
   })
 
+  it('rejects contradictory duplicate rows instead of silently picking one Worth', () => {
+    const conflicting = `<table><tbody>
+      <tr><td><a href="/kr/item/5401/">여명초</a></td><td>1</td></tr>
+      <tr><td><a href="/kr/item/5401/">여명초</a></td><td>6</td></tr>
+      <tr><td><a href="/kr/item/7050/">고급 여명초</a></td><td>6</td></tr>
+    </tbody></table>`
+    expect(() => parseCodexMaterialGroupHtml(conflicting, '3001')).toThrow(/conflicting Worth evidence/)
+  })
+
   it('records the exact KR material-group source URL and collection time', async () => {
     const fetchImpl = vi.fn(async (url) => ({ ok: true, status: 200, statusText: 'OK', url, text: async () => html }))
     const result = await collectCodexSubstitutionGroups(['3001'], fetchImpl, '2026-09-23T00:00:00.000Z')
