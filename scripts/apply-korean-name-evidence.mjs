@@ -26,8 +26,9 @@ export function applyKoreanNameEvidence(dataset, evidence) {
 }
 
 if (process.argv[1] && process.argv[1].endsWith('apply-korean-name-evidence.mjs')) {
-  const [datasetPath, evidencePath, outPath] = process.argv.slice(2)
-  if (!datasetPath || !evidencePath || !outPath) throw new Error('usage: node scripts/apply-korean-name-evidence.mjs <dataset.json> <evidence.json> <out.json>')
+  const args = process.argv.slice(2)
+  if (args.length !== 3 || args.some((value) => !value || value.startsWith('--'))) throw new Error('usage: node scripts/apply-korean-name-evidence.mjs <dataset.json> <evidence.json> <out.json>')
+  const [datasetPath, evidencePath, outPath] = args
   const dataset = JSON.parse(fs.readFileSync(datasetPath, 'utf8'))
   const evidence = JSON.parse(fs.readFileSync(evidencePath, 'utf8'))
   fs.writeFileSync(outPath, JSON.stringify(applyKoreanNameEvidence(dataset, evidence), null, 2) + '\n')
