@@ -4,16 +4,23 @@ import fs from 'node:fs'
 
 const BASE = 'https://bdocodex.com/kr/materialgroup'
 
+function textContent(fragment) { return fragment.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim() }
+
 export function parseCodexMaterialGroupHtml(html, groupId) {
   const members = []
   const seen = new Set()
-  const rowPattern = /<a[^>]+href=["'][^"']*\/item\/(\d+)\/?["'][^>]*>.*?<\/a>[\s\S]*?<td[^>]*>\s*(\d+(?:\.\d+)?)\s*<\/td>/gi
-  for (const match of html.matchAll(rowPattern)) {
-    const itemId = Number(match[1]); const value = Number(match[2])
-    if (!Number.isInteger(itemId) || itemId <= 0 || !Number.isFinite(value) || value <= 0 || seen.has(itemId)) continue
+  for (const rowMatch of html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
+    const row = rowMatch[1]
+    const itemMatch = row.match(/<a[^>]+href=["'][^"']*\/item\/(\d+)\/?["'][^>]*>/i)
+    if (!itemMatch) continue
+    const cells = [...row.matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)].map((match) => textContent(match[1]))
+    const numericCells = cells.map((cell) => Number(cell.replace(/,/g, ''))).filter((value) => Number.isFinite(value) && value > 0)
+    if (!numericCells.length) continue
+    const itemId = Number(itemMatch[1]); const value = numericCells[numericCells.length - 1]
+    if (!Number.isInteger(itemId) || itemId <= 0 || seen.has(itemId)) continue
     seen.add(itemId); members.push({ itemId, value })
   }
-  if (members.length < 2) throw new Error(`material group ${groupId}: could not prove at least two item/Worth rows from Codex HTML`)
+  if (members.length < 2) throw new Error(`material group ${groupId}: could not prove at least two row-local item/Worth pairs from Codex HTML`)
   return members
 }
 
