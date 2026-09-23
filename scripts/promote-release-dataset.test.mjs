@@ -29,6 +29,9 @@ describe('release dataset promotion', () => {
   it('blocks promotion when canonical client source revision is missing or unrecorded', () => {
     for (const sourceRevision of [undefined, '', '  ', 'unrecorded', 'UNRECORDED']) { const dataset = fixture(); dataset.metadata.sourceRevision = sourceRevision; const attempt = run(dataset, reportFor(dataset)); expect(attempt.result.status).toBe(1); expect(attempt.result.stderr).toContain('sourceRevision') }
   })
+  it('blocks promotion when a local icon path is not canonical for its item id', () => {
+    const dataset = fixture(); dataset.items['20'].iconPath = '../../package.json'; delete dataset.items['20'].iconUrl; const attempt = run(dataset, reportFor(dataset)); expect(attempt.result.status).toBe(1); expect(attempt.result.stderr).toContain('non-canonical local icon paths')
+  })
   it('blocks promotion when reconciliation or release assets are unresolved', () => {
     const dataset = fixture(); delete dataset.items['20'].iconUrl; const unresolved = run(dataset, reportFor(dataset)); expect(unresolved.result.status).toBe(1); expect(unresolved.result.stderr).toContain('no icon resolution result')
     const clean = fixture(); const diff = run(clean, reportFor(clean, { status: 'INCOMPLETE_REVIEW', unresolved: [{ kind: 'MISSING' }] })); expect(diff.result.status).toBe(1); expect(diff.result.stderr).toContain('not ZERO_UNEXPLAINED_DIFF')
