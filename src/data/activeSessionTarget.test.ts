@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import type { RecipeDataset } from '../domain/types'
 import type { PlanSessionState } from './planSession'
-import { activeSessionTarget, updateActiveSessionTarget } from './activeSessionTarget'
+import { activeSessionTarget, updateActiveSessionTarget, updateActiveSessionTargetMode } from './activeSessionTarget'
 
 const dataset: RecipeDataset = {
   items: { '1': { id: 1, nameKo: 'A' }, '2': { id: 2, nameKo: 'B' } },
@@ -44,6 +44,14 @@ describe('active session target bridge', () => {
     const next = updateActiveSessionTarget(durability, 0, { mode: 'servings' })
     expect(next.targets[0]).toEqual({ recipeId: 'a', mode: 'servings', amount: 100 })
     expect(next.targets[1]).toEqual(session.targets[1])
+  })
+
+  it('adds a default Cooking policy when entering durability and never adds it to Alchemy', () => {
+    const cooking = updateActiveSessionTargetMode(session, 0, 'cooking', 'durability')
+    expect(cooking.targets[0]?.cookingPreparationPolicy).toBe('safe95')
+    const alchemy = updateActiveSessionTargetMode(session, 1, 'alchemy', 'durability')
+    expect(alchemy.targets[1]?.cookingPreparationPolicy).toBeUndefined()
+    expect(alchemy.targets[0]).toEqual(session.targets[0])
   })
 
   it('fails closed on stale recipe or variant references', () => {
