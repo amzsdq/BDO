@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.mjs'
+import { validateAcceptedDiffs } from './reconciliation-review.mjs'
 
 function fail(message) { console.error(message); process.exit(1) }
 function args(argv) { const out = {}; for (let i = 0; i < argv.length; i += 2) out[String(argv[i] || '').replace(/^--/, '')] = argv[i + 1]; return out }
@@ -16,7 +17,6 @@ if (!opt.dataset || !opt.codex) fail('usage: --dataset <dataset.json> --codex <c
 const dataset = JSON.parse(fs.readFileSync(opt.dataset, 'utf8'))
 const manifest = JSON.parse(fs.readFileSync(opt.codex, 'utf8'))
 const review = opt.review && fs.existsSync(opt.review) ? JSON.parse(fs.readFileSync(opt.review, 'utf8')) : { acceptedDiffs: [] }
-const accepted = new Set((review.acceptedDiffs || []).map((x) => x.key))
 const clientByKey = new Map()
 
 for (const recipe of Object.values(dataset.recipes || {})) {
@@ -53,6 +53,7 @@ for (const [key, client] of clientByKey) {
   }
 }
 for (const [key, entries] of codexByKey) if (!clientByKey.has(key)) for (const entry of entries) diffs.push({ key: `CODEX_ONLY:${entry.recipeId}:${key}`, kind: 'CODEX_ONLY', codexRecipeId: entry.recipeId, output: entry.titleKo })
+const { accepted, errors: reviewErrors } = validateAcceptedDiffs(review, diffs)
 const unresolved = diffs.filter((entry) => !accepted.has(entry.key))
 const report = {
   generatedAt: new Date().toISOString(),
@@ -61,9 +62,11 @@ const report = {
   codexLivePages: codexLive.length,
   codexDisabledPages: (manifest.recipes || []).length - codexLive.length,
   diffs,
+  acceptedDiffKeys: [...accepted].sort(),
+  reviewErrors,
   unresolved,
-  status: unresolved.length ? 'INCOMPLETE_REVIEW' : 'ZERO_UNEXPLAINED_DIFF',
+  status: unresolved.length || reviewErrors.length ? 'INCOMPLETE_REVIEW' : 'ZERO_UNEXPLAINED_DIFF',
 }
 if (opt.out) fs.writeFileSync(opt.out, JSON.stringify(report, null, 2) + '\n')
-console.log(JSON.stringify({ status: report.status, datasetFingerprint: report.datasetFingerprint, clientRecipeGroups: report.clientRecipeGroups, codexLivePages: report.codexLivePages, diffs: diffs.length, unresolved: unresolved.length }))
-if (unresolved.length) process.exitCode = 2
+console.log(JSON.stringify({ status: report.status, datasetFingerprint: report.datasetFingerprint, clientRecipeGroups: report.clientRecipeGroups, codexLivePages: report.codexLivePages, diffs: diffs.length, accepted: accepted.size, reviewErrors: reviewErrors.length, unresolved: unresolved.length }))
+if (report.status !== 'ZERO_UNEXPLAINED_DIFF') process.exitCode = 2
