@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { spawnSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.mjs'
@@ -18,8 +18,9 @@ function fixture() {
 }
 function reportFor(dataset, overrides = {}) { return { status: 'ZERO_UNEXPLAINED_DIFF', unresolved: [], clientRecipeGroups: 2, codexLivePages: 2, codexLiveRecipeIds: [101, 201], datasetFingerprint: reconciliationDatasetFingerprint(dataset), ...overrides } }
 function catalog(overrides = {}) { return { source: 'BDO Codex KR', complete: true, catalogs: [{ skill: 'cooking', complete: true, recipeCount: 1, recipeIds: [101], endpointUsed: 'https://bdocodex.com/query.php?a=recipes&type=culinary&l=kr', endpointFinalUrl: 'https://bdocodex.com/query.php?a=recipes&type=culinary&l=kr', endpointEvidence: { recordsReported: 1 }, countMatchesExpected: null }, { skill: 'alchemy', complete: true, recipeCount: 1, recipeIds: [201], endpointUsed: 'https://bdocodex.com/query.php?a=recipes&type=alchemy&l=kr', endpointFinalUrl: 'https://bdocodex.com/query.php?a=recipes&type=alchemy&l=kr', endpointEvidence: { recordsReported: 1 }, countMatchesExpected: null }], ...overrides } }
-function run(dataset, reconciliation, catalogEvidence = catalog()) {
+function run(dataset, reconciliation, catalogEvidence = catalog(), missingIconId = null) {
   const dir = mkdtempSync(join(tmpdir(), 'bdo-promote-')); const datasetFile = join(dir, 'dataset.json'), reportFile = join(dir, 'report.json'), catalogFile = join(dir, 'catalog.json'), outFile = join(dir, 'promoted.json')
+  const iconDir = join(dir, '..', 'icons'); mkdirSync(iconDir, { recursive: true }); for (const id of [10, 11, 20]) writeFileSync(join(iconDir, `${id}.webp`), 'fixture'); if (missingIconId != null) rmSync(join(iconDir, `${missingIconId}.webp`), { force: true })
   writeFileSync(datasetFile, JSON.stringify(dataset)); writeFileSync(reportFile, JSON.stringify(reconciliation)); writeFileSync(catalogFile, JSON.stringify(catalogEvidence)); const result = spawnSync(process.execPath, ['scripts/promote-release-dataset.mjs', datasetFile, reportFile, catalogFile, outFile], { cwd: process.cwd(), encoding: 'utf8' }); return { result, promoted: result.status === 0 ? JSON.parse(readFileSync(outFile, 'utf8')) : null }
 }
 
@@ -35,6 +36,9 @@ describe('release dataset promotion', () => {
   })
   it('blocks promotion when an item has only remote icon fallback metadata', () => {
     const dataset = fixture(); delete dataset.items['20'].iconPath; const unresolved = run(dataset, reportFor(dataset)); expect(unresolved.result.status).toBe(1); expect(unresolved.result.stderr).toContain('lack canonical local icon paths')
+  })
+  it('blocks promotion when canonical icon metadata exists but the installed asset is missing', () => {
+    const dataset = fixture(); const attempt = run(dataset, reportFor(dataset), catalog(), 20); expect(attempt.result.status).toBe(1); expect(attempt.result.stderr).toContain('canonical local icon assets are missing')
   })
   it('blocks promotion when reconciliation is unresolved', () => {
     const clean = fixture(); const diff = run(clean, reportFor(clean, { status: 'INCOMPLETE_REVIEW', unresolved: [{ kind: 'MISSING' }] })); expect(diff.result.status).toBe(1); expect(diff.result.stderr).toContain('not ZERO_UNEXPLAINED_DIFF')
