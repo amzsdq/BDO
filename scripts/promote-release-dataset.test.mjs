@@ -8,7 +8,7 @@ import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.m
 function fixture() {
   return {
     metadata: { generatedAt: '2026-09-23T00:00:00Z', supportedRegion: 'KR', sources: ['client', 'codex'], sourceRevision: 'client-sha-abc123', counts: { cooking: 1, alchemy: 1 } },
-    items: { '10': { id: 10, nameKo: '요리', iconUrl: 'https://example.invalid/10.png' }, '11': { id: 11, nameKo: '연금', iconUrl: 'https://example.invalid/11.png' }, '20': { id: 20, nameKo: '재료', iconUrl: 'https://example.invalid/20.png' } },
+    items: { '10': { id: 10, nameKo: '요리', iconPath: 'icons/10.webp', iconUrl: 'https://example.invalid/10.png' }, '11': { id: 11, nameKo: '연금', iconPath: 'icons/11.webp', iconUrl: 'https://example.invalid/11.png' }, '20': { id: 20, nameKo: '재료', iconPath: 'icons/20.webp', iconUrl: 'https://example.invalid/20.png' } },
     recipes: {
       cook: { id: 'cook', skill: 'cooking', outputItemId: 10, yield: { min: 1, max: 1 }, variants: [{ id: 'v1', inputs: [{ itemId: 20, count: 1 }] }] },
       alch: { id: 'alch', skill: 'alchemy', outputItemId: 11, yield: { min: 1, max: 1 }, variants: [{ id: 'v1', inputs: [{ itemId: 20, count: 1 }] }] },
@@ -31,10 +31,12 @@ describe('release dataset promotion', () => {
     for (const sourceRevision of [undefined, '', '  ', 'unrecorded', 'UNRECORDED']) { const dataset = fixture(); dataset.metadata.sourceRevision = sourceRevision; const attempt = run(dataset, reportFor(dataset)); expect(attempt.result.status).toBe(1); expect(attempt.result.stderr).toContain('sourceRevision') }
   })
   it('blocks promotion when a local icon path is not canonical for its item id', () => {
-    const dataset = fixture(); dataset.items['20'].iconPath = '../../package.json'; delete dataset.items['20'].iconUrl; const attempt = run(dataset, reportFor(dataset)); expect(attempt.result.status).toBe(1); expect(attempt.result.stderr).toContain('non-canonical local icon paths')
+    const dataset = fixture(); dataset.items['20'].iconPath = '../../package.json'; const attempt = run(dataset, reportFor(dataset)); expect(attempt.result.status).toBe(1); expect(attempt.result.stderr).toContain('lack canonical local icon paths')
   })
-  it('blocks promotion when reconciliation or release assets are unresolved', () => {
-    const dataset = fixture(); delete dataset.items['20'].iconUrl; const unresolved = run(dataset, reportFor(dataset)); expect(unresolved.result.status).toBe(1); expect(unresolved.result.stderr).toContain('no icon resolution result')
+  it('blocks promotion when an item has only remote icon fallback metadata', () => {
+    const dataset = fixture(); delete dataset.items['20'].iconPath; const unresolved = run(dataset, reportFor(dataset)); expect(unresolved.result.status).toBe(1); expect(unresolved.result.stderr).toContain('lack canonical local icon paths')
+  })
+  it('blocks promotion when reconciliation is unresolved', () => {
     const clean = fixture(); const diff = run(clean, reportFor(clean, { status: 'INCOMPLETE_REVIEW', unresolved: [{ kind: 'MISSING' }] })); expect(diff.result.status).toBe(1); expect(diff.result.stderr).toContain('not ZERO_UNEXPLAINED_DIFF')
   })
   it('blocks a stale ZERO_UNEXPLAINED_DIFF report even when recipe count is unchanged', () => {
