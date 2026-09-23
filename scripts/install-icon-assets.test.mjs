@@ -42,4 +42,14 @@ describe('canonical icon asset installer', () => {
     expect(result.status).toBe(1)
     expect(result.stderr).toContain('canonical local icon path')
   })
+
+  it.each([
+    [['dataset.json'], 'usage: node scripts/install-icon-assets.mjs'],
+    [['dataset.json', 'icons', 'out', 'ignored'], 'usage: node scripts/install-icon-assets.mjs'],
+    [['dataset.json', '--icons'], 'usage: node scripts/install-icon-assets.mjs'],
+  ])('fails closed on malformed positional arguments %#', (args, message) => {
+    const result = spawnSync(process.execPath, [resolve('scripts/install-icon-assets.mjs'), ...args], { encoding: 'utf8' })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain(message)
+  })
 })
