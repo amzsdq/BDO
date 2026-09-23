@@ -5,19 +5,30 @@ import fs from 'node:fs'
 const BASE = 'https://bdocodex.com/kr/materialgroup'
 
 function textContent(fragment) { return fragment.replace(/<[^>]+>/g, ' ').replace(/&nbsp;/gi, ' ').replace(/\s+/g, ' ').trim() }
+function cellsFromRow(row) { return [...row.matchAll(/<(?:td|th)\b[^>]*>([\s\S]*?)<\/(?:td|th)>/gi)].map((match) => textContent(match[1])) }
+function worthColumnIndex(html, groupId) {
+  for (const rowMatch of html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
+    const cells = cellsFromRow(rowMatch[1])
+    const index = cells.findIndex((cell) => /^(?:가치|worth)$/i.test(cell.trim()))
+    if (index >= 0) return index
+  }
+  throw new Error(`material group ${groupId}: explicit Worth/가치 column not found`)
+}
 
 export function parseCodexMaterialGroupHtml(html, groupId) {
   const members = []
   const seen = new Map()
+  const worthIndex = worthColumnIndex(html, groupId)
   for (const rowMatch of html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
     const row = rowMatch[1]
     const itemMatch = row.match(/<a[^>]+href=["'][^"']*\/item\/(\d+)\/?["'][^>]*>/i)
     if (!itemMatch) continue
-    const cells = [...row.matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)].map((match) => textContent(match[1]))
-    const numericCells = cells.map((cell) => Number(cell.replace(/,/g, ''))).filter((value) => Number.isFinite(value) && value > 0)
-    if (!numericCells.length) continue
-    const itemId = Number(itemMatch[1]); const value = numericCells[numericCells.length - 1]
+    const cells = cellsFromRow(row)
+    if (worthIndex >= cells.length) throw new Error(`material group ${groupId}: item row is missing explicit Worth cell`)
+    const value = Number(cells[worthIndex].replace(/,/g, '').trim())
+    const itemId = Number(itemMatch[1])
     if (!Number.isInteger(itemId) || itemId <= 0) continue
+    if (!Number.isFinite(value) || value <= 0) throw new Error(`material group ${groupId}: invalid explicit Worth for item ${itemId}`)
     const previous = seen.get(itemId)
     if (previous != null) {
       if (previous !== value) throw new Error(`material group ${groupId}: conflicting Worth evidence for item ${itemId}: ${previous} vs ${value}`)
