@@ -36,6 +36,7 @@ export async function hasRuntimeVerifiedEvidence(dataset: RecipeDataset): Promis
   for (const item of Object.values(dataset.items)) {
     if (!String(item.nameKo || '').trim() || /^아이템 #\d+$/.test(String(item.nameKo))) return false
     if (!item.iconPath && !item.iconUrl) return false
+    if (item.iconPath && item.iconPath !== `icons/${item.id}.webp`) return false
   }
 
   const actualFingerprint = await payloadFingerprint(dataset)

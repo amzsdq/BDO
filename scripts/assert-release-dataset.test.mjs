@@ -45,6 +45,9 @@ describe('final release gate', () => {
   it('rejects a canonical local icon path when the installed asset is missing', () => {
     const { datasetFile, reportFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); dataset.items['20'].iconPath = 'icons/20.webp'; delete dataset.items['20'].iconUrl; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile); expect(result.status).toBe(1); expect(result.stderr).toContain('canonical local icon assets are missing')
   })
+  it('rejects a non-canonical local icon path even when it resolves to an existing repository file', () => {
+    const { datasetFile, reportFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); dataset.items['20'].iconPath = '../../package.json'; delete dataset.items['20'].iconUrl; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile); expect(result.status).toBe(1); expect(result.stderr).toContain('non-canonical local icon paths')
+  })
   it('rejects ZERO_UNEXPLAINED_DIFF evidence generated for different dataset content', () => {
     const { datasetFile, reportFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); dataset.items['20'].nameKo = '변경된 재료'; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile); expect(result.status).toBe(1); expect(result.stderr).toContain('reconciliation report belongs to different dataset content')
   })

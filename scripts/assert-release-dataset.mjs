@@ -29,6 +29,8 @@ const actualCounts = { cooking: Object.values(recipes).filter((recipe) => recipe
 if (actualCounts.cooking !== metadata.counts.cooking || actualCounts.alchemy !== metadata.counts.alchemy) fail(`recipe count mismatch: metadata=${JSON.stringify(metadata.counts)} actual=${JSON.stringify(actualCounts)}`)
 const unresolvedIcons = Object.values(items).filter((item) => !item.iconPath && !item.iconUrl)
 if (unresolvedIcons.length) fail(`${unresolvedIcons.length} items have no icon resolution result`)
+const invalidLocalIconPaths = Object.values(items).filter((item) => typeof item.iconPath === 'string' && item.iconPath !== `icons/${item.id}.webp`)
+if (invalidLocalIconPaths.length) fail(`${invalidLocalIconPaths.length} items have non-canonical local icon paths; first ids: ${invalidLocalIconPaths.slice(0, 20).map((item) => item.id).join(', ')}`)
 const localIconRoot = path.resolve(path.dirname(file), '..')
 const missingLocalIcons = Object.values(items).filter((item) => typeof item.iconPath === 'string' && !fs.existsSync(path.resolve(localIconRoot, item.iconPath)))
 if (missingLocalIcons.length) fail(`${missingLocalIcons.length} canonical local icon assets are missing; first ids: ${missingLocalIcons.slice(0, 20).map((item) => item.id).join(', ')}`)
