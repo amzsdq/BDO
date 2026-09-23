@@ -28,8 +28,8 @@ function completeCatalog() {
     source: 'BDO Codex KR',
     complete: true,
     catalogs: [
-      { skill: 'cooking', recipeCount: 1, complete: true, endpointUsed: 'https://example.invalid/cooking', endpointEvidence: { recordsReported: 1 }, countMatchesExpected: null },
-      { skill: 'alchemy', recipeCount: 1, complete: true, endpointUsed: 'https://example.invalid/alchemy', endpointEvidence: { recordsReported: 1 }, countMatchesExpected: null },
+      { skill: 'cooking', recipeCount: 1, recipeIds: [101], complete: true, endpointUsed: 'https://example.invalid/cooking', endpointEvidence: { recordsReported: 1 }, countMatchesExpected: null },
+      { skill: 'alchemy', recipeCount: 1, recipeIds: [201], complete: true, endpointUsed: 'https://example.invalid/alchemy', endpointEvidence: { recordsReported: 1 }, countMatchesExpected: null },
     ],
   }
 }
@@ -38,7 +38,7 @@ function setup() {
   const datasetFile = join(dir, 'dataset.json'), reportFile = join(dir, 'report.json'), catalogFile = join(dir, 'catalog.json')
   const source = fixture()
   writeFileSync(datasetFile, JSON.stringify(source))
-  writeFileSync(reportFile, JSON.stringify({ status: 'ZERO_UNEXPLAINED_DIFF', unresolved: [], clientRecipeGroups: 2, codexLivePages: 2, datasetFingerprint: reconciliationDatasetFingerprint(source) }))
+  writeFileSync(reportFile, JSON.stringify({ status: 'ZERO_UNEXPLAINED_DIFF', unresolved: [], clientRecipeGroups: 2, codexLivePages: 2, codexLiveRecipeIds: [101, 201], datasetFingerprint: reconciliationDatasetFingerprint(source) }))
   writeFileSync(catalogFile, JSON.stringify(completeCatalog()))
   const promoted = spawnSync(process.execPath, ['scripts/promote-release-dataset.mjs', datasetFile, reportFile, catalogFile], { cwd: process.cwd(), encoding: 'utf8' })
   expect(promoted.status).toBe(0)
@@ -62,5 +62,8 @@ describe('final release gate', () => {
   })
   it('rejects reconciliation performed against fewer Codex pages than the complete catalog', () => {
     const { datasetFile, reportFile, catalogFile } = setup(); const report = JSON.parse(readFileSync(reportFile, 'utf8')); report.codexLivePages = 1; writeFileSync(reportFile, JSON.stringify(report)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('does not match independently complete catalog count')
+  })
+  it('rejects a same-sized reconciliation built from different Codex recipe ids', () => {
+    const { datasetFile, reportFile, catalogFile } = setup(); const report = JSON.parse(readFileSync(reportFile, 'utf8')); report.codexLiveRecipeIds = [102, 201]; writeFileSync(reportFile, JSON.stringify(report)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('recipe-id set does not match')
   })
 })
