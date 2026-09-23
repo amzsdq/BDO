@@ -6,6 +6,6 @@ import './styles.css'
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <PlannerBootstrapBoundary>{() => <App />}</PlannerBootstrapBoundary>
+    <PlannerBootstrapBoundary>{(bootstrap) => <App bootstrap={bootstrap} />}</PlannerBootstrapBoundary>
   </StrictMode>,
 )
