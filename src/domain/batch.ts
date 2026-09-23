@@ -36,6 +36,7 @@ export function calculateBatchCapacity(
     ingredientWeightPerServingLT += item.weightLT * input.count
   }
   const warnings: string[] = []
+  if (reservedWeightLT > maxWeightLT) warnings.push('예약 무게가 최대 무게보다 커서 가용 무게를 0 LT로 처리했습니다.')
   if (zeroWeightItemIds.length) warnings.push(`무게가 0 LT로 기록된 재료가 있습니다: ${[...new Set(zeroWeightItemIds)].join(', ')}. 검증된 0 LT 값으로 계산에 포함했습니다.`)
   if (negativeWeightItemIds.length) warnings.push(`음수 무게는 유효한 재료 무게로 사용할 수 없습니다: ${[...new Set(negativeWeightItemIds)].join(', ')}.`)
   if (unknownWeightItemIds.length) warnings.push('일부 재료의 검증된 무게가 없습니다.')
