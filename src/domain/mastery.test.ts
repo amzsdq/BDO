@@ -12,7 +12,6 @@ describe('Cooking mastery source data', () => {
     expect(COOKING_MASTERY_SOURCE.region).toBe('KR')
     expect(COOKING_MASTERY_SOURCE.verifiedAt).toBe('2026-09-23')
   })
-
   it('contains every official 50-point breakpoint from 0 through 3000', () => {
     expect(COOKING_MASTERY_ROWS).toHaveLength(61)
     expect(COOKING_MASTERY_ROWS.map((row) => row.mastery)).toEqual(Array.from({ length: 61 }, (_, index) => index * 50))
@@ -24,7 +23,6 @@ describe('Cooking mastery source data', () => {
     expect(cookingMasteryRow(2000)?.massCookingProbability).toBe(1)
     expect(cookingMasteryRow(3000)?.massCookingProbability).toBe(1)
   })
-
   it('never interpolates off-grid mastery values', () => {
     expect(cookingMasteryRow(1975)).toBeUndefined()
     expect(cookingMasteryRow(25)).toBeUndefined()
@@ -39,32 +37,39 @@ describe('Cooking durability material forecast', () => {
     expect(forecast.minimumServings).toBe(100)
     expect(forecast.expectedServings).toBe(640.54)
     expect(forecast.safe95Servings).toBe(712)
+    expect(forecast.safe95Method).toBe('exact-binomial')
     expect(forecast.safe95Servings).toBeGreaterThanOrEqual(Math.ceil(forecast.expectedServings))
     expect(forecast.safe95Servings).toBeLessThan(forecast.maximumServings)
     expect(forecast.maximumServings).toBe(1000)
   })
-
-  it('keeps a large 95% preparation target finite and below the absolute maximum', () => {
+  it('keeps a large exact 95% preparation target finite and below the absolute maximum', () => {
     const forecast = forecastCookingMaterialServings(10_000, 1350)!
     expect(forecast.safe95Servings).toBe(55_981)
+    expect(forecast.safe95Method).toBe('exact-binomial')
     expect(forecast.safe95Servings).toBeGreaterThanOrEqual(Math.ceil(forecast.expectedServings))
     expect(forecast.safe95Servings).toBeLessThan(forecast.maximumServings)
     expect(forecast.maximumServings).toBe(100_000)
   })
-
+  it('switches very large workloads to an O(1) conservative Bernstein bound', () => {
+    const forecast = forecastCookingMaterialServings(1_000_000, 1350)!
+    expect(forecast.safe95Method).toBe('bernstein-conservative')
+    expect(forecast.safe95Servings).toBeGreaterThanOrEqual(Math.ceil(forecast.expectedServings))
+    expect(forecast.safe95Servings).toBeLessThan(forecast.maximumServings)
+  })
+  it('uses the exact path through the practical ceiling and conservative path above it', () => {
+    expect(forecastCookingMaterialServings(100_000, 1350)?.safe95Method).toBe('exact-binomial')
+    expect(forecastCookingMaterialServings(100_001, 1350)?.safe95Method).toBe('bernstein-conservative')
+  })
   it('collapses the 95% target to deterministic bounds at 0% and 100%', () => {
     expect(forecastCookingMaterialServings(100, 0)?.safe95Servings).toBe(100)
     expect(forecastCookingMaterialServings(100, 2000)?.safe95Servings).toBe(1000)
   })
-
   it('supports low mastery expected values', () => {
     expect(forecastCookingMaterialServings(100, 50)?.expectedServings).toBeCloseTo(198.01)
   })
-
   it('disables the forecast for an unverified mastery value', () => {
     expect(forecastCookingMaterialServings(100, 1975)).toBeUndefined()
   })
-
   it('rejects invalid durability uses', () => {
     expect(() => forecastCookingMaterialServings(-1, 1500)).toThrow()
     expect(() => forecastCookingMaterialServings(1.5, 1500)).toThrow()
