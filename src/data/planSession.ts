@@ -25,6 +25,7 @@ export type PlanSessionReadResult =
   | { status: 'empty'; session: PlanSessionState }
   | { status: 'valid'; session: PlanSessionState }
   | { status: 'invalid-storage'; session: PlanSessionState }
+  | { status: 'unsupported-version'; session: PlanSessionState; persistedVersion: number }
 
 export const EMPTY_PLAN_SESSION: PlanSessionState = {
   version: 1,
@@ -84,6 +85,9 @@ export function readPlanSessionResult(storage: Pick<Storage, 'getItem'> = localS
     const parsed: unknown = JSON.parse(raw)
     if (!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return { status: 'invalid-storage', session: empty }
     const value = parsed as Record<string, unknown>
+    if (typeof value.version === 'number' && Number.isInteger(value.version) && value.version > 1) {
+      return { status: 'unsupported-version', session: empty, persistedVersion: value.version }
+    }
     if (value.version !== 1 || !Array.isArray(value.targets) || !value.targets.every(validTarget)) return { status: 'invalid-storage', session: empty }
     if (!Array.isArray(value.craftIntermediateItemIds) || value.craftIntermediateItemIds.some((id) => !Number.isInteger(id) || Number(id) <= 0)) return { status: 'invalid-storage', session: empty }
     const intermediateRecipeIdByItemId = itemRecipeRecord(value.intermediateRecipeIdByItemId)
