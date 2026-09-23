@@ -4,6 +4,7 @@ import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.m
 
 function fail(message) { console.error(`promotion blocked: ${message}`); process.exit(1) }
 function fingerprint(value) { return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex') }
+function hasRecordedSourceRevision(value) { const revision = String(value ?? '').trim(); return revision !== '' && revision.toLowerCase() !== 'unrecorded' }
 const [datasetFile, reconciliationFile, outFile = datasetFile] = process.argv.slice(2)
 if (!datasetFile || !reconciliationFile) fail('usage: node scripts/promote-release-dataset.mjs <dataset.json> <reconciliation-report.json> [out.json]')
 if (!fs.existsSync(datasetFile)) fail(`dataset not found: ${datasetFile}`)
@@ -13,6 +14,7 @@ const reconciliation = JSON.parse(fs.readFileSync(reconciliationFile, 'utf8'))
 const items = dataset.items || {}, recipes = dataset.recipes || {}
 if (dataset.metadata?.supportedRegion !== 'KR') fail('supportedRegion must be KR')
 if (!Array.isArray(dataset.metadata?.sources) || dataset.metadata.sources.length < 2) fail('source provenance incomplete')
+if (!hasRecordedSourceRevision(dataset.metadata?.sourceRevision)) fail('sourceRevision must identify the canonical client snapshot; unrecorded provenance cannot be promoted')
 if (!dataset.metadata?.generatedAt) fail('generatedAt missing')
 if (reconciliation.status !== 'ZERO_UNEXPLAINED_DIFF' || (reconciliation.unresolved || []).length) fail('reconciliation is not ZERO_UNEXPLAINED_DIFF')
 if (reconciliation.clientRecipeGroups !== Object.keys(recipes).length) fail('reconciliation recipe count does not match dataset')
