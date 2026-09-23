@@ -9,6 +9,7 @@ import { validateResolvedCatalogEndpoint } from './codex-catalog-endpoint.mjs'
 function fail(message) { console.error(`release blocked: ${message}`); process.exit(1) }
 function fingerprint(value) { return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex') }
 function hasRecordedSourceRevision(value) { const revision = String(value ?? '').trim(); return revision !== '' && revision.toLowerCase() !== 'unrecorded' }
+function hasValidTimestamp(value) { return typeof value === 'string' && value.trim() !== '' && Number.isFinite(Date.parse(value)) }
 function sortedIds(values) { return [...new Set(values.map(Number).filter((id) => Number.isSafeInteger(id) && id > 0))].sort((a, b) => a - b) }
 const [file, reconciliationFile, catalogFile] = process.argv.slice(2)
 if (!file) fail('usage: node scripts/assert-release-dataset.mjs <dataset.json> <reconciliation-report.json> <codex-catalog.json>')
@@ -46,6 +47,7 @@ if (reconciliation.datasetFingerprint !== expectedReconciliationFingerprint) fai
 if (!catalogFile || !fs.existsSync(catalogFile)) fail('independently complete Codex catalog evidence is required')
 const catalog = JSON.parse(fs.readFileSync(catalogFile, 'utf8'))
 if (catalog.source !== 'BDO Codex KR' || catalog.complete !== true || !Array.isArray(catalog.catalogs)) fail('Codex catalog completeness is not independently proven')
+if (!hasValidTimestamp(catalog.collectedAt)) fail('Codex catalog collectedAt timestamp is missing or invalid')
 const catalogBySkill = new Map(catalog.catalogs.map((entry) => [String(entry.skill || '').toLowerCase(), entry]))
 for (const skill of ['cooking', 'alchemy']) {
   const entry = catalogBySkill.get(skill)

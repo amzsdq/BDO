@@ -26,6 +26,7 @@ function completeCatalog() {
   return {
     schemaVersion: 2,
     source: 'BDO Codex KR',
+    collectedAt: '2026-09-23T00:00:00.000Z',
     complete: true,
     catalogs: [
       { skill: 'cooking', recipeCount: 1, recipeIds: [101], complete: true, endpointUsed: 'https://bdocodex.com/query.php?a=recipes&type=culinary&l=kr', endpointFinalUrl: 'https://bdocodex.com/query.php?a=recipes&type=culinary&l=kr', endpointEvidence: { recordsReported: 1 }, countMatchesExpected: null },
@@ -70,6 +71,9 @@ describe('final release gate', () => {
   })
   it('rejects an incomplete Codex catalog even when reconciliation claims zero unexplained diff', () => {
     const { datasetFile, reportFile, catalogFile } = setup(); const catalog = completeCatalog(); catalog.complete = false; catalog.catalogs[0].complete = false; writeFileSync(catalogFile, JSON.stringify(catalog)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('Codex catalog completeness is not independently proven')
+  })
+  it('rejects catalog evidence when collectedAt is missing or invalid', () => {
+    for (const collectedAt of [undefined, '', 'not-a-date']) { const { datasetFile, reportFile, catalogFile } = setup(); const catalog = completeCatalog(); catalog.collectedAt = collectedAt; writeFileSync(catalogFile, JSON.stringify(catalog)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('collectedAt timestamp') }
   })
   it('rejects catalog evidence whose endpoint scope does not match the declared skill', () => {
     const { datasetFile, reportFile, catalogFile } = setup(); const catalog = completeCatalog(); catalog.catalogs[0].endpointFinalUrl = 'https://bdocodex.com/query.php?a=recipes&type=alchemy&l=kr'; writeFileSync(catalogFile, JSON.stringify(catalog)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('endpoint scope is invalid')
