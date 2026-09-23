@@ -16,15 +16,16 @@ function fixture() {
     recipesByOutput: { '10': ['cook'], '11': ['alch'] },
   }
 }
-function reportFor(dataset, overrides = {}) { return { status: 'ZERO_UNEXPLAINED_DIFF', unresolved: [], clientRecipeGroups: 2, datasetFingerprint: reconciliationDatasetFingerprint(dataset), ...overrides } }
-function run(dataset, reconciliation) {
-  const dir = mkdtempSync(join(tmpdir(), 'bdo-promote-')); const datasetFile = join(dir, 'dataset.json'), reportFile = join(dir, 'report.json'), outFile = join(dir, 'promoted.json')
-  writeFileSync(datasetFile, JSON.stringify(dataset)); writeFileSync(reportFile, JSON.stringify(reconciliation)); const result = spawnSync(process.execPath, ['scripts/promote-release-dataset.mjs', datasetFile, reportFile, outFile], { cwd: process.cwd(), encoding: 'utf8' }); return { result, promoted: result.status === 0 ? JSON.parse(readFileSync(outFile, 'utf8')) : null }
+function reportFor(dataset, overrides = {}) { return { status: 'ZERO_UNEXPLAINED_DIFF', unresolved: [], clientRecipeGroups: 2, codexLivePages: 2, datasetFingerprint: reconciliationDatasetFingerprint(dataset), ...overrides } }
+function catalog(overrides = {}) { return { source: 'BDO Codex KR', complete: true, catalogs: [{ skill: 'cooking', complete: true, recipeCount: 1, endpointUsed: 'https://example.invalid/c', endpointEvidence: { recordsReported: 1 }, countMatchesExpected: null }, { skill: 'alchemy', complete: true, recipeCount: 1, endpointUsed: 'https://example.invalid/a', endpointEvidence: { recordsReported: 1 }, countMatchesExpected: null }], ...overrides } }
+function run(dataset, reconciliation, catalogEvidence = catalog()) {
+  const dir = mkdtempSync(join(tmpdir(), 'bdo-promote-')); const datasetFile = join(dir, 'dataset.json'), reportFile = join(dir, 'report.json'), catalogFile = join(dir, 'catalog.json'), outFile = join(dir, 'promoted.json')
+  writeFileSync(datasetFile, JSON.stringify(dataset)); writeFileSync(reportFile, JSON.stringify(reconciliation)); writeFileSync(catalogFile, JSON.stringify(catalogEvidence)); const result = spawnSync(process.execPath, ['scripts/promote-release-dataset.mjs', datasetFile, reportFile, catalogFile, outFile], { cwd: process.cwd(), encoding: 'utf8' }); return { result, promoted: result.status === 0 ? JSON.parse(readFileSync(outFile, 'utf8')) : null }
 }
 
 describe('release dataset promotion', () => {
-  it('promotes only reconciled, resolved Cooking+Alchemy data and writes a fresh fingerprint', () => {
-    const dataset = fixture(); const { result, promoted } = run(dataset, reportFor(dataset)); expect(result.status).toBe(0); expect(promoted.metadata.status).toBe('COMPLETE_VERIFIED'); expect(promoted.metadata.reconciliationStatus).toBe('ZERO_UNEXPLAINED_DIFF'); expect(promoted.metadata.fingerprint).toMatch(/^[0-9a-f]{64}$/)
+  it('promotes only reconciled, resolved Cooking+Alchemy data with complete catalog evidence', () => {
+    const dataset = fixture(); const { result, promoted } = run(dataset, reportFor(dataset)); expect(result.status).toBe(0); expect(promoted.metadata.status).toBe('COMPLETE_VERIFIED'); expect(promoted.metadata.reconciliationStatus).toBe('ZERO_UNEXPLAINED_DIFF'); expect(promoted.metadata.codexCatalogPages).toBe(2); expect(promoted.metadata.fingerprint).toMatch(/^[0-9a-f]{64}$/)
   })
   it('blocks promotion when reconciliation or release assets are unresolved', () => {
     const dataset = fixture(); delete dataset.items['20'].iconUrl; const unresolved = run(dataset, reportFor(dataset)); expect(unresolved.result.status).toBe(1); expect(unresolved.result.stderr).toContain('no icon resolution result')
@@ -32,5 +33,11 @@ describe('release dataset promotion', () => {
   })
   it('blocks a stale ZERO_UNEXPLAINED_DIFF report even when recipe count is unchanged', () => {
     const dataset = fixture(); const stale = reportFor(dataset); dataset.items['20'].nameKo = '변경된 재료'; const result = run(dataset, stale); expect(result.result.status).toBe(1); expect(result.result.stderr).toContain('different dataset content')
+  })
+  it('blocks COMPLETE_VERIFIED promotion when catalog completeness is unproven', () => {
+    const dataset = fixture(); const result = run(dataset, reportFor(dataset), catalog({ complete: false })); expect(result.result.status).toBe(1); expect(result.result.stderr).toContain('catalog completeness is not independently proven')
+  })
+  it('blocks promotion when reconciliation covers fewer pages than the complete catalog', () => {
+    const dataset = fixture(); const result = run(dataset, reportFor(dataset, { codexLivePages: 1 })); expect(result.result.status).toBe(1); expect(result.result.stderr).toContain('does not match independently complete catalog count')
   })
 })
