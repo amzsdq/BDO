@@ -13,6 +13,7 @@
     "data:icons": "node scripts/install-icon-assets.mjs",
     "data:substitution-group-ids": "node scripts/codex-material-group-ids.mjs",
     "data:collect-substitutions": "node scripts/collect-codex-substitution-groups.mjs",
+    "data:collect-referenced-substitutions": "node scripts/collect-substitution-evidence-from-recipes.mjs",
     "data:substitutions": "node scripts/apply-substitution-evidence.mjs",
     "data:validate": "node scripts/validate-dataset.mjs",
     "data:reconcile": "node scripts/reconcile-codex.mjs",
