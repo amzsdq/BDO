@@ -22,10 +22,17 @@ describe('Codex complete-catalog endpoint scope', () => {
     expect(validateResolvedCatalogEndpoint('https://bdocodex.com/query.php?a=recipes&type=product&item_id=123&l=kr').ok).toBe(false)
   })
 
+  it('requires the known Codex recipe transport, not merely a Codex-hosted URL', () => {
+    expect(validateCatalogEndpointTemplate('https://bdocodex.com/kr/recipes/culinary?skill={skill}').ok).toBe(false)
+    expect(validateCatalogEndpointTemplate('https://bdocodex.com/query.php?a=items&skill={skill}').ok).toBe(false)
+    expect(validateResolvedCatalogEndpoint('https://bdocodex.com/query.php?a=items&type=culinary').ok).toBe(false)
+    expect(validateResolvedCatalogEndpoint('https://bdocodex.com/query.php?a=recipes&type=culinary').ok).toBe(true)
+  })
+
   it('requires HTTPS and a Codex host for templates and resolved redirects', () => {
     expect(validateCatalogEndpointTemplate('http://bdocodex.com/query.php?a=recipes&skill={skill}').ok).toBe(false)
-    expect(validateCatalogEndpointTemplate('https://example.invalid/catalog?skill={skill}').ok).toBe(false)
-    expect(validateResolvedCatalogEndpoint('https://example.invalid/catalog?skill=cooking').ok).toBe(false)
+    expect(validateCatalogEndpointTemplate('https://example.invalid/query.php?a=recipes&skill={skill}').ok).toBe(false)
+    expect(validateResolvedCatalogEndpoint('https://example.invalid/query.php?a=recipes&skill=cooking').ok).toBe(false)
     expect(validateResolvedCatalogEndpoint('https://bdocodex.com/query.php?a=recipes&type=culinary').ok).toBe(true)
   })
 })
