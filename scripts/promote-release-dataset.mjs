@@ -4,8 +4,23 @@ import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.m
 
 function fail(message) { console.error(`promotion blocked: ${message}`); process.exit(1) }
 function fingerprint(value) { return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex') }
-const [datasetFile, reconciliationFile, outFile = datasetFile] = process.argv.slice(2)
-if (!datasetFile || !reconciliationFile) fail('usage: node scripts/promote-release-dataset.mjs <dataset.json> <reconciliation-report.json> [out.json]')
+function verifiedCatalog(catalogFile, reconciliation) {
+  if (!catalogFile || !fs.existsSync(catalogFile)) fail('independently complete Codex catalog evidence is required')
+  const catalog = JSON.parse(fs.readFileSync(catalogFile, 'utf8'))
+  if (catalog.source !== 'BDO Codex KR' || catalog.complete !== true || !Array.isArray(catalog.catalogs)) fail('Codex catalog completeness is not independently proven')
+  const bySkill = new Map(catalog.catalogs.map((entry) => [String(entry.skill || '').toLowerCase(), entry]))
+  for (const skill of ['cooking', 'alchemy']) {
+    const entry = bySkill.get(skill)
+    if (!entry || entry.complete !== true || !Number.isSafeInteger(entry.recipeCount) || entry.recipeCount <= 0) fail(`Codex ${skill} catalog completeness is not proven`)
+    if (!entry.endpointUsed || !entry.endpointEvidence || (entry.countMatchesExpected !== true && entry.endpointEvidence.recordsReported !== entry.recipeCount)) fail(`Codex ${skill} catalog lacks independent count evidence`)
+  }
+  const pages = ['cooking', 'alchemy'].reduce((sum, skill) => sum + bySkill.get(skill).recipeCount, 0)
+  if (reconciliation.codexLivePages !== pages) fail(`reconciliation Codex page count ${reconciliation.codexLivePages ?? 'missing'} does not match independently complete catalog count ${pages}`)
+  return pages
+}
+
+const [datasetFile, reconciliationFile, catalogFile, outFile = datasetFile] = process.argv.slice(2)
+if (!datasetFile || !reconciliationFile || !catalogFile) fail('usage: node scripts/promote-release-dataset.mjs <dataset.json> <reconciliation-report.json> <codex-catalog.json> [out.json]')
 if (!fs.existsSync(datasetFile)) fail(`dataset not found: ${datasetFile}`)
 if (!fs.existsSync(reconciliationFile)) fail(`reconciliation report not found: ${reconciliationFile}`)
 const dataset = JSON.parse(fs.readFileSync(datasetFile, 'utf8'))
@@ -18,6 +33,7 @@ if (reconciliation.status !== 'ZERO_UNEXPLAINED_DIFF' || (reconciliation.unresol
 if (reconciliation.clientRecipeGroups !== Object.keys(recipes).length) fail('reconciliation recipe count does not match dataset')
 const expectedReconciliationFingerprint = reconciliationDatasetFingerprint(dataset)
 if (reconciliation.datasetFingerprint !== expectedReconciliationFingerprint) fail('reconciliation report belongs to different dataset content')
+const codexCatalogPages = verifiedCatalog(catalogFile, reconciliation)
 const counts = { cooking: Object.values(recipes).filter((recipe) => recipe.skill === 'cooking').length, alchemy: Object.values(recipes).filter((recipe) => recipe.skill === 'alchemy').length }
 if (!counts.cooking || !counts.alchemy) fail('both Cooking and Alchemy coverage are required')
 if (dataset.metadata?.counts?.cooking !== counts.cooking || dataset.metadata?.counts?.alchemy !== counts.alchemy) fail('metadata recipe counts do not match dataset')
@@ -25,8 +41,8 @@ const unresolvedIcons = Object.values(items).filter((item) => !item.iconPath && 
 if (unresolvedIcons.length) fail(`${unresolvedIcons.length} items have no icon resolution result`)
 const unresolvedNames = Object.values(items).filter((item) => !String(item.nameKo || '').trim() || /^아이템 #\d+$/.test(String(item.nameKo)))
 if (unresolvedNames.length) fail(`${unresolvedNames.length} items have unresolved Korean names`)
-const promoted = { ...dataset, metadata: { ...dataset.metadata, status: 'COMPLETE_VERIFIED', counts, verifiedAt: new Date().toISOString(), reconciliationStatus: 'ZERO_UNEXPLAINED_DIFF' } }
+const promoted = { ...dataset, metadata: { ...dataset.metadata, status: 'COMPLETE_VERIFIED', counts, verifiedAt: new Date().toISOString(), reconciliationStatus: 'ZERO_UNEXPLAINED_DIFF', codexCatalogPages } }
 delete promoted.metadata.fingerprint
 promoted.metadata.fingerprint = fingerprint(promoted)
 fs.writeFileSync(outFile, JSON.stringify(promoted, null, 2) + '\n')
-console.log(JSON.stringify({ ok: true, outFile, counts, fingerprint: promoted.metadata.fingerprint }))
+console.log(JSON.stringify({ ok: true, outFile, counts, codexCatalogPages, fingerprint: promoted.metadata.fingerprint }))
