@@ -49,5 +49,12 @@ describe('calculateBatchCapacity', () => {
     const result = calculateBatchCapacity(variant, { ...items, '2': { id: 2, nameKo: '재료 B' } }, { maxWeightLT: 2000 })
     expect(result.maxServings).toBeUndefined(); expect(result.unknownWeightItemIds).toEqual([2]); expect(result.warnings).toHaveLength(1)
   })
+  it('keeps a verified zero-weight ingredient in exact carry math but surfaces it explicitly', () => {
+    const result = calculateBatchCapacity(variant, { ...items, '1': { id: 1, nameKo: '재료 A', weightLT: 0 } }, { maxWeightLT: 10 }, 3)
+    expect(result.ingredientWeightPerServingLT).toBe(0.5)
+    expect(result.maxServings).toBe(20)
+    expect(result.lines[0]).toMatchObject({ itemId: 1, countToCarry: 15, weightToCarryLT: 0 })
+    expect(result.warnings.some((warning) => warning.includes('0 LT') && warning.includes('1'))).toBe(true)
+  })
   it('never produces negative available weight', () => { const result = calculateBatchCapacity(variant, items, { maxWeightLT: 100, reservedWeightLT: 150 }); expect(result.availableWeightLT).toBe(0); expect(result.maxServings).toBe(0); expect(result.loadServings).toBe(0) })
 })
