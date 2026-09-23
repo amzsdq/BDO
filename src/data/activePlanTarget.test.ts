@@ -24,7 +24,17 @@ describe('activePlanTarget', () => {
     })
   })
 
-  it('rejects fractional durability uses before session resolution', () => {
-    expect(() => activePlanTarget({ recipeId: 'cook', mode: 'durability', amount: 1.5, skill: 'cooking', cookingPreparationPolicy: 'minimum' })).toThrow(/positive integer/)
+  it.each([
+    ['output', 'cooking'],
+    ['servings', 'alchemy'],
+    ['durability', 'cooking'],
+  ] as const)('rejects fractional %s amounts before session resolution', (mode, skill) => {
+    expect(() => activePlanTarget({
+      recipeId: skill === 'cooking' ? 'cook' : 'alchemy',
+      mode,
+      amount: 1.5,
+      skill,
+      cookingPreparationPolicy: mode === 'durability' && skill === 'cooking' ? 'minimum' : undefined,
+    })).toThrow(/positive integer/)
   })
 })
