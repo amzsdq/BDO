@@ -38,14 +38,16 @@ async function collectCatalog(catalog) {
   let endpointEvidence = null
   if (endpointTemplate) {
     endpointUsed = catalogEndpointForSkill(endpointTemplate, catalog.skill)
+    const configuredValidation = validateResolvedCatalogEndpoint(endpointUsed, catalog.skill)
+    if (!configuredValidation.ok) throw new Error(`Configured catalog endpoint has invalid skill scope: ${configuredValidation.reason}`)
     const response = await getText(endpointUsed, { headers: { accept: 'application/json,*/*;q=0.8' } })
     endpointFinalUrl = response.finalUrl
-    const finalValidation = validateResolvedCatalogEndpoint(endpointFinalUrl)
+    const finalValidation = validateResolvedCatalogEndpoint(endpointFinalUrl, catalog.skill)
     if (!finalValidation.ok) throw new Error(`Configured catalog endpoint redirected to invalid scope: ${finalValidation.reason}`)
     let parsed
     try { parsed = JSON.parse(response.text) } catch { throw new Error(`Configured endpoint did not return JSON: ${endpointUsed}`) }
-    // Positional aaData[0] identities are accepted only after both configured and final endpoints pass the skill-scoped, non-product endpoint validator.
-    ids = recipeIdsFromJson(parsed, { allowCodexAaData: endpointValidation.ok && finalValidation.ok })
+    // Positional aaData[0] identities are accepted only after both configured and final endpoints pass the requested skill-scoped, non-product endpoint validator.
+    ids = recipeIdsFromJson(parsed, { allowCodexAaData: configuredValidation.ok && finalValidation.ok })
     endpointEvidence = {
       topLevelKeys: parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? Object.keys(parsed).sort() : [],
       recordsReported: Number.isSafeInteger(Number(parsed?.recordsTotal)) ? Number(parsed.recordsTotal) : null,
@@ -66,7 +68,7 @@ const result = {
   source: 'BDO Codex KR',
   collectedAt: new Date().toISOString(),
   complete: catalogs.every((catalog) => catalog.complete),
-  completenessRule: 'A non-empty list is insufficient. Each catalog requires a skill/category-bound, non-product-scoped bdocodex.com recipe endpoint (including final redirect target) plus either provenance-bearing independent expected-count evidence or endpoint recordsTotal equal to the unique recipe count. Bare caller-supplied counts and ambiguous generic JSON id fields are not completeness evidence.',
+  completenessRule: 'A non-empty list is insufficient. Each catalog requires a requested-skill-bound, non-product-scoped bdocodex.com recipe endpoint before and after redirects plus either provenance-bearing independent expected-count evidence or endpoint recordsTotal equal to the unique recipe count. Bare caller-supplied counts and ambiguous generic JSON id fields are not completeness evidence.',
   catalogs,
 }
 await writeFile(outPath, `${JSON.stringify(result, null, 2)}\n`)

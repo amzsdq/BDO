@@ -28,8 +28,8 @@ function completeCatalog() {
     source: 'BDO Codex KR',
     complete: true,
     catalogs: [
-      { skill: 'cooking', recipeCount: 1, recipeIds: [101], complete: true, endpointUsed: 'https://example.invalid/cooking', endpointEvidence: { recordsReported: 1 }, countMatchesExpected: null },
-      { skill: 'alchemy', recipeCount: 1, recipeIds: [201], complete: true, endpointUsed: 'https://example.invalid/alchemy', endpointEvidence: { recordsReported: 1 }, countMatchesExpected: null },
+      { skill: 'cooking', recipeCount: 1, recipeIds: [101], complete: true, endpointUsed: 'https://bdocodex.com/query.php?a=recipes&type=culinary&l=kr', endpointFinalUrl: 'https://bdocodex.com/query.php?a=recipes&type=culinary&l=kr', endpointEvidence: { recordsReported: 1 }, countMatchesExpected: null },
+      { skill: 'alchemy', recipeCount: 1, recipeIds: [201], complete: true, endpointUsed: 'https://bdocodex.com/query.php?a=recipes&type=alchemy&l=kr', endpointFinalUrl: 'https://bdocodex.com/query.php?a=recipes&type=alchemy&l=kr', endpointEvidence: { recordsReported: 1 }, countMatchesExpected: null },
     ],
   }
 }
@@ -65,6 +65,9 @@ describe('final release gate', () => {
   })
   it('rejects an incomplete Codex catalog even when reconciliation claims zero unexplained diff', () => {
     const { datasetFile, reportFile, catalogFile } = setup(); const catalog = completeCatalog(); catalog.complete = false; catalog.catalogs[0].complete = false; writeFileSync(catalogFile, JSON.stringify(catalog)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('Codex catalog completeness is not independently proven')
+  })
+  it('rejects catalog evidence whose endpoint scope does not match the declared skill', () => {
+    const { datasetFile, reportFile, catalogFile } = setup(); const catalog = completeCatalog(); catalog.catalogs[0].endpointFinalUrl = 'https://bdocodex.com/query.php?a=recipes&type=alchemy&l=kr'; writeFileSync(catalogFile, JSON.stringify(catalog)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('endpoint scope is invalid')
   })
   it('rejects reconciliation performed against fewer Codex pages than the complete catalog', () => {
     const { datasetFile, reportFile, catalogFile } = setup(); const report = JSON.parse(readFileSync(reportFile, 'utf8')); report.codexLivePages = 1; writeFileSync(reportFile, JSON.stringify(report)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('does not match independently complete catalog count')
