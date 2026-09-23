@@ -4,10 +4,11 @@ import { assertMasteryReleaseEvidence } from './mastery-release-evidence.mjs'
 
 function fail(message) { console.error(`release blocked: ${message}`); process.exit(1) }
 
-const [datasetFile, reconciliationFile, catalogFile, masteryEvidenceFile, masteryFile] = process.argv.slice(2)
-if (!datasetFile || !reconciliationFile || !catalogFile || !masteryEvidenceFile || !masteryFile) {
+const args = process.argv.slice(2)
+if (args.length !== 5 || args.some((value) => !value || value.startsWith('--'))) {
   fail('usage: node scripts/assert-release-readiness.mjs <dataset.json> <reconciliation-report.json> <codex-catalog.json> <mastery-evidence.json> <mastery.json>')
 }
+const [datasetFile, reconciliationFile, catalogFile, masteryEvidenceFile, masteryFile] = args
 
 const datasetGate = spawnSync(process.execPath, ['scripts/assert-release-dataset.mjs', datasetFile, reconciliationFile, catalogFile], {
   cwd: process.cwd(), encoding: 'utf8',
