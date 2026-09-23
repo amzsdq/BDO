@@ -46,7 +46,8 @@ if (!Array.isArray(dataset.metadata?.sources) || dataset.metadata.sources.length
 if (!hasRecordedSourceRevision(dataset.metadata?.sourceRevision)) fail('sourceRevision must identify the canonical client snapshot; unrecorded provenance cannot be promoted')
 if (!dataset.metadata?.generatedAt) fail('generatedAt missing')
 if (reconciliation.status !== 'ZERO_UNEXPLAINED_DIFF' || (reconciliation.unresolved || []).length) fail('reconciliation is not ZERO_UNEXPLAINED_DIFF')
-if (reconciliation.clientRecipeGroups !== Object.keys(recipes).length) fail('reconciliation recipe count does not match dataset')
+const datasetRecipeCount = Object.keys(recipes).length
+if (!Number.isSafeInteger(reconciliation.clientRecipes) || reconciliation.clientRecipes !== datasetRecipeCount) fail('reconciliation client recipe count does not match dataset')
 const expectedReconciliationFingerprint = reconciliationDatasetFingerprint(dataset)
 if (reconciliation.datasetFingerprint !== expectedReconciliationFingerprint) fail('reconciliation report belongs to different dataset content')
 const codexCatalog = verifiedCatalog(catalogFile, reconciliation)
