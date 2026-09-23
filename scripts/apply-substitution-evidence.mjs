@@ -9,9 +9,12 @@ export function applySubstitutionEvidence(dataset, evidence) {
 
   const next = structuredClone(dataset)
   next.substitutionGroups ||= {}
+  const seenGroupIds = new Set()
   for (const group of evidence.groups) {
     const id = String(group.id || '')
     if (!id || !Array.isArray(group.members) || group.members.length < 2) throw new Error(`invalid substitution group ${id || '<missing>'}`)
+    if (seenGroupIds.has(id)) throw new Error(`${id}: duplicate group evidence`)
+    seenGroupIds.add(id)
     if (!/^https:\/\/bdocodex\.com\/kr\/materialgroup\//.test(String(group.sourceUrl || ''))) throw new Error(`${id}: unsupported evidence URL`)
     const memberItemIds = []
     const memberValueByItemId = {}
