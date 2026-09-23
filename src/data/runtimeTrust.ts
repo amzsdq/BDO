@@ -33,6 +33,14 @@ export async function hasRuntimeVerifiedEvidence(dataset: RecipeDataset): Promis
   const alchemy = recipes.filter((recipe) => recipe.skill === 'alchemy').length
   if (!cooking || !alchemy || metadata.counts?.cooking !== cooking || metadata.counts?.alchemy !== alchemy) return false
 
+  for (const recipe of recipes) {
+    if (!dataset.items[String(recipe.outputItemId)] || !recipe.variants.length) return false
+    for (const variant of recipe.variants) {
+      if (!variant.inputs.length) return false
+      for (const input of variant.inputs) if (!dataset.items[String(input.itemId)]) return false
+    }
+  }
+
   for (const item of Object.values(dataset.items)) {
     if (!String(item.nameKo || '').trim() || /^아이템 #\d+$/.test(String(item.nameKo))) return false
     if (!item.iconPath && !item.iconUrl) return false

@@ -42,6 +42,11 @@ describe('hasRuntimeVerifiedEvidence', () => {
     const unresolvedName = await promoteFixture(); unresolvedName.items['3'].nameKo = '아이템 #3'; expect(await hasRuntimeVerifiedEvidence(unresolvedName)).toBe(false)
     const missingIcon = await promoteFixture(); delete missingIcon.items['3'].iconPath; expect(await hasRuntimeVerifiedEvidence(missingIcon)).toBe(false)
   })
+  it('rejects recipes with missing output/input items or empty variants', async () => {
+    const missingOutput = fixture(); missingOutput.recipes.cook.outputItemId = 999; expect(await hasRuntimeVerifiedEvidence(await withFingerprint(missingOutput))).toBe(false)
+    const missingInput = fixture(); missingInput.recipes.cook.variants[0].inputs[0].itemId = 999; expect(await hasRuntimeVerifiedEvidence(await withFingerprint(missingInput))).toBe(false)
+    const emptyVariant = fixture(); emptyVariant.recipes.cook.variants[0].inputs = []; expect(await hasRuntimeVerifiedEvidence(await withFingerprint(emptyVariant))).toBe(false)
+  })
   it('rejects count-preserving recipe tampering after promotion', async () => { const dataset = await promoteFixture(); dataset.recipes.cook.variants[0].inputs[0].count = 999; expect(await hasRuntimeVerifiedEvidence(dataset)).toBe(false) })
   it('rejects item metadata tampering after promotion', async () => { const dataset = await promoteFixture(); dataset.items['3'].nameKo = '변조된 재료명'; expect(await hasRuntimeVerifiedEvidence(dataset)).toBe(false) })
 })
