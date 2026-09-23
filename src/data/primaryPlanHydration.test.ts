@@ -34,6 +34,13 @@ describe('hydratePrimaryPlan', () => {
     })
   })
 
+  it('requires recovery instead of overwriting a newer persisted session', () => {
+    expect(hydratePrimaryPlan(sampleDataset, storage(JSON.stringify({ version: 2, targets: [] })))).toMatchObject({
+      status: 'recovery-required',
+      reason: 'unsupported-version',
+    })
+  })
+
   it('requires recovery instead of overwriting stale dataset references', () => {
     expect(hydratePrimaryPlan(sampleDataset, storage(JSON.stringify(persisted('removed-recipe'))))).toMatchObject({
       status: 'recovery-required',
