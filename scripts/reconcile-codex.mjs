@@ -19,13 +19,19 @@ const dataset = JSON.parse(fs.readFileSync(opt.dataset, 'utf8'))
 const manifest = JSON.parse(fs.readFileSync(opt.codex, 'utf8'))
 const review = opt.review && fs.existsSync(opt.review) ? JSON.parse(fs.readFileSync(opt.review, 'utf8')) : { acceptedDiffs: [] }
 const clientByKey = new Map()
+let clientRecipeCount = 0
 
 for (const recipe of Object.values(dataset.recipes || {})) {
   const output = dataset.items[String(recipe.outputItemId)]
   const skill = normalizedSkill(recipe.skill)
   const key = reconciliationKey(skill, Number(recipe.outputItemId), output?.nameKo)
-  const variants = (recipe.variants || []).map((variant) => ({ variantId: variant.id, signature: signatureFromDataset(dataset, recipe, variant) }))
-  clientByKey.set(key, { recipe, output, variants, signatures: new Set(variants.map((variant) => variant.signature)) })
+  const variants = (recipe.variants || []).map((variant) => ({ recipeId: recipe.id, variantId: variant.id, signature: signatureFromDataset(dataset, recipe, variant) }))
+  const group = clientByKey.get(key) || { output, recipes: [], variants: [], signatures: new Set() }
+  group.recipes.push(recipe)
+  group.variants.push(...variants)
+  for (const variant of variants) group.signatures.add(variant.signature)
+  clientByKey.set(key, group)
+  clientRecipeCount += 1
 }
 const codexLive = (manifest.recipes || []).filter((entry) => entry.available !== false)
 const codexLiveRecipeIds = liveRecipeIds(codexLive)
@@ -40,7 +46,10 @@ for (const entry of codexLive) {
 }
 const diffs = []
 for (const [key, client] of clientByKey) {
-  if (!codexByKey.has(key)) { diffs.push({ key: `CLIENT_ONLY:${key}`, kind: 'CLIENT_ONLY', output: client.output?.nameKo, recipeId: client.recipe.id }); continue }
+  if (!codexByKey.has(key)) {
+    for (const recipe of client.recipes) diffs.push({ key: `CLIENT_ONLY:${recipe.id}:${key}`, kind: 'CLIENT_ONLY', output: client.output?.nameKo, recipeId: recipe.id })
+    continue
+  }
   const codexEntries = codexByKey.get(key)
   const codexSignatures = new Set()
   for (const entry of codexEntries) {
@@ -49,7 +58,7 @@ for (const [key, client] of clientByKey) {
     if (sig && !client.signatures.has(sig)) diffs.push({ key: `SIGNATURE:${entry.recipeId}:${key}`, kind: 'SIGNATURE_MISMATCH', codexRecipeId: entry.recipeId, output: entry.titleKo, codexSignature: sig, clientSignatures: [...client.signatures] })
   }
   for (const variant of client.variants) {
-    if (variant.signature && !codexSignatures.has(variant.signature)) diffs.push({ key: `CLIENT_VARIANT_ONLY:${client.recipe.id}:${variant.variantId}:${key}`, kind: 'CLIENT_VARIANT_ONLY', recipeId: client.recipe.id, variantId: variant.variantId, output: client.output?.nameKo, clientSignature: variant.signature, codexSignatures: [...codexSignatures] })
+    if (variant.signature && !codexSignatures.has(variant.signature)) diffs.push({ key: `CLIENT_VARIANT_ONLY:${variant.recipeId}:${variant.variantId}:${key}`, kind: 'CLIENT_VARIANT_ONLY', recipeId: variant.recipeId, variantId: variant.variantId, output: client.output?.nameKo, clientSignature: variant.signature, codexSignatures: [...codexSignatures] })
   }
 }
 for (const [key, entries] of codexByKey) if (!clientByKey.has(key)) for (const entry of entries) diffs.push({ key: `CODEX_ONLY:${entry.recipeId}:${key}`, kind: 'CODEX_ONLY', codexRecipeId: entry.recipeId, output: entry.titleKo })
@@ -59,6 +68,7 @@ const report = {
   generatedAt: new Date().toISOString(),
   datasetFingerprint: reconciliationDatasetFingerprint(dataset),
   clientRecipeGroups: clientByKey.size,
+  clientRecipes: clientRecipeCount,
   codexLivePages: codexLive.length,
   codexLiveRecipeIds,
   codexDisabledPages: (manifest.recipes || []).length - codexLive.length,
@@ -69,5 +79,5 @@ const report = {
   status: unresolved.length || reviewErrors.length ? 'INCOMPLETE_REVIEW' : 'ZERO_UNEXPLAINED_DIFF',
 }
 if (opt.out) fs.writeFileSync(opt.out, JSON.stringify(report, null, 2) + '\n')
-console.log(JSON.stringify({ status: report.status, datasetFingerprint: report.datasetFingerprint, clientRecipeGroups: report.clientRecipeGroups, codexLivePages: report.codexLivePages, diffs: diffs.length, accepted: accepted.size, reviewErrors: reviewErrors.length, unresolved: unresolved.length }))
+console.log(JSON.stringify({ status: report.status, datasetFingerprint: report.datasetFingerprint, clientRecipeGroups: report.clientRecipeGroups, clientRecipes: report.clientRecipes, codexLivePages: report.codexLivePages, diffs: diffs.length, accepted: accepted.size, reviewErrors: reviewErrors.length, unresolved: unresolved.length }))
 if (report.status !== 'ZERO_UNEXPLAINED_DIFF') process.exitCode = 2
