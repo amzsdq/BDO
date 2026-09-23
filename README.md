@@ -32,7 +32,7 @@ npm run build
 
 ## production dataset 파이프라인
 
-라이브 클라이언트 추출물 `items.json`과 `recipes.json`, 그리고 `bdo-data-extractor icons`가 만든 `<extractor-data>/icons/<itemId>.webp`를 준비합니다. runtime이 실제로 읽는 dataset과 브라우저가 실제로 제공하는 icon asset을 함께 설치합니다. Codex reconciliation 전에 Cooking/Alchemy 카탈로그 전체를 독립적으로 수집하고 completeness가 증명된 catalog artifact를 보존해야 합니다. 부분 manifest끼리 서로 일치하는 것만으로는 release gate를 통과할 수 없습니다.
+라이브 클라이언트 추출물 `items.json`과 `recipes.json`, 그리고 `bdo-data-extractor icons`가 만든 `<extractor-data>/icons/<itemId>.webp`를 준비합니다. runtime이 실제로 읽는 dataset과 브라우저가 실제로 제공하는 icon asset을 함께 설치합니다. Codex reconciliation 전에 Cooking/Alchemy 카탈로그 전체를 독립적으로 수집하고 completeness가 증명된 `<codex-catalog.json>` artifact를 보존해야 합니다. 부분 manifest끼리 서로 일치하는 것만으로는 release gate를 통과할 수 없습니다.
 
 기본 구조 import:
 
@@ -53,13 +53,12 @@ npm run data:import -- --items <items.json> --recipes <recipes.json> --out publi
 ```bash
 npm run data:icons -- public/data/dataset.json <extractor-data>/icons public/icons
 npm run data:validate -- public/data/dataset.json
-node scripts/collect-codex-catalog.mjs --endpoint '<complete-catalog-endpoint-template>' --out <codex-catalog.json>
 npm run data:reconcile -- --dataset public/data/dataset.json --codex <codex-manifest.json> --out <reconciliation-report.json>
 npm run data:promote -- public/data/dataset.json <reconciliation-report.json> <codex-catalog.json>
 npm run data:release-gate -- public/data/dataset.json <reconciliation-report.json> <codex-catalog.json>
 ```
 
-`collect-codex-catalog.mjs`의 결과는 Cooking과 Alchemy 각각에 대해 endpoint 기반 전체 목록과 독립 count evidence가 있어야 `complete=true`가 됩니다. promotion과 최종 release gate는 모두 complete catalog의 총 recipe page 수와 정확한 recipe-id set이 reconciliation report와 일치하는지 검증합니다.
+`<codex-catalog.json>`은 Cooking과 Alchemy 각각에 대해 endpoint 기반 전체 목록, 독립 count evidence, 정확한 recipe-id set이 있어야 `complete=true`로 인정됩니다. 현재 저장소에는 이 production catalog를 획득하는 검증 완료 collector가 아직 없으므로 임의의 부분 목록을 complete artifact로 만들면 안 됩니다. promotion과 최종 release gate는 complete catalog의 총 recipe page 수와 정확한 recipe-id set이 reconciliation report와 일치하는지 검증합니다.
 
 `data:icons`는 dataset이 참조하는 canonical `icons/<itemId>.webp`만 설치하며, extractor output에서 필요한 icon 하나라도 빠져 있으면 실패합니다. source DDS 경로를 브라우저 asset 경로로 취급하지 않습니다.
 
