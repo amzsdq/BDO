@@ -2,10 +2,11 @@ import { describe, expect, it } from 'vitest'
 import { catalogEndpointForSkill, validateCatalogEndpointTemplate, validateResolvedCatalogEndpoint } from './codex-catalog-endpoint.mjs'
 
 describe('Codex complete-catalog endpoint scope', () => {
-  it('requires explicit per-skill or per-category binding', () => {
+  it('requires explicit per-skill or per-category binding in a recognized scope parameter', () => {
     expect(validateCatalogEndpointTemplate('https://bdocodex.com/query.php?a=recipes').ok).toBe(false)
     expect(validateCatalogEndpointTemplate('https://bdocodex.com/query.php?a=recipes&skill={skill}').ok).toBe(true)
     expect(validateCatalogEndpointTemplate('https://bdocodex.com/query.php?a=recipes&type={category}').ok).toBe(true)
+    expect(validateCatalogEndpointTemplate('https://bdocodex.com/query.php?a=recipes&note={skill}').ok).toBe(false)
     expect(catalogEndpointForSkill('https://bdocodex.com/query.php?a=recipes&type={category}', 'cooking')).toContain('type=culinary')
     expect(catalogEndpointForSkill('https://bdocodex.com/query.php?a=recipes&type={category}', 'alchemy')).toContain('type=alchemy')
   })
@@ -34,5 +35,13 @@ describe('Codex complete-catalog endpoint scope', () => {
     expect(validateCatalogEndpointTemplate('https://example.invalid/query.php?a=recipes&skill={skill}').ok).toBe(false)
     expect(validateResolvedCatalogEndpoint('https://example.invalid/query.php?a=recipes&skill=cooking').ok).toBe(false)
     expect(validateResolvedCatalogEndpoint('https://bdocodex.com/query.php?a=recipes&type=culinary').ok).toBe(true)
+  })
+
+  it('fails closed when a configured or redirected endpoint changes the requested skill scope', () => {
+    expect(validateResolvedCatalogEndpoint('https://bdocodex.com/query.php?a=recipes&type=culinary&l=kr', 'cooking').ok).toBe(true)
+    expect(validateResolvedCatalogEndpoint('https://bdocodex.com/query.php?a=recipes&type=alchemy&l=kr', 'alchemy').ok).toBe(true)
+    expect(validateResolvedCatalogEndpoint('https://bdocodex.com/query.php?a=recipes&type=alchemy&l=kr', 'cooking').ok).toBe(false)
+    expect(validateResolvedCatalogEndpoint('https://bdocodex.com/query.php?a=recipes&type=culinary&l=kr', 'alchemy').ok).toBe(false)
+    expect(validateResolvedCatalogEndpoint('https://bdocodex.com/query.php?a=recipes&skill=alchemy&l=kr', 'cooking').ok).toBe(false)
   })
 })
