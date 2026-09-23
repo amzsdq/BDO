@@ -32,5 +32,7 @@ export function updateActiveSessionTarget(
 ): PlanSessionState {
   const current = session.targets[index]
   if (!current) throw new RangeError(`Plan target index ${index} is out of range`)
-  return replacePlanTarget(session, index, { ...current, ...patch })
+  const next = { ...current, ...patch }
+  if (patch.mode != null && patch.mode !== 'durability') delete next.cookingPreparationPolicy
+  return replacePlanTarget(session, index, next)
 }
