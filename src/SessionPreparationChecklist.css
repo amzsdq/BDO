@@ -1,3 +1,9 @@
 .checklist-bulk-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0 0 12px; }
 .checklist-bulk-actions button { border: 1px solid #30353a; border-radius: 9px; background: #15191c; color: #c7cbce; padding: 8px 10px; cursor: pointer; }
 .checklist-bulk-actions button:hover { border-color: #4a5157; }
+
+@media(max-width:560px) {
+  .material-row .quantity:not(.owned):not(.missing) { grid-column: 1 / 2; }
+  .material-row .quantity.owned { grid-column: 2 / 3; }
+  .material-row .quantity.missing { grid-column: 3 / 4; }
+}
