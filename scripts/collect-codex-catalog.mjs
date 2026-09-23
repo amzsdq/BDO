@@ -10,13 +10,26 @@ const CATALOGS = [
   { skill: 'cooking', url: `${BASE}/recipes/culinary/` },
   { skill: 'alchemy', url: `${BASE}/recipes/alchemy/` },
 ]
-const args = process.argv.slice(2)
-const outIndex = args.indexOf('--out')
-const outPath = outIndex >= 0 ? args[outIndex + 1] : 'data/codex-catalog.json'
-const endpointIndex = args.indexOf('--endpoint')
-const endpointTemplate = endpointIndex >= 0 ? args[endpointIndex + 1] : process.env.BDO_CODEX_CATALOG_ENDPOINT
-const expectedIndex = args.indexOf('--expected-counts')
-const expectedCounts = expectedIndex >= 0 ? JSON.parse(args[expectedIndex + 1]) : null
+function parseArgs(args) {
+  const allowed = new Set(['--out', '--endpoint', '--expected-counts'])
+  const parsed = new Map()
+  for (let index = 0; index < args.length; index += 2) {
+    const flag = args[index]
+    const value = args[index + 1]
+    if (!allowed.has(flag)) throw new Error(`unknown argument: ${flag || 'missing'}`)
+    if (parsed.has(flag)) throw new Error(`duplicate argument: ${flag}`)
+    if (value == null || value.startsWith('--')) throw new Error(`missing value for ${flag}`)
+    parsed.set(flag, value)
+  }
+  return parsed
+}
+const parsedArgs = parseArgs(process.argv.slice(2))
+const outPath = parsedArgs.get('--out') || 'data/codex-catalog.json'
+const endpointTemplate = parsedArgs.get('--endpoint') || process.env.BDO_CODEX_CATALOG_ENDPOINT
+let expectedCounts = null
+if (parsedArgs.has('--expected-counts')) {
+  try { expectedCounts = JSON.parse(parsedArgs.get('--expected-counts')) } catch { throw new Error('--expected-counts must be valid JSON') }
+}
 const endpointValidation = endpointTemplate ? validateCatalogEndpointTemplate(endpointTemplate) : { ok: false, reason: 'catalog endpoint template is required' }
 if (endpointTemplate && !endpointValidation.ok) throw new Error(endpointValidation.reason)
 
@@ -46,7 +59,6 @@ async function collectCatalog(catalog) {
     if (!finalValidation.ok) throw new Error(`Configured catalog endpoint redirected to invalid scope: ${finalValidation.reason}`)
     let parsed
     try { parsed = JSON.parse(response.text) } catch { throw new Error(`Configured endpoint did not return JSON: ${endpointUsed}`) }
-    // Positional aaData[0] identities are accepted only after both configured and final endpoints pass the requested skill-scoped, non-product endpoint validator.
     ids = recipeIdsFromJson(parsed, { allowCodexAaData: configuredValidation.ok && finalValidation.ok })
     endpointEvidence = {
       topLevelKeys: parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? Object.keys(parsed).sort() : [],
