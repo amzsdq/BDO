@@ -2,8 +2,9 @@ import { describe, expect, it } from 'vitest'
 import { applySubstitutionEvidence } from './apply-substitution-evidence.mjs'
 
 const dataset = {
-  items: { '1': { id: 1, nameKo: '기본' }, '2': { id: 2, nameKo: '고급' } },
-  recipes: {}, recipesByOutput: {}, metadata: { sources: ['client'] },
+  items: { '1': { id: 1, nameKo: '기본' }, '2': { id: 2, nameKo: '고급' }, '3': { id: 3, nameKo: '결과' } },
+  recipes: { 'cooking:3': { id: 'cooking:3', skill: 'cooking', outputItemId: 3, yield: { min: 1, max: 1 }, variants: [{ id: 'v1', inputs: [{ itemId: 1, count: 5 }] }] } },
+  recipesByOutput: { '3': ['cooking:3'] }, metadata: { sources: ['client'] },
 }
 const evidence = {
   source: 'BDO Codex KR',
@@ -12,12 +13,13 @@ const evidence = {
 }
 
 describe('applySubstitutionEvidence', () => {
-  it('installs source-backed membership and Worth atomically', () => {
+  it('installs source-backed membership/Worth and binds matching canonical recipe inputs', () => {
     const result = applySubstitutionEvidence(dataset, evidence)
     expect(result.substitutionGroups['codex:3001'].memberItemIds).toEqual([1, 2])
     expect(result.substitutionGroups['codex:3001'].memberValueByItemId).toEqual({ '1': 1, '2': 6 })
     expect(result.substitutionGroups['codex:3001'].source.sourceUrl).toBe(evidence.groups[0].sourceUrl)
-    expect(dataset.substitutionGroups).toBeUndefined()
+    expect(result.recipes['cooking:3'].variants[0].inputs[0].substitutionGroupId).toBe('codex:3001')
+    expect(dataset.recipes['cooking:3'].variants[0].inputs[0].substitutionGroupId).toBeUndefined()
   })
 
   it('rejects partial or non-positive Worth evidence instead of silently degrading', () => {
@@ -34,5 +36,10 @@ describe('applySubstitutionEvidence', () => {
 
   it('rejects duplicate group records instead of letting the last one silently win', () => {
     expect(() => applySubstitutionEvidence(dataset, { ...evidence, groups: [evidence.groups[0], { ...evidence.groups[0] }] })).toThrow(/duplicate group evidence/)
+  })
+
+  it('fails closed when one canonical ingredient is ambiguously present in multiple sourced groups', () => {
+    const second = { id: 'codex:9999', sourceId: '9999', sourceUrl: 'https://bdocodex.com/kr/materialgroup/9999/', members: [{ itemId: 1, value: 1 }, { itemId: 2, value: 2 }] }
+    expect(() => applySubstitutionEvidence(dataset, { ...evidence, groups: [evidence.groups[0], second] })).toThrow(/multiple sourced substitution groups/)
   })
 })
