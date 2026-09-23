@@ -31,6 +31,11 @@ describe('ingredient substitutions', () => {
     expect(resolveIngredientChoice({ itemId: 20, count: 5, substitutionGroupId: 'codex:3001' }, groups, { selectedItemId: 22 })).toEqual({ itemId: 22, count: 2, usedSubstitution: true })
   })
 
+  it('converts through the canonical recipe member worth when it is not the base member', () => {
+    expect(resolveIngredientChoice({ itemId: 21, count: 2, substitutionGroupId: 'codex:3001' }, groups, { selectedItemId: 20 })).toEqual({ itemId: 20, count: 4, usedSubstitution: true })
+    expect(resolveIngredientChoice({ itemId: 22, count: 2, substitutionGroupId: 'codex:3001' }, groups, { selectedItemId: 21 })).toEqual({ itemId: 21, count: 3, usedSubstitution: true })
+  })
+
   it('ranks owned substitutes against their effective required quantity', () => {
     expect(resolveIngredientChoice(
       { itemId: 20, count: 5, substitutionGroupId: 'codex:3001' },
@@ -43,6 +48,12 @@ describe('ingredient substitutions', () => {
     const invalid = structuredClone(groups)
     invalid['codex:3001'].memberValueByItemId!['21'] = 0
     expect(() => resolveIngredientChoice({ itemId: 20, count: 5, substitutionGroupId: 'codex:3001' }, invalid, { selectedItemId: 21 })).toThrow(/invalid substitution value/)
+  })
+
+  it('fails closed when sourced value maps are incomplete', () => {
+    const incomplete = structuredClone(groups)
+    delete incomplete['codex:3001'].memberValueByItemId!['22']
+    expect(() => resolveIngredientChoice({ itemId: 20, count: 5, substitutionGroupId: 'codex:3001' }, incomplete, { selectedItemId: 22 })).toThrow(/missing substitution value/)
   })
 
   it('fails closed when group evidence is missing or inconsistent', () => {
