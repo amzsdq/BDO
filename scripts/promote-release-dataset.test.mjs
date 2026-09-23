@@ -16,7 +16,7 @@ function fixture() {
     recipesByOutput: { '10': ['cook'], '11': ['alch'] },
   }
 }
-function reportFor(dataset, overrides = {}) { return { status: 'ZERO_UNEXPLAINED_DIFF', unresolved: [], clientRecipeGroups: 2, codexLivePages: 2, codexLiveRecipeIds: [101, 201], datasetFingerprint: reconciliationDatasetFingerprint(dataset), ...overrides } }
+function reportFor(dataset, overrides = {}) { return { generatedAt: '2026-09-23T00:00:00.000Z', status: 'ZERO_UNEXPLAINED_DIFF', unresolved: [], clientRecipeGroups: 2, codexLivePages: 2, codexLiveRecipeIds: [101, 201], datasetFingerprint: reconciliationDatasetFingerprint(dataset), ...overrides } }
 function catalog(overrides = {}) { return { source: 'BDO Codex KR', collectedAt: '2026-09-23T00:00:00.000Z', complete: true, catalogs: [{ skill: 'cooking', complete: true, recipeCount: 1, recipeIds: [101], endpointUsed: 'https://bdocodex.com/query.php?a=recipes&type=culinary&l=kr', endpointFinalUrl: 'https://bdocodex.com/query.php?a=recipes&type=culinary&l=kr', endpointEvidence: { recordsReported: 1 }, countMatchesExpected: null }, { skill: 'alchemy', complete: true, recipeCount: 1, recipeIds: [201], endpointUsed: 'https://bdocodex.com/query.php?a=recipes&type=alchemy&l=kr', endpointFinalUrl: 'https://bdocodex.com/query.php?a=recipes&type=alchemy&l=kr', endpointEvidence: { recordsReported: 1 }, countMatchesExpected: null }], ...overrides } }
 function run(dataset, reconciliation, catalogEvidence = catalog(), missingIconId = null) {
   const root = mkdtempSync(join(tmpdir(), 'bdo-promote-')), dir = join(root, 'data'), iconDir = join(root, 'icons'); mkdirSync(dir); mkdirSync(iconDir)
@@ -27,7 +27,7 @@ function run(dataset, reconciliation, catalogEvidence = catalog(), missingIconId
 
 describe('release dataset promotion', () => {
   it('promotes only reconciled, resolved Cooking+Alchemy data with complete catalog evidence', () => {
-    const dataset = fixture(); const { result, promoted } = run(dataset, reportFor(dataset)); expect(result.status).toBe(0); expect(promoted.metadata.status).toBe('COMPLETE_VERIFIED'); expect(promoted.metadata.reconciliationStatus).toBe('ZERO_UNEXPLAINED_DIFF'); expect(promoted.metadata.codexCatalogPages).toBe(2); expect(promoted.metadata.fingerprint).toMatch(/^[0-9a-f]{64}$/)
+    const dataset = fixture(); const { result, promoted } = run(dataset, reportFor(dataset)); expect(result.status).toBe(0); expect(promoted.metadata.status).toBe('COMPLETE_VERIFIED'); expect(promoted.metadata.reconciliationStatus).toBe('ZERO_UNEXPLAINED_DIFF'); expect(promoted.metadata.reconciliationGeneratedAt).toBe('2026-09-23T00:00:00.000Z'); expect(promoted.metadata.reconciliationSha256).toMatch(/^[0-9a-f]{64}$/); expect(promoted.metadata.codexCatalogPages).toBe(2); expect(promoted.metadata.fingerprint).toMatch(/^[0-9a-f]{64}$/)
   })
   it('blocks promotion when canonical client source revision is missing or unrecorded', () => {
     for (const sourceRevision of [undefined, '', '  ', 'unrecorded', 'UNRECORDED']) { const dataset = fixture(); dataset.metadata.sourceRevision = sourceRevision; const attempt = run(dataset, reportFor(dataset)); expect(attempt.result.status).toBe(1); expect(attempt.result.stderr).toContain('sourceRevision') }
@@ -40,6 +40,9 @@ describe('release dataset promotion', () => {
   })
   it('blocks promotion when canonical icon metadata exists but the installed asset is missing', () => {
     const dataset = fixture(); const attempt = run(dataset, reportFor(dataset), catalog(), 20); expect(attempt.result.status).toBe(1); expect(attempt.result.stderr).toContain('canonical local icon assets are missing')
+  })
+  it('blocks promotion when reconciliation generatedAt is missing or invalid', () => {
+    const dataset = fixture(); for (const generatedAt of [undefined, '', 'not-a-date']) { const attempt = run(dataset, reportFor(dataset, { generatedAt })); expect(attempt.result.status).toBe(1); expect(attempt.result.stderr).toContain('reconciliation generatedAt timestamp') }
   })
   it('blocks promotion when reconciliation is unresolved', () => {
     const clean = fixture(); const diff = run(clean, reportFor(clean, { status: 'INCOMPLETE_REVIEW', unresolved: [{ kind: 'MISSING' }] })); expect(diff.result.status).toBe(1); expect(diff.result.stderr).toContain('not ZERO_UNEXPLAINED_DIFF')
