@@ -4,7 +4,6 @@ export interface CarryProfile { maxWeightLT: number; reservedWeightLT?: number }
 export interface BatchLine { itemId: number; countPerServing: number; countToCarry: number; weightPerItemLT: number; weightToCarryLT: number }
 export interface BatchCapacity { availableWeightLT: number; ingredientWeightPerServingLT?: number; maxServings?: number; loadServings?: number; totalStartingIngredientWeightLT?: number; lines: BatchLine[]; unknownWeightItemIds: number[]; warnings: string[] }
 
-function finiteNonNegative(value: number | undefined): number { return Number.isFinite(value) && (value ?? 0) >= 0 ? value! : 0 }
 function finiteFloorNonNegative(value: number): number { return Number.isFinite(value) && value >= 0 ? Math.floor(value) : 0 }
 
 /** Exact starting ingredient math. `totalStartingIngredientWeightLT` covers the requested work; carry lines describe one capacity-safe trip/load. */
@@ -14,8 +13,16 @@ export function calculateBatchCapacity(
   profile: CarryProfile,
   requestedServings?: number,
 ): BatchCapacity {
-  const maxWeightLT = finiteNonNegative(profile.maxWeightLT)
-  const reservedWeightLT = finiteNonNegative(profile.reservedWeightLT)
+  const profileWarnings: string[] = []
+  if (!Number.isFinite(profile.maxWeightLT) || profile.maxWeightLT < 0) profileWarnings.push('최대 무게가 유효한 0 이상의 유한 숫자가 아닙니다.')
+  if (profile.reservedWeightLT != null && (!Number.isFinite(profile.reservedWeightLT) || profile.reservedWeightLT < 0)) profileWarnings.push('예약 무게가 유효한 0 이상의 유한 숫자가 아닙니다.')
+  if (profileWarnings.length) {
+    profileWarnings.push('무게 설정을 확인할 수 없어 한 번에 준비 가능한 회분을 계산하지 않았습니다.')
+    return { availableWeightLT: 0, lines: [], unknownWeightItemIds: [], warnings: profileWarnings }
+  }
+
+  const maxWeightLT = profile.maxWeightLT
+  const reservedWeightLT = profile.reservedWeightLT ?? 0
   const availableWeightLT = Math.max(0, maxWeightLT - reservedWeightLT)
   const unknownWeightItemIds: number[] = []
   const negativeWeightItemIds: number[] = []
