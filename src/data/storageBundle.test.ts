@@ -30,6 +30,18 @@ describe('planner state bundle', () => {
     })
   })
 
+  it.each([
+    ['checklist', 'bdo-planner:checklist:v1', '{broken'],
+    ['inventory', 'bdo-planner:inventory:v1', JSON.stringify({ '100': -1 })],
+    ['character profile', 'bdo-planner:character-profile:v1', JSON.stringify({ maxWeightLT: 'lots' })],
+    ['plan session', 'bdo-planner:plan-session:v1', JSON.stringify({ version: 2, targets: [] })],
+  ])('refuses to export when %s storage is corrupt or unsupported', (_label, key, raw) => {
+    const storage = memoryStorage()
+    storage.setItem(key, raw)
+    expect(() => exportPlannerState(storage, '2026-09-23T00:00:00.000Z')).toThrow('내보내기를 중단')
+    expect(storage.values.get(key)).toBe(raw)
+  })
+
   it('resets checklist, inventory, character profile, and plan session together', () => {
     const storage = memoryStorage()
     writeChecklist({ '100': true }, storage)
