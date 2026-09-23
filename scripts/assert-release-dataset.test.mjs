@@ -9,7 +9,7 @@ import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.m
 function fingerprint(value) { return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex') }
 function fixture() {
   return {
-    metadata: { generatedAt: '2026-09-23T00:00:00Z', supportedRegion: 'KR', sources: ['client', 'codex'], counts: { cooking: 1, alchemy: 1 } },
+    metadata: { generatedAt: '2026-09-23T00:00:00Z', supportedRegion: 'KR', sources: ['client', 'codex'], sourceRevision: 'client-sha-abc123', counts: { cooking: 1, alchemy: 1 } },
     items: {
       '10': { id: 10, nameKo: '요리', iconUrl: 'https://example.invalid/10.png' },
       '11': { id: 11, nameKo: '연금', iconUrl: 'https://example.invalid/11.png' },
@@ -36,6 +36,9 @@ function gate(datasetFile, reportFile) { return spawnSync(process.execPath, ['sc
 
 describe('final release gate', () => {
   it('accepts a promoted structurally valid dataset', () => { const { datasetFile, reportFile } = setup(); expect(gate(datasetFile, reportFile).status).toBe(0) })
+  it('rejects unrecorded source provenance even with a recomputed dataset fingerprint', () => {
+    const { datasetFile, reportFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); dataset.metadata.sourceRevision = 'unrecorded'; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile); expect(result.status).toBe(1); expect(result.stderr).toContain('sourceRevision')
+  })
   it('rejects structural corruption even when fingerprint is recomputed', () => {
     const { datasetFile, reportFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); dataset.recipesByOutput['10'] = ['alch']; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile); expect(result.status).toBe(1); expect(result.stderr).toContain('structural validation failed')
   })
