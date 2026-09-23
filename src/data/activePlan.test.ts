@@ -30,4 +30,24 @@ describe('buildActivePlan', () => {
     expect(result.error).toBeUndefined()
     expect(result.materialServings).toBe(12)
   })
+
+  it('labels output-target math as conservative when server yield is unknown', () => {
+    const dataset = structuredClone(sampleDataset)
+    dataset.recipes['sample-cooking'].yield.provenance = 'unknown-server-yield'
+    const result = buildActivePlan(dataset, {
+      recipeId: 'sample-cooking', variantId: 'default', mode: 'output', amount: 20, skill: 'cooking',
+    }, {}, {})
+    expect(result.error).toBeUndefined()
+    expect(result.plan?.warnings.join(' ')).toMatch(/보수적 준비량/)
+    expect(result.plan?.warnings.join(' ')).toMatch(/예상 산출량을 뜻하지 않습니다/)
+  })
+
+  it('does not add the unknown-yield warning to exact servings mode', () => {
+    const dataset = structuredClone(sampleDataset)
+    dataset.recipes['sample-cooking'].yield.provenance = 'unknown-server-yield'
+    const result = buildActivePlan(dataset, {
+      recipeId: 'sample-cooking', variantId: 'default', mode: 'servings', amount: 20, skill: 'cooking',
+    }, {}, {})
+    expect(result.plan?.warnings.join(' ')).not.toMatch(/보수적 준비량/)
+  })
 })
