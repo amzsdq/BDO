@@ -1,8 +1,9 @@
 import fs from 'node:fs'
 import { pruneItemsToPlannerScope } from './planner-item-scope.mjs'
 
-const [inputPath, outPath = inputPath] = process.argv.slice(2)
-if (!inputPath) throw new Error('usage: node scripts/scope-planner-dataset.mjs <dataset.json> [out.json]')
+const args = process.argv.slice(2)
+if (args.length < 1 || args.length > 2 || args.some((value) => !value || value.startsWith('-'))) throw new Error('usage: node scripts/scope-planner-dataset.mjs <dataset.json> [out.json]')
+const [inputPath, outPath = inputPath] = args
 
 const dataset = JSON.parse(fs.readFileSync(inputPath, 'utf8'))
 const before = Object.keys(dataset.items || {}).length
