@@ -4,6 +4,7 @@ import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.m
 
 function fail(message) { console.error(`promotion blocked: ${message}`); process.exit(1) }
 function fingerprint(value) { return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex') }
+function sortedIds(values) { return [...new Set(values.map(Number).filter((id) => Number.isSafeInteger(id) && id > 0))].sort((a, b) => a - b) }
 function verifiedCatalog(catalogFile, reconciliation) {
   if (!catalogFile || !fs.existsSync(catalogFile)) fail('independently complete Codex catalog evidence is required')
   const catalog = JSON.parse(fs.readFileSync(catalogFile, 'utf8'))
@@ -13,9 +14,13 @@ function verifiedCatalog(catalogFile, reconciliation) {
     const entry = bySkill.get(skill)
     if (!entry || entry.complete !== true || !Number.isSafeInteger(entry.recipeCount) || entry.recipeCount <= 0) fail(`Codex ${skill} catalog completeness is not proven`)
     if (!entry.endpointUsed || !entry.endpointEvidence || (entry.countMatchesExpected !== true && entry.endpointEvidence.recordsReported !== entry.recipeCount)) fail(`Codex ${skill} catalog lacks independent count evidence`)
+    if (!Array.isArray(entry.recipeIds) || sortedIds(entry.recipeIds).length !== entry.recipeCount) fail(`Codex ${skill} catalog recipe-id evidence is incomplete`)
   }
   const pages = ['cooking', 'alchemy'].reduce((sum, skill) => sum + bySkill.get(skill).recipeCount, 0)
   if (reconciliation.codexLivePages !== pages) fail(`reconciliation Codex page count ${reconciliation.codexLivePages ?? 'missing'} does not match independently complete catalog count ${pages}`)
+  const catalogIds = sortedIds(['cooking', 'alchemy'].flatMap((skill) => bySkill.get(skill).recipeIds))
+  const reconciliationIds = sortedIds(Array.isArray(reconciliation.codexLiveRecipeIds) ? reconciliation.codexLiveRecipeIds : [])
+  if (JSON.stringify(reconciliationIds) !== JSON.stringify(catalogIds)) fail('reconciliation Codex recipe-id set does not match independently complete catalog')
   return pages
 }
 
