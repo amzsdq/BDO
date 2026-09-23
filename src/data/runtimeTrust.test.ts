@@ -7,7 +7,7 @@ function fixture(): RecipeDataset {
     metadata: {
       generatedAt: '2026-09-23T00:00:00Z', supportedRegion: 'KR',
       sources: ['client', 'codex'], status: 'COMPLETE_VERIFIED', reconciliationStatus: 'ZERO_UNEXPLAINED_DIFF',
-      verifiedAt: '2026-09-23T00:01:00Z', fingerprint: 'abc', counts: { cooking: 1, alchemy: 1 },
+      verifiedAt: '2026-09-23T00:01:00Z', counts: { cooking: 1, alchemy: 1 },
     } as RecipeDataset['metadata'],
     items: {
       '1': { id: 1, nameKo: '요리', iconPath: 'icons/1.webp' },
@@ -22,12 +22,50 @@ function fixture(): RecipeDataset {
   }
 }
 
+async function promoteFixture(): Promise<RecipeDataset> {
+  const dataset = fixture()
+  const bytes = new TextEncoder().encode(JSON.stringify(dataset))
+  const digest = await crypto.subtle.digest('SHA-256', bytes)
+  const fingerprint = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
+  ;(dataset.metadata as any).fingerprint = fingerprint
+  return dataset
+}
+
 describe('hasRuntimeVerifiedEvidence', () => {
-  it('accepts a structurally consistent promoted marker set', () => expect(hasRuntimeVerifiedEvidence(fixture())).toBe(true))
-  it('rejects status-only claims', () => { const d = fixture(); delete (d.metadata as any).reconciliationStatus; expect(hasRuntimeVerifiedEvidence(d)).toBe(false) })
-  it('rejects stale recipe counts', () => { const d = fixture(); (d.metadata as any).counts.cooking = 2; expect(hasRuntimeVerifiedEvidence(d)).toBe(false) })
-  it('rejects unresolved names and icons', () => {
-    const a = fixture(); a.items['3'].nameKo = '아이템 #3'; expect(hasRuntimeVerifiedEvidence(a)).toBe(false)
-    const b = fixture(); delete b.items['3'].iconPath; expect(hasRuntimeVerifiedEvidence(b)).toBe(false)
+  it('accepts a structurally consistent promoted artifact with a matching payload fingerprint', async () => {
+    expect(await hasRuntimeVerifiedEvidence(await promoteFixture())).toBe(true)
+  })
+
+  it('rejects status-only claims', async () => {
+    const dataset = await promoteFixture()
+    delete (dataset.metadata as any).reconciliationStatus
+    expect(await hasRuntimeVerifiedEvidence(dataset)).toBe(false)
+  })
+
+  it('rejects stale recipe counts', async () => {
+    const dataset = await promoteFixture()
+    ;(dataset.metadata as any).counts.cooking = 2
+    expect(await hasRuntimeVerifiedEvidence(dataset)).toBe(false)
+  })
+
+  it('rejects unresolved names and icons', async () => {
+    const unresolvedName = await promoteFixture()
+    unresolvedName.items['3'].nameKo = '아이템 #3'
+    expect(await hasRuntimeVerifiedEvidence(unresolvedName)).toBe(false)
+    const missingIcon = await promoteFixture()
+    delete missingIcon.items['3'].iconPath
+    expect(await hasRuntimeVerifiedEvidence(missingIcon)).toBe(false)
+  })
+
+  it('rejects count-preserving recipe tampering after promotion', async () => {
+    const dataset = await promoteFixture()
+    dataset.recipes.cook.variants[0].inputs[0].count = 999
+    expect(await hasRuntimeVerifiedEvidence(dataset)).toBe(false)
+  })
+
+  it('rejects item metadata tampering after promotion', async () => {
+    const dataset = await promoteFixture()
+    dataset.items['3'].nameKo = '변조된 재료명'
+    expect(await hasRuntimeVerifiedEvidence(dataset)).toBe(false)
   })
 })
