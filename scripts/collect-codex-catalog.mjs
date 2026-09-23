@@ -2,7 +2,7 @@
 
 import { writeFile } from 'node:fs/promises'
 import { recipeIdsFromJson } from './codex-id-evidence.mjs'
-import { validateCatalogEndpointTemplate } from './codex-catalog-endpoint.mjs'
+import { catalogEndpointForSkill, validateCatalogEndpointTemplate } from './codex-catalog-endpoint.mjs'
 
 const BASE = 'https://bdocodex.com/kr'
 const CATALOGS = [
@@ -36,7 +36,7 @@ async function collectCatalog(catalog) {
   let endpointFinalUrl = null
   let endpointEvidence = null
   if (endpointTemplate) {
-    endpointUsed = endpointTemplate.replace('{skill}', catalog.skill)
+    endpointUsed = catalogEndpointForSkill(endpointTemplate, catalog.skill)
     const response = await getText(endpointUsed, { headers: { accept: 'application/json,*/*;q=0.8' } })
     endpointFinalUrl = response.finalUrl
     let parsed
@@ -61,7 +61,7 @@ const result = {
   source: 'BDO Codex KR',
   collectedAt: new Date().toISOString(),
   complete: catalogs.every((catalog) => catalog.complete),
-  completenessRule: 'A non-empty list is insufficient. Each catalog requires a skill-bound, non-product-scoped bdocodex.com endpoint plus either an independently supplied expected count or endpoint recordsTotal equal to the unique recipe count. Ambiguous generic JSON id fields are not recipe identity evidence.',
+  completenessRule: 'A non-empty list is insufficient. Each catalog requires a skill/category-bound, non-product-scoped bdocodex.com endpoint plus either an independently supplied expected count or endpoint recordsTotal equal to the unique recipe count. Ambiguous generic JSON id fields are not recipe identity evidence.',
   catalogs,
 }
 await writeFile(outPath, `${JSON.stringify(result, null, 2)}\n`)
