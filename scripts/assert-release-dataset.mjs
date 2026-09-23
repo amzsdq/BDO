@@ -3,6 +3,7 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.mjs'
+import { normalizeExpectedCountEvidence } from './catalog-count-evidence.mjs'
 
 function fail(message) { console.error(`release blocked: ${message}`); process.exit(1) }
 function fingerprint(value) { return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex') }
@@ -50,7 +51,11 @@ const catalogBySkill = new Map(catalog.catalogs.map((entry) => [String(entry.ski
 for (const skill of ['cooking', 'alchemy']) {
   const entry = catalogBySkill.get(skill)
   if (!entry || entry.complete !== true || !Number.isSafeInteger(entry.recipeCount) || entry.recipeCount <= 0) fail(`Codex ${skill} catalog completeness is not proven`)
-  if (!entry.endpointUsed || !entry.endpointEvidence || (entry.countMatchesExpected !== true && entry.endpointEvidence.recordsReported !== entry.recipeCount)) fail(`Codex ${skill} catalog lacks independent count evidence`)
+  if (!entry.endpointUsed || !entry.endpointEvidence) fail(`Codex ${skill} catalog lacks endpoint evidence`)
+  const endpointCountMatches = entry.endpointEvidence.recordsReported === entry.recipeCount
+  const expectedEvidence = normalizeExpectedCountEvidence({ [skill]: entry.expectedCountEvidence }, skill)
+  const independentCountMatches = entry.countMatchesExpected === true && expectedEvidence?.valid === true && expectedEvidence.count === entry.recipeCount
+  if (!endpointCountMatches && !independentCountMatches) fail(`Codex ${skill} catalog lacks independently auditable count evidence`)
   if (!Array.isArray(entry.recipeIds) || sortedIds(entry.recipeIds).length !== entry.recipeCount) fail(`Codex ${skill} catalog recipe-id evidence is incomplete`)
 }
 const completeCatalogPages = ['cooking', 'alchemy'].reduce((sum, skill) => sum + catalogBySkill.get(skill).recipeCount, 0)
