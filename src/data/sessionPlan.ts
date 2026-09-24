@@ -18,7 +18,10 @@ export function buildPlanFromSession(
   inventory: InventoryState,
   profile: Pick<CharacterProfileState, 'cookingMastery'>,
 ): SessionPlanResult {
-  const resolved = resolvePlanTargets(dataset, session.targets, { cookingMastery: profile.cookingMastery })
+  const resolved = resolvePlanTargets(dataset, session.targets, {
+    cookingMastery: profile.cookingMastery,
+    variantIdByRecipeId: session.variantIdByRecipeId,
+  })
   if (resolved.errors.length) return { errors: resolved.errors, estimatedPreparation: resolved.hasEstimatedPreparation }
   try {
     const rawPlan = buildPlan(dataset, resolved.targets, {
