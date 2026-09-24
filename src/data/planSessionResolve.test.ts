@@ -25,6 +25,20 @@ describe('persisted plan target resolution', () => {
     expect(resolvePlanTarget(sampleDataset, { recipeId: 'sample-cooking', mode: 'servings', amount: 25 }, {}).target).toMatchObject({ mode: 'attempts', amount: 25 })
   })
 
+  it('applies a recipe-level persisted variant when the target projection omits one', () => {
+    const dataset = structuredClone(sampleDataset)
+    dataset.recipes['sample-cooking'].variants.push({ id: 'alternate', inputs: [] })
+    expect(resolvePlanTarget(dataset, { recipeId: 'sample-cooking', mode: 'servings', amount: 25 }, {
+      variantIdByRecipeId: { 'sample-cooking': 'alternate' },
+    }).target?.variantId).toBe('alternate')
+  })
+
+  it('rejects a stale recipe-level persisted variant instead of silently using a different recipe path', () => {
+    expect(resolvePlanTarget(sampleDataset, { recipeId: 'sample-cooking', mode: 'servings', amount: 25 }, {
+      variantIdByRecipeId: { 'sample-cooking': 'missing' },
+    }).error).toContain('unknown target variant')
+  })
+
   it('never applies Cooking Mass Cooking policy to Alchemy', () => {
     const dataset = structuredClone(sampleDataset)
     dataset.recipes['sample-cooking'].skill = 'alchemy'

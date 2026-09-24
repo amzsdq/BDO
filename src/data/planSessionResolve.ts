@@ -4,6 +4,7 @@ import type { PersistedPlanTarget } from './planSession'
 
 export interface ResolvePlanTargetContext {
   cookingMastery?: number
+  variantIdByRecipeId?: Readonly<Record<string, string>>
 }
 
 export interface ResolvedPlanTarget {
@@ -20,20 +21,22 @@ export function resolvePlanTarget(
 ): ResolvedPlanTarget {
   const recipe = dataset.recipes[persisted.recipeId]
   if (!recipe) return { error: `unknown target recipe: ${persisted.recipeId}` }
+  const variantId = persisted.variantId ?? context.variantIdByRecipeId?.[String(persisted.recipeId)]
+  if (variantId && !recipe.variants.some((variant) => variant.id === variantId)) return { error: `unknown target variant: ${persisted.recipeId}/${variantId}` }
 
   if (persisted.mode === 'output') {
     if (!Number.isInteger(persisted.amount)) return { error: 'desired output quantity must be a positive integer' }
-    return { target: { recipeId: persisted.recipeId, variantId: persisted.variantId, mode: 'output', amount: persisted.amount } }
+    return { target: { recipeId: persisted.recipeId, variantId, mode: 'output', amount: persisted.amount } }
   }
   if (persisted.mode === 'servings') {
     if (!Number.isInteger(persisted.amount)) return { error: 'recipe servings must be a positive integer' }
-    return { target: { recipeId: persisted.recipeId, variantId: persisted.variantId, mode: 'attempts', amount: persisted.amount } }
+    return { target: { recipeId: persisted.recipeId, variantId, mode: 'attempts', amount: persisted.amount } }
   }
   if (!Number.isInteger(persisted.amount)) return { error: 'utensil durability uses must be a positive integer' }
 
   if (recipe.skill === 'alchemy') {
     if (persisted.cookingPreparationPolicy) return { error: 'Cooking preparation policy cannot be applied to Alchemy' }
-    return { target: { recipeId: persisted.recipeId, variantId: persisted.variantId, mode: 'attempts', amount: persisted.amount }, estimatedPreparation: false }
+    return { target: { recipeId: persisted.recipeId, variantId, mode: 'attempts', amount: persisted.amount }, estimatedPreparation: false }
   }
 
   if (context.cookingMastery == null) return { error: 'Cooking mastery is required for mastery-aware durability preparation' }
@@ -41,7 +44,7 @@ export function resolvePlanTarget(
   const preparation = cookingDurabilityPreparation(persisted.amount, context.cookingMastery, persisted.cookingPreparationPolicy)
   if (!preparation) return { error: 'Cooking mastery is not a source-verified breakpoint' }
   return {
-    target: { recipeId: persisted.recipeId, variantId: persisted.variantId, mode: 'attempts', amount: preparation.materialServings },
+    target: { recipeId: persisted.recipeId, variantId, mode: 'attempts', amount: preparation.materialServings },
     estimatedPreparation: preparation.estimated,
   }
 }
