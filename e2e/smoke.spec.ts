@@ -65,10 +65,13 @@ test('alchemy flow stays separate from Cooking mass-preparation controls', async
 })
 
 test('weight profile limits the requested batch and exposes exact carry quantities', async ({ page }) => {
-  // Use a unique pathname so the fixture cannot be confused with Vite's bundled
-  // public/data/dataset.json. Runtime fetch is relative to the current pathname,
-  // so this deterministically exercises the routed fixture on both CI projects.
-  await page.route('**/e2e-weight/data/dataset.json', async (route) => {
+  // loadRuntimeDataset() uses fetch('./data/dataset.json'). With Vite's SPA
+  // fallback the document URL may be a synthetic pathname while the browser
+  // still resolves the fetch at the app root. Route the actual runtime resource
+  // directly and assert it was consumed instead of relying on pathname tricks.
+  let fixtureRequests = 0
+  await page.route('**/data/dataset.json', async (route) => {
+    fixtureRequests += 1
     await route.fulfill({
       contentType: 'application/json',
       body: JSON.stringify({
@@ -95,7 +98,8 @@ test('weight profile limits the requested batch and exposes exact carry quantiti
     })
   })
 
-  await page.goto('/e2e-weight/')
+  await page.goto('/')
+  await expect.poll(() => fixtureRequests).toBeGreaterThan(0)
   await expect(page.locator('.selected-target strong')).toHaveText('E2E 무게 요리')
 
   await page.getByText('캐릭터 설정 · 무게/숙련도').click()
