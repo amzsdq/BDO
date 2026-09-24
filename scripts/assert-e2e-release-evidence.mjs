@@ -18,7 +18,15 @@ if (!sha256.test(manifest.masterySha256 ?? '') || allZero(manifest.masterySha256
 if (!evidenceString(manifest.reconciliationTimestamp)) fail('reconciliationTimestamp is required');
 if (Number.isNaN(Date.parse(manifest.reconciliationTimestamp))) fail('reconciliationTimestamp must be ISO-8601 parseable');
 if (!Array.isArray(manifest.browsers) || manifest.browsers.length === 0 || manifest.browsers.some((x) => !evidenceString(x))) fail('at least one concrete browser is required');
-if (!Array.isArray(manifest.viewports) || !manifest.viewports.includes('desktop') || !manifest.viewports.includes('narrow')) fail('desktop and narrow viewports are both required');
+if (!Array.isArray(manifest.viewports)) fail('viewports must be an array');
+const viewportLabels = new Set();
+for (const viewport of manifest.viewports) {
+  if (!viewport || !['desktop', 'narrow'].includes(viewport.label)) fail('viewport label must be desktop or narrow');
+  if (!Number.isInteger(viewport.width) || viewport.width <= 0 || !Number.isInteger(viewport.height) || viewport.height <= 0) fail(`${viewport.label} viewport must record positive integer width/height`);
+  if (viewportLabels.has(viewport.label)) fail(`duplicate viewport label ${viewport.label}`);
+  viewportLabels.add(viewport.label);
+}
+if (!viewportLabels.has('desktop') || !viewportLabels.has('narrow')) fail('desktop and narrow viewports are both required');
 if (manifest.keyboardOnlyPrimaryControls !== true) fail('keyboardOnlyPrimaryControls must be true');
 
 const required = Array.from({ length: 9 }, (_, i) => `E2E-${String(i + 1).padStart(2, '0')}`);
