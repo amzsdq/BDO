@@ -184,3 +184,89 @@ test('cooking durability uses source-verified mastery policies for material serv
   await page.getByLabel('요리 숙련도').fill('1001')
   await expect(page.getByRole('alert').filter({ hasText: 'Cooking mastery is not a source-verified breakpoint' }).first()).toBeVisible()
 })
+
+
+test('craftable intermediate consumes owned stock before recursive producer expansion', async ({ page }) => {
+  await page.route('**/data/dataset.json', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        metadata: {
+          generatedAt: '2026-09-24T00:00:00Z',
+          sources: ['E2E synthetic fixture'],
+          supportedRegion: 'KR',
+        },
+        items: {
+          '930001': { id: 930001, nameKo: 'E2E 완제품' },
+          '930002': { id: 930002, nameKo: 'E2E 중간재' },
+          '930003': { id: 930003, nameKo: 'E2E 원재료 A' },
+          '930004': { id: 930004, nameKo: 'E2E 원재료 B' },
+        },
+        recipes: {
+          'e2e-final': {
+            id: 'e2e-final',
+            skill: 'cooking',
+            outputItemId: 930001,
+            yield: { min: 1, max: 1 },
+            variants: [{ id: 'default', inputs: [{ itemId: 930002, count: 2 }] }],
+          },
+          'e2e-intermediate-a': {
+            id: 'e2e-intermediate-a',
+            skill: 'cooking',
+            outputItemId: 930002,
+            yield: { min: 1, max: 1 },
+            variants: [{ id: 'default', inputs: [{ itemId: 930003, count: 3 }] }],
+          },
+          'e2e-intermediate-b': {
+            id: 'e2e-intermediate-b',
+            skill: 'cooking',
+            outputItemId: 930002,
+            yield: { min: 1, max: 1 },
+            variants: [{ id: 'default', inputs: [{ itemId: 930004, count: 4 }] }],
+          },
+        },
+        recipesByOutput: {
+          '930001': ['e2e-final'],
+          '930002': ['e2e-intermediate-a', 'e2e-intermediate-b'],
+        },
+      }),
+    })
+  })
+
+  await page.goto('/')
+  await expect(page.locator('.selected-target strong')).toHaveText('E2E 완제품')
+
+  await page.getByRole('button', { name: '재료 회분' }).click()
+  await page.getByLabel('준비할 재료 회분').fill('4')
+
+  const intermediateRow = page.locator('.material-row').filter({ hasText: 'E2E 중간재' })
+  await expect(intermediateRow).toBeVisible()
+  await expect(intermediateRow.locator('.quantity').first()).toContainText('8')
+  await expect(page.getByText('E2E 원재료 A')).toHaveCount(0)
+  await expect(page.getByText('E2E 원재료 B')).toHaveCount(0)
+
+  // Owned stock is global inventory. With 2 owned out of 8 required, recursive
+  // crafting must expand only the remaining 6 intermediates.
+  await page.getByLabel('E2E 중간재 보유 수량').fill('2')
+  await expect(intermediateRow.locator('.quantity.missing')).toContainText('6')
+
+  await page.getByText('중간재 직접 제작').click()
+  await page.getByRole('checkbox', { name: 'E2E 중간재 직접 제작' }).check()
+
+  const rawARow = page.locator('.material-row').filter({ hasText: 'E2E 원재료 A' })
+  await expect(rawARow).toBeVisible()
+  await expect(rawARow.locator('.quantity').first()).toContainText('18')
+
+  // Multiple producer recipes must remain an explicit user choice.
+  await page.getByLabel('제작법').selectOption('e2e-intermediate-b')
+  await expect(page.locator('.material-row').filter({ hasText: 'E2E 원재료 A' })).toHaveCount(0)
+  const rawBRow = page.locator('.material-row').filter({ hasText: 'E2E 원재료 B' })
+  await expect(rawBRow).toBeVisible()
+  await expect(rawBRow.locator('.quantity').first()).toContainText('24')
+
+  // Turning recursive crafting back off returns to external acquisition.
+  await page.getByRole('checkbox', { name: 'E2E 중간재 직접 제작' }).uncheck()
+  await expect(page.locator('.material-row').filter({ hasText: 'E2E 원재료 B' })).toHaveCount(0)
+  await expect(intermediateRow).toBeVisible()
+  await expect(intermediateRow.locator('.quantity.missing')).toContainText('6')
+})
