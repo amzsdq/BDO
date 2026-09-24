@@ -19,7 +19,7 @@ const base = {
   browsers: ['chromium'],
   viewports: [{ label: 'desktop', width: 1440, height: 900 }, { label: 'narrow', width: 390, height: 844 }],
   keyboardOnlyPrimaryControls: true,
-  scenarios: Array.from({ length: 9 }, (_, i) => ({ id: `E2E-${String(i + 1).padStart(2, '0')}`, status: 'PASS', evidence: `https://evidence.invalid/e2e-${i + 1}`, evidenceSha256: remoteHash })),
+  scenarios: Array.from({ length: 9 }, (_, i) => ({ id: `E2E-${String(i + 1).padStart(2, '0')}`, status: 'PASS', viewports: ['desktop', 'narrow'], keyboardOnly: true, evidence: `https://evidence.invalid/e2e-${i + 1}`, evidenceSha256: remoteHash })),
 };
 const run = (value) => {
   fs.writeFileSync(file, JSON.stringify(value));
@@ -38,6 +38,8 @@ for (const mutate of [
   (m) => { m.viewports = [{ label: 'desktop', width: 1440, height: 900 }]; },
   (m) => { m.viewports[1].width = 0; },
   (m) => { m.keyboardOnlyPrimaryControls = false; },
+  (m) => { m.scenarios[0].viewports = ['desktop']; },
+  (m) => { m.scenarios[0].keyboardOnly = false; },
   (m) => { m.masterySha256 = 'not-a-sha'; },
   (m) => { m.mainCommit = '0'.repeat(40); },
   (m) => { m.datasetFingerprint = 'REPLACE_WITH_DATASET'; },
