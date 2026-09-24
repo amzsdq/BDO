@@ -64,4 +64,16 @@ describe('planner state import', () => {
     expect(() => importPlannerState(bundle, target)).toThrow('quota')
     for (const [key, value] of Object.entries(initial)) expect(target.getItem(key)).toBe(value)
   })
+
+  it('does not mutate any key when acquiring the rollback snapshot fails', () => {
+    const writes: string[] = []
+    const target = {
+      getItem: (_key: string) => { throw new Error('read unavailable') },
+      setItem: (key: string, value: string) => { writes.push(`set:${key}:${value}`) },
+      removeItem: (key: string) => { writes.push(`remove:${key}`) },
+    }
+    const bundle = { version: 2 as const, exportedAt: '2026-09-24T00:00:00.000Z', checklist: {}, inventory: {}, characterProfile: {}, planSession: emptyPlanSession }
+    expect(() => importPlannerState(bundle, target)).toThrow('read unavailable')
+    expect(writes).toEqual([])
+  })
 })
