@@ -102,6 +102,11 @@ test('weight profile limits the requested batch and exposes exact carry quantiti
   await expect.poll(() => fixtureRequests).toBeGreaterThan(0)
   await expect(page.locator('.selected-target strong')).toHaveText('E2E 무게 요리')
 
+  // Request more than one carrying load so the acceptance actually exercises
+  // the weight cap rather than the default 1-serving request.
+  await page.getByRole('button', { name: '재료 회분' }).click()
+  await page.getByLabel('준비할 재료 회분').fill('20')
+
   await page.getByText('캐릭터 설정 · 무게/숙련도').click()
   await page.getByLabel('최대 무게 (LT)').fill('10')
   await page.getByLabel('예약 무게 (LT)').fill('2')
