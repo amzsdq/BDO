@@ -37,20 +37,22 @@ The companion `bdo-viewer` remains an alternative acquisition path because it ru
 
 ## Planner-side processing order
 
-1. Import the scoped Cooking/Alchemy structural graph with an explicit source revision.
+1. Import the scoped Cooking/Alchemy structural graph with an explicit source revision. The structural importer intentionally starts recipe yields as `unknown-server-yield` 1/1 placeholders; these are not release evidence.
 2. Apply BDO Codex KR Korean-name evidence for every planner-scoped item.
-3. Install the exact item-id icon assets referenced by the imported dataset.
-4. Collect complete KR Codex Cooking and Alchemy catalog evidence. Prefer `npm run data:codex:browser -- --out <codex-catalog.json>`, which opens the real catalog pages, captures their live skill-scoped XHR transport, and paginates until the unique recipe-id set equals the server-reported total. The scheduled `production-data-evidence` workflow performs the same capture in GitHub Actions.
-5. Reconcile the imported client graph against the complete Codex catalog until the report is `ZERO_UNEXPLAINED_DIFF` with no unexplained recipe-id/count gap.
-6. Prepare mastery evidence from the matching `mastery.json` using the same extraction provenance.
-7. Run standard promotion and final release gates.
-8. Run real browser end-to-end acceptance against the promoted completeness-verified dataset.
+3. Apply reviewed yield evidence for every Cooking/Alchemy recipe. Each entry must provide positive min/max, optional expected within those bounds, and HTTPS provenance. Promotion and release fail closed if any recipe remains uncovered.
+4. Install the exact item-id icon assets referenced by the imported dataset.
+5. Collect complete KR Codex Cooking and Alchemy catalog evidence. Prefer `npm run data:codex:browser -- --out <codex-catalog.json>`, which opens the real catalog pages, captures their live skill-scoped XHR transport, and paginates until the unique recipe-id set equals the server-reported total. The scheduled `production-data-evidence` workflow performs the same capture in GitHub Actions.
+6. Reconcile the imported client graph against the complete Codex catalog until the report is `ZERO_UNEXPLAINED_DIFF` with no unexplained recipe-id/count gap.
+7. Prepare mastery evidence from the matching `mastery.json` using the same extraction provenance.
+8. Run standard promotion and final release gates.
+9. Run real browser end-to-end acceptance against the promoted completeness-verified dataset.
 
 ## Standard commands
 
 ```text
 npm run data:import -- --items <items.json> --recipes <recipes.json> --out <client-dataset.json> --source-revision <extractor-tag-or-sha>
 node scripts/apply-korean-name-evidence.mjs <client-dataset.json> <korean-name-evidence.json> public/data/dataset.json
+npm run data:yields -- public/data/dataset.json <yield-evidence.json> public/data/dataset.json
 npm run data:icons -- public/data/dataset.json <extractor-data>/icons public/icons
 npm run data:validate -- public/data/dataset.json
 npm run data:codex:browser -- --out <codex-catalog.json>
@@ -67,6 +69,7 @@ Do not declare production completeness when any of the following is true:
 - the extraction revision is unrecorded;
 - artifacts come from mixed client snapshots;
 - Korean-name evidence does not cover every planner-scoped item;
+- reviewed bounded yield evidence does not cover every Cooking/Alchemy recipe;
 - any canonical local icon is missing;
 - Codex catalog completeness is not independently demonstrated;
 - reconciliation has an unexplained diff;
