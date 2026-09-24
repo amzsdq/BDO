@@ -14,6 +14,52 @@ test('planner renders and primary controls are keyboard reachable', async ({ pag
   await expect(page.getByText(/준비 목록|재료/).first()).toBeVisible()
 })
 
+test('mobile layout preserves the primary planning flow without horizontal overflow', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 })
+  await page.goto('/')
+
+  await expect(page.getByRole('heading', { name: '요리·연금 준비를 한 화면에서' })).toBeVisible()
+  const search = page.getByRole('combobox', { name: '제작물 검색' })
+  await expect(search).toBeVisible()
+  await expect(page.getByText(/현재 목표 준비 재료/)).toBeVisible()
+  await expect(page.getByText(/준비 목록|재료/).first()).toBeVisible()
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true)
+
+  const selectedName = (await page.locator('.selected-target strong').textContent())?.trim()
+  expect(selectedName).toBeTruthy()
+  await search.fill(selectedName!)
+  await expect(page.getByRole('listbox', { name: '검색 결과' })).toBeVisible()
+  await search.press('Enter')
+  await expect(search).toHaveValue('')
+})
+
+test('keyboard search exposes active option semantics and escape closes results', async ({ page }) => {
+  await page.goto('/')
+  const search = page.getByRole('combobox', { name: '제작물 검색' })
+  const selectedName = (await page.locator('.selected-target strong').textContent())?.trim()
+  expect(selectedName).toBeTruthy()
+  await search.fill(selectedName!)
+
+  const options = page.getByRole('listbox', { name: '검색 결과' }).getByRole('option')
+  await expect(options.first()).toBeVisible()
+  await expect(search).toHaveAttribute('aria-expanded', 'true')
+  const firstId = await options.first().getAttribute('id')
+  expect(firstId).toBeTruthy()
+  await expect(search).toHaveAttribute('aria-activedescendant', firstId!)
+  await expect(options.first()).toHaveAttribute('aria-selected', 'true')
+
+  if (await options.count() > 1) {
+    await search.press('ArrowDown')
+    const secondId = await options.nth(1).getAttribute('id')
+    await expect(search).toHaveAttribute('aria-activedescendant', secondId!)
+    await expect(options.nth(1)).toHaveAttribute('aria-selected', 'true')
+  }
+
+  await search.press('Escape')
+  await expect(search).toHaveAttribute('aria-expanded', 'false')
+  await expect(page.getByRole('listbox', { name: '검색 결과' })).toHaveCount(0)
+})
+
 test('keyboard search selects the first visible recipe and keeps the planner actionable', async ({ page }) => {
   await page.goto('/')
 
