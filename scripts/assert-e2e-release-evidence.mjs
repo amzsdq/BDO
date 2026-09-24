@@ -1,13 +1,22 @@
 import fs from 'node:fs';
+import path from 'node:path';
 
 const file = process.argv[2];
 if (!file) throw new Error('usage: node scripts/assert-e2e-release-evidence.mjs <manifest.json>');
-const manifest = JSON.parse(fs.readFileSync(file, 'utf8'));
+const manifestPath = path.resolve(file);
+const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
 const fail = (message) => { throw new Error(`release E2E evidence rejected: ${message}`); };
 const evidenceString = (value) => typeof value === 'string' && value.trim().length > 0 && !/REPLACE|PLACEHOLDER|TODO/i.test(value);
 const sha256 = /^[a-f0-9]{64}$/i;
 const gitSha = /^[a-f0-9]{40}$/i;
 const allZero = (value) => /^0+$/.test(value ?? '');
+const evidencePointerResolves = (value) => {
+  if (!evidenceString(value)) return false;
+  if (/^https:\/\//i.test(value)) {
+    try { return new URL(value).protocol === 'https:'; } catch { return false; }
+  }
+  return fs.existsSync(path.resolve(path.dirname(manifestPath), value));
+};
 
 if (manifest.schemaVersion !== 1) fail('schemaVersion must be 1');
 if (!gitSha.test(manifest.mainCommit ?? '') || allZero(manifest.mainCommit)) fail('mainCommit must be a non-placeholder exact 40-char git SHA');
@@ -41,7 +50,7 @@ for (const id of required) {
   const scenario = byId.get(id);
   if (!scenario) fail(`missing ${id}`);
   if (scenario.status !== 'PASS') fail(`${id} must be PASS`);
-  if (!evidenceString(scenario.evidence)) fail(`${id} concrete evidence pointer is required`);
+  if (!evidencePointerResolves(scenario.evidence)) fail(`${id} evidence must be an existing manifest-relative file or HTTPS URL`);
 }
 const extras = [...byId.keys()].filter((id) => !required.includes(id));
 if (extras.length) fail(`unknown scenarios: ${extras.join(', ')}`);
