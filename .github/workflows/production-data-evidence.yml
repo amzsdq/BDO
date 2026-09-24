@@ -4,6 +4,12 @@ on:
   workflow_dispatch:
   schedule:
     - cron: '17 3 * * *'
+  pull_request:
+    paths:
+      - 'scripts/collect-codex-catalog-browser.mjs'
+      - 'scripts/codex-catalog-endpoint.mjs'
+      - 'scripts/codex-id-evidence.mjs'
+      - '.github/workflows/production-data-evidence.yml'
 
 permissions:
   contents: read
