@@ -7,6 +7,7 @@ import path from 'node:path';
 const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'bdo-e2e-evidence-'));
 const file = path.join(tmp, 'manifest.json');
 const script = new URL('./assert-e2e-release-evidence.mjs', import.meta.url).pathname;
+const remoteHash = 'c'.repeat(64);
 const base = {
   schemaVersion: 1,
   mainCommit: 'a'.repeat(40),
@@ -18,7 +19,7 @@ const base = {
   browsers: ['chromium'],
   viewports: [{ label: 'desktop', width: 1440, height: 900 }, { label: 'narrow', width: 390, height: 844 }],
   keyboardOnlyPrimaryControls: true,
-  scenarios: Array.from({ length: 9 }, (_, i) => ({ id: `E2E-${String(i + 1).padStart(2, '0')}`, status: 'PASS', evidence: `https://evidence.invalid/e2e-${i + 1}` })),
+  scenarios: Array.from({ length: 9 }, (_, i) => ({ id: `E2E-${String(i + 1).padStart(2, '0')}`, status: 'PASS', evidence: `https://evidence.invalid/e2e-${i + 1}`, evidenceSha256: remoteHash })),
 };
 const run = (value) => {
   fs.writeFileSync(file, JSON.stringify(value));
@@ -29,6 +30,7 @@ const localEvidence = path.join(tmp, 'e2e-01.zip');
 fs.writeFileSync(localEvidence, 'fixture');
 const local = structuredClone(base);
 local.scenarios[0].evidence = 'e2e-01.zip';
+local.scenarios[0].evidenceSha256 = 'f16d05ec6b29248d2c61adb1e9263f78e4f7bace1b955014a2d17872cfe4064d';
 assert.match(run(local), /9\/9 scenarios/);
 for (const mutate of [
   (m) => { m.scenarios[4].status = 'FAIL'; },
@@ -42,10 +44,15 @@ for (const mutate of [
   (m) => { m.scenarios[0].evidence = 'TODO'; },
   (m) => { m.scenarios[0].evidence = 'missing-artifact.zip'; },
   (m) => { m.scenarios[0].evidence = 'http://insecure.invalid/evidence'; },
+  (m) => { m.scenarios[0].evidenceSha256 = 'bad'; },
 ]) {
   const candidate = structuredClone(base);
   mutate(candidate);
   fs.writeFileSync(file, JSON.stringify(candidate));
   assert.throws(() => execFileSync(process.execPath, [script, file], { stdio: 'pipe' }));
 }
+const wrongLocalHash = structuredClone(local);
+wrongLocalHash.scenarios[0].evidenceSha256 = 'd'.repeat(64);
+fs.writeFileSync(file, JSON.stringify(wrongLocalHash));
+assert.throws(() => execFileSync(process.execPath, [script, file], { stdio: 'pipe' }));
 console.log('assert-e2e-release-evidence tests PASS');
