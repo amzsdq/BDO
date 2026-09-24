@@ -63,3 +63,21 @@ test('alchemy flow stays separate from Cooking mass-preparation controls', async
   await expect(page.getByText('검증된 숙련도 필요')).toBeVisible()
   await expect(page.getByText(/중간값은 임의 보간하지 않습니다/)).toBeVisible()
 })
+
+test('weight profile limits the requested batch and exposes exact carry quantities', async ({ page }) => {
+  await page.goto('/')
+
+  await page.getByText('캐릭터 설정 · 무게/숙련도').click()
+  await page.getByLabel('최대 무게 (LT)').fill('10')
+  await page.getByLabel('예약 무게 (LT)').fill('2')
+
+  const batchSummary = page.locator('.batch-summary')
+  await expect(batchSummary).toBeVisible()
+  await expect(batchSummary).toContainText('가용 8 LT')
+  await expect(batchSummary).toContainText(/1회분 \d+(?:\.\d+)? LT/)
+  await expect(batchSummary).toContainText(/최대 적재 \d+회분/)
+
+  const carryLines = batchSummary.locator('.carry-lines li')
+  await expect(carryLines.first()).toBeVisible()
+  await expect(carryLines.first()).toContainText(/\d+개/)
+})
