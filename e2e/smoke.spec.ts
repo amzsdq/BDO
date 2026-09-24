@@ -38,3 +38,28 @@ test('keyboard search selects the first visible recipe and keeps the planner act
   await expect(page.locator('.selected-target strong')).toHaveText(selectedName!)
   await expect(page.getByText(/현재 목표 준비 재료/)).toBeVisible()
 })
+
+test('alchemy flow stays separate from Cooking mass-preparation controls', async ({ page }) => {
+  await page.goto('/')
+
+  await page.getByRole('button', { name: '연금' }).click()
+  await expect(page.getByText('선택한 제작물 · 연금')).toBeVisible()
+
+  const durabilityMode = page.getByRole('button', { name: '도구 사용' })
+  await durabilityMode.click()
+  await expect(durabilityMode).toHaveAttribute('aria-pressed', 'true')
+
+  // Alchemy must never inherit Cooking Mass Cooking policy controls.
+  await expect(page.getByText('대량 요리 준비 기준')).toHaveCount(0)
+
+  const profile = page.getByText('캐릭터 설정 · 무게/숙련도')
+  await profile.click()
+  const alchemyMastery = page.getByLabel('연금 숙련도')
+  await alchemyMastery.fill('1')
+
+  // The bundled fallback has no verified mastery table, so the UI must fail
+  // closed instead of interpolating or borrowing Cooking probability semantics.
+  await expect(page.getByText('연금 숙련도 산출 효과')).toBeVisible()
+  await expect(page.getByText('검증된 숙련도 필요')).toBeVisible()
+  await expect(page.getByText(/중간값은 임의 보간하지 않습니다/)).toBeVisible()
+})
