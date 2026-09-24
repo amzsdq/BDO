@@ -44,8 +44,9 @@ The companion `bdo-viewer` remains an alternative acquisition path because it ru
 5. Collect complete KR Codex Cooking and Alchemy catalog evidence. Prefer `npm run data:codex:browser -- --out <codex-catalog.json>`, which opens the real catalog pages, captures their live skill-scoped XHR transport, and paginates until the unique recipe-id set equals the server-reported total. The scheduled `production-data-evidence` workflow performs the same capture in GitHub Actions.
 6. Reconcile the imported client graph against the complete Codex catalog until the report is `ZERO_UNEXPLAINED_DIFF` with no unexplained recipe-id/count gap.
 7. Prepare mastery evidence from the matching `mastery.json` using the same extraction provenance.
-8. Run standard promotion and final release gates.
-9. Run real browser end-to-end acceptance against the promoted completeness-verified dataset.
+8. Promote the dataset only after the data gates pass.
+9. Run real browser E2E-01..09 against that exact promoted dataset/release commit on every declared browser, desktop+narrow, and keyboard-only primary controls. Preserve content-hashed evidence for each scenario and create `release-e2e-evidence.json` per `docs/RELEASE-E2E-EVIDENCE.md`.
+10. Run the final six-artifact production release gate. It revalidates the data/mastery gates and binds the E2E manifest to the exact release HEAD and exact production artifacts.
 
 ## Standard commands
 
@@ -59,7 +60,9 @@ npm run data:codex:browser -- --out <codex-catalog.json>
 npm run data:reconcile -- --dataset public/data/dataset.json --codex <codex-manifest.json> --out <reconciliation-report.json>
 npm run data:mastery-evidence -- --mastery <mastery.json> --out <mastery-evidence.json> --source-revision <extractor-tag-or-sha> --client-fingerprint <client-fingerprint> --extracted-at <iso-timestamp>
 npm run data:promote -- public/data/dataset.json <reconciliation-report.json> <codex-catalog.json>
-npm run data:release-gate -- public/data/dataset.json <reconciliation-report.json> <codex-catalog.json> <mastery-evidence.json> <mastery.json>
+# Run production E2E-01..09 now and preserve release-e2e-evidence.json.
+npm run e2e:release-evidence -- <release-e2e-evidence.json>
+npm run data:release-gate -- public/data/dataset.json <reconciliation-report.json> <codex-catalog.json> <mastery-evidence.json> <mastery.json> <release-e2e-evidence.json>
 ```
 
 ## Fail-closed rules
@@ -74,4 +77,5 @@ Do not declare production completeness when any of the following is true:
 - Codex catalog completeness is not independently demonstrated;
 - reconciliation has an unexplained diff;
 - mastery evidence is not bound to the exact `mastery.json` bytes;
-- the promoted dataset has not passed a real browser E2E scenario.
+- any E2E-01..09 scenario lacks content-hashed evidence on every declared browser, desktop+narrow, or keyboard-only primary controls;
+- the E2E manifest is not bound to the exact release commit and exact production data/mastery/reconciliation artifacts.
