@@ -33,7 +33,7 @@ test('planner state survives reload, export-reset-import round trip', async ({ p
   page.once('dialog', (dialog) => dialog.accept())
   await page.getByRole('button', { name: '저장 데이터 초기화' }).click()
   await page.waitForLoadState('domcontentloaded')
-  await expect(page.getByLabel('준비할 재료 회분')).toHaveValue('1')
+  await expect(page.getByLabel('준비할 재료 회분')).toHaveValue('100')
   await expect(page.getByLabel('E2E 상태 재료 보유 수량')).toHaveValue('0')
 
   await page.getByLabel('계획 파일 가져오기').setInputFiles(exportedPath!)
