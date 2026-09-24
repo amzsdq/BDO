@@ -12,6 +12,31 @@ const fixture = {
   recipesByOutput: { '970001': ['fallback'] },
 }
 
+test('canonical local item icon renders without falling through to remote source', async ({ page }) => {
+  let localRequests = 0
+  let remoteRequests = 0
+  const localFixture = structuredClone(fixture)
+  localFixture.items['970002'].iconPath = '/icons/970002.webp'
+  localFixture.items['970002'].iconUrl = '/should-not-be-requested.png'
+  await page.route('**/data/dataset.json', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(localFixture) }))
+  await page.route('**/icons/970002.webp', (route) => {
+    localRequests += 1
+    return route.fulfill({ contentType: 'image/svg+xml', body: '<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><rect width="32" height="32"/></svg>' })
+  })
+  await page.route('**/should-not-be-requested.png', (route) => {
+    remoteRequests += 1
+    return route.fulfill({ status: 500 })
+  })
+  await page.goto('/')
+  const row = page.locator('.material-row').filter({ hasText: 'E2E 폴백 재료' })
+  const image = row.locator('.item-icon img')
+  await expect(image).toBeVisible()
+  await expect(image).toHaveAttribute('src', '/icons/970002.webp')
+  await expect.poll(() => localRequests).toBeGreaterThan(0)
+  expect(remoteRequests).toBe(0)
+  await expect(row.locator('.item-icon')).not.toContainText('?')
+})
+
 test('item icon exhausts local and remote sources then shows placeholder', async ({ page }) => {
   await page.route('**/data/dataset.json', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(fixture) }))
   await page.route('**/missing-local.png', (route) => route.fulfill({ status: 404 }))
