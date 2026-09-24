@@ -7,7 +7,10 @@
   "masterySha256": "0000000000000000000000000000000000000000000000000000000000000000",
   "masteryEvidenceFingerprint": "REPLACE_WITH_MASTERY_EVIDENCE_FINGERPRINT",
   "browsers": ["chromium"],
-  "viewports": ["desktop", "narrow"],
+  "viewports": [
+    {"label":"desktop","width":1440,"height":900},
+    {"label":"narrow","width":390,"height":844}
+  ],
   "keyboardOnlyPrimaryControls": true,
   "scenarios": [
     {"id":"E2E-01","status":"PASS","evidence":"REPLACE"},
