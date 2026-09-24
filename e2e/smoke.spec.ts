@@ -63,3 +63,61 @@ test('alchemy flow stays separate from Cooking mass-preparation controls', async
   await expect(page.getByText('검증된 숙련도 필요')).toBeVisible()
   await expect(page.getByText(/중간값은 임의 보간하지 않습니다/)).toBeVisible()
 })
+
+test('weight profile limits the requested batch and exposes exact carry quantities', async ({ page }) => {
+  // loadRuntimeDataset() uses fetch('./data/dataset.json'). With Vite's SPA
+  // fallback the document URL may be a synthetic pathname while the browser
+  // still resolves the fetch at the app root. Route the actual runtime resource
+  // directly and assert it was consumed instead of relying on pathname tricks.
+  let fixtureRequests = 0
+  await page.route('**/data/dataset.json', async (route) => {
+    fixtureRequests += 1
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        metadata: {
+          generatedAt: '2026-09-24T00:00:00Z',
+          sources: ['E2E synthetic fixture'],
+          supportedRegion: 'KR',
+        },
+        items: {
+          '910001': { id: 910001, nameKo: 'E2E 무게 요리' },
+          '910002': { id: 910002, nameKo: 'E2E 무게 재료', weightLT: 0.1 },
+        },
+        recipes: {
+          'e2e-weight-cooking': {
+            id: 'e2e-weight-cooking',
+            skill: 'cooking',
+            outputItemId: 910001,
+            yield: { min: 1, max: 1 },
+            variants: [{ id: 'default', inputs: [{ itemId: 910002, count: 5 }] }],
+          },
+        },
+        recipesByOutput: { '910001': ['e2e-weight-cooking'] },
+      }),
+    })
+  })
+
+  await page.goto('/')
+  await expect.poll(() => fixtureRequests).toBeGreaterThan(0)
+  await expect(page.locator('.selected-target strong')).toHaveText('E2E 무게 요리')
+
+  // Request more than one carrying load so the acceptance actually exercises
+  // the weight cap rather than the default 1-serving request.
+  await page.getByRole('button', { name: '재료 회분' }).click()
+  await page.getByLabel('준비할 재료 회분').fill('20')
+
+  await page.getByText('캐릭터 설정 · 무게/숙련도').click()
+  await page.getByLabel('최대 무게 (LT)').fill('10')
+  await page.getByLabel('예약 무게 (LT)').fill('2')
+
+  const batchSummary = page.locator('.batch-summary')
+  await expect(batchSummary).toBeVisible()
+  await expect(batchSummary).toContainText('가용 8 LT')
+  await expect(batchSummary).toContainText('1회분 0.50 LT')
+  await expect(batchSummary).toContainText('최대 적재 16회분')
+
+  const carryLines = batchSummary.locator('.carry-lines li')
+  await expect(carryLines.first()).toBeVisible()
+  await expect(carryLines.first()).toContainText('80개')
+})
