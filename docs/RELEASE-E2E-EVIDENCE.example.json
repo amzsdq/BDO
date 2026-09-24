@@ -2,10 +2,10 @@
   "schemaVersion": 1,
   "mainCommit": "0000000000000000000000000000000000000000",
   "datasetFingerprint": "REPLACE_WITH_PROMOTED_DATASET_FINGERPRINT",
-  "reconciliationFingerprint": "REPLACE_WITH_RECONCILIATION_FINGERPRINT",
+  "reconciliationFingerprint": "REPLACE_WITH_RECONCILIATION_SHA256",
   "reconciliationTimestamp": "2026-01-01T00:00:00Z",
   "masterySha256": "0000000000000000000000000000000000000000000000000000000000000000",
-  "masteryEvidenceFingerprint": "REPLACE_WITH_MASTERY_EVIDENCE_FINGERPRINT",
+  "masteryEvidenceFingerprint": "REPLACE_WITH_MASTERY_EVIDENCE_SHA256",
   "browsers": ["chromium"],
   "viewports": [
     {"label":"desktop","width":1440,"height":900},
@@ -13,14 +13,14 @@
   ],
   "keyboardOnlyPrimaryControls": true,
   "scenarios": [
-    {"id":"E2E-01","status":"PASS","evidence":"REPLACE","evidenceSha256":"REPLACE"},
-    {"id":"E2E-02","status":"PASS","evidence":"REPLACE","evidenceSha256":"REPLACE"},
-    {"id":"E2E-03","status":"PASS","evidence":"REPLACE","evidenceSha256":"REPLACE"},
-    {"id":"E2E-04","status":"PASS","evidence":"REPLACE","evidenceSha256":"REPLACE"},
-    {"id":"E2E-05","status":"PASS","evidence":"REPLACE","evidenceSha256":"REPLACE"},
-    {"id":"E2E-06","status":"PASS","evidence":"REPLACE","evidenceSha256":"REPLACE"},
-    {"id":"E2E-07","status":"PASS","evidence":"REPLACE","evidenceSha256":"REPLACE"},
-    {"id":"E2E-08","status":"PASS","evidence":"REPLACE","evidenceSha256":"REPLACE"},
-    {"id":"E2E-09","status":"PASS","evidence":"REPLACE","evidenceSha256":"REPLACE"}
+    {"id":"E2E-01","status":"PASS","viewports":["desktop","narrow"],"keyboardOnly":true,"evidence":"REPLACE","evidenceSha256":"REPLACE"},
+    {"id":"E2E-02","status":"PASS","viewports":["desktop","narrow"],"keyboardOnly":true,"evidence":"REPLACE","evidenceSha256":"REPLACE"},
+    {"id":"E2E-03","status":"PASS","viewports":["desktop","narrow"],"keyboardOnly":true,"evidence":"REPLACE","evidenceSha256":"REPLACE"},
+    {"id":"E2E-04","status":"PASS","viewports":["desktop","narrow"],"keyboardOnly":true,"evidence":"REPLACE","evidenceSha256":"REPLACE"},
+    {"id":"E2E-05","status":"PASS","viewports":["desktop","narrow"],"keyboardOnly":true,"evidence":"REPLACE","evidenceSha256":"REPLACE"},
+    {"id":"E2E-06","status":"PASS","viewports":["desktop","narrow"],"keyboardOnly":true,"evidence":"REPLACE","evidenceSha256":"REPLACE"},
+    {"id":"E2E-07","status":"PASS","viewports":["desktop","narrow"],"keyboardOnly":true,"evidence":"REPLACE","evidenceSha256":"REPLACE"},
+    {"id":"E2E-08","status":"PASS","viewports":["desktop","narrow"],"keyboardOnly":true,"evidence":"REPLACE","evidenceSha256":"REPLACE"},
+    {"id":"E2E-09","status":"PASS","viewports":["desktop","narrow"],"keyboardOnly":true,"evidence":"REPLACE","evidenceSha256":"REPLACE"}
   ]
 }
