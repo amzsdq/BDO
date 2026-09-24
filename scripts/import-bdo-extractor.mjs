@@ -5,11 +5,11 @@ import crypto from 'node:crypto'
 function fail(message) { throw new Error(message) }
 const IMPORTER_FLAGS = new Set(['items', 'recipes', 'out', 'source-revision'])
 function parseArgs(argv) {
-  if (argv.length % 2 !== 0) fail('usage: --items <items.json> --recipes <recipes.json> --out <dataset.json> [--source-revision <sha/tag>]')
+  if (argv.length % 2 !== 0) fail('usage: --items <items.json> --recipes <recipes.json> --out <dataset.json> --source-revision <exact-extractor-commit>')
   const out = {}
   for (let i = 0; i < argv.length; i += 2) {
     const key = argv[i], value = argv[i + 1]
-    if (!key?.startsWith('--') || value == null || value.startsWith('--')) fail('usage: --items <items.json> --recipes <recipes.json> --out <dataset.json> [--source-revision <sha/tag>]')
+    if (!key?.startsWith('--') || value == null || value.startsWith('--')) fail('usage: --items <items.json> --recipes <recipes.json> --out <dataset.json> --source-revision <exact-extractor-commit>')
     const name = key.slice(2)
     if (!IMPORTER_FLAGS.has(name)) fail(`unknown argument: --${name}`)
     if (Object.hasOwn(out, name)) fail(`duplicate argument: --${name}`)
@@ -45,9 +45,16 @@ function variantSignature(inputs) {
 function variantId(identity) {
   return `v-${crypto.createHash('sha256').update(identity).digest('hex').slice(0, 12)}`
 }
+function normalizeSourceRevision(value) {
+  const raw = String(value || '').trim()
+  const match = raw.match(/^(?:iDevelopThings\/bdo-data-extractor@)?([0-9a-f]{40})$/i)
+  if (!match) fail('source-revision must be the exact 40-character bdo-data-extractor commit SHA (optionally prefixed with iDevelopThings/bdo-data-extractor@)')
+  return `iDevelopThings/bdo-data-extractor@${match[1].toLowerCase()}`
+}
 
 const args = parseArgs(process.argv.slice(2))
-if (!args.items || !args.recipes || !args.out) fail('required: --items --recipes --out')
+if (!args.items || !args.recipes || !args.out || !args['source-revision']) fail('required: --items --recipes --out --source-revision <exact-extractor-commit>')
+const sourceRevision = normalizeSourceRevision(args['source-revision'])
 const itemsRaw = JSON.parse(fs.readFileSync(args.items, 'utf8'))
 const recipesRaw = JSON.parse(fs.readFileSync(args.recipes, 'utf8'))
 if (!Array.isArray(itemsRaw) || !Array.isArray(recipesRaw)) fail('extractor inputs must be JSON arrays')
@@ -83,8 +90,6 @@ for (const source of recipesRaw) {
   const byproductOf = source.byproductOf ? itemIdFromRef(source.byproductOf) : null
   const signature = variantSignature(inputs)
   const roleKey = byproductOf ? `byproduct:${byproductOf}` : 'direct'
-  // Ingredient equality is not recipe-role equality. A direct recipe row and a
-  // byproduct row may legitimately share the same inputs; keep both identities.
   const dedupeKey = `${roleKey}|${signature}`
   const groupKey = `${skill}:${outputItemId}`
   const variants = grouped.get(groupKey) || []
@@ -96,9 +101,6 @@ const recipes = {}, recipesByOutput = {}, byproducts = {}
 for (const [groupKey, rawVariants] of grouped) {
   const [skill, outputText] = groupKey.split(':'); const outputItemId = Number(outputText)
   const seen = new Set(), variants = []
-  // Upstream documents repeated producing blocks as alternative recipes but does
-  // not expose a source recipe id. Sort by canonical content so variant identity
-  // is stable across extractor row ordering and never fabricate source identity.
   for (const candidate of rawVariants.sort((a, b) => a.dedupeKey.localeCompare(b.dedupeKey))) {
     if (seen.has(candidate.dedupeKey)) continue
     seen.add(candidate.dedupeKey)
@@ -132,7 +134,7 @@ const payloadWithoutHash = {
   metadata: {
     generatedAt: new Date().toISOString(), supportedRegion: 'KR', status: 'CLIENT_IMPORTED_UNRECONCILED',
     sources: ['bdo-data-extractor:items.json', 'bdo-data-extractor:recipes.json'],
-    sourceRevision: args['source-revision'] || 'unrecorded',
+    sourceRevision,
     extractorContract: 'items.json + recipes.json; repeated producing blocks are alternative recipes; no separate source recipe id; EntityRef serialized as URN text; decoded icons resolved as icons/<itemId>.webp; Korean names not supplied by extractor',
     koreanNamesVerified: false,
     counts,
