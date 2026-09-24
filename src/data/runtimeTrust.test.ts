@@ -23,9 +23,11 @@ function fixture(): RecipeDataset {
 }
 
 async function withFingerprint(dataset: RecipeDataset): Promise<RecipeDataset> {
-  const bytes = new TextEncoder().encode(JSON.stringify(dataset))
+  const unsigned = JSON.parse(JSON.stringify(dataset)) as RecipeDataset
+  delete (unsigned.metadata as RecipeDataset['metadata'] & { fingerprint?: string }).fingerprint
+  const bytes = new TextEncoder().encode(JSON.stringify(unsigned))
   const digest = await crypto.subtle.digest('SHA-256', bytes)
-  ;(dataset.metadata as any).fingerprint = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
+  ;(dataset.metadata as RecipeDataset['metadata'] & { fingerprint?: string }).fingerprint = Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, '0')).join('')
   return dataset
 }
 async function promoteFixture(): Promise<RecipeDataset> { return withFingerprint(fixture()) }
