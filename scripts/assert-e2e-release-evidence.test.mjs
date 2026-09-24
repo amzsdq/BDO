@@ -31,6 +31,9 @@ for (const mutate of [
   (m) => { m.viewports = ['desktop']; },
   (m) => { m.keyboardOnlyPrimaryControls = false; },
   (m) => { m.masterySha256 = 'not-a-sha'; },
+  (m) => { m.mainCommit = '0'.repeat(40); },
+  (m) => { m.datasetFingerprint = 'REPLACE_WITH_DATASET'; },
+  (m) => { m.scenarios[0].evidence = 'TODO'; },
 ]) {
   const candidate = structuredClone(base);
   mutate(candidate);
