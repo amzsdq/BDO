@@ -13,14 +13,14 @@
   ],
   "keyboardOnlyPrimaryControls": true,
   "scenarios": [
-    {"id":"E2E-01","status":"PASS","evidence":"REPLACE"},
-    {"id":"E2E-02","status":"PASS","evidence":"REPLACE"},
-    {"id":"E2E-03","status":"PASS","evidence":"REPLACE"},
-    {"id":"E2E-04","status":"PASS","evidence":"REPLACE"},
-    {"id":"E2E-05","status":"PASS","evidence":"REPLACE"},
-    {"id":"E2E-06","status":"PASS","evidence":"REPLACE"},
-    {"id":"E2E-07","status":"PASS","evidence":"REPLACE"},
-    {"id":"E2E-08","status":"PASS","evidence":"REPLACE"},
-    {"id":"E2E-09","status":"PASS","evidence":"REPLACE"}
+    {"id":"E2E-01","status":"PASS","evidence":"REPLACE","evidenceSha256":"REPLACE"},
+    {"id":"E2E-02","status":"PASS","evidence":"REPLACE","evidenceSha256":"REPLACE"},
+    {"id":"E2E-03","status":"PASS","evidence":"REPLACE","evidenceSha256":"REPLACE"},
+    {"id":"E2E-04","status":"PASS","evidence":"REPLACE","evidenceSha256":"REPLACE"},
+    {"id":"E2E-05","status":"PASS","evidence":"REPLACE","evidenceSha256":"REPLACE"},
+    {"id":"E2E-06","status":"PASS","evidence":"REPLACE","evidenceSha256":"REPLACE"},
+    {"id":"E2E-07","status":"PASS","evidence":"REPLACE","evidenceSha256":"REPLACE"},
+    {"id":"E2E-08","status":"PASS","evidence":"REPLACE","evidenceSha256":"REPLACE"},
+    {"id":"E2E-09","status":"PASS","evidence":"REPLACE","evidenceSha256":"REPLACE"}
   ]
 }
