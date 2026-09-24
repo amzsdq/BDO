@@ -34,7 +34,7 @@ function completeCatalog() {
     ],
   }
 }
-function setup() {
+function setup(catalog = completeCatalog()) {
   const dir = mkdtempSync(join(tmpdir(), 'bdo-release-gate-'))
   const datasetFile = join(dir, 'dataset.json'), reportFile = join(dir, 'report.json'), catalogFile = join(dir, 'catalog.json')
   mkdirSync(join(dir, '..', 'icons'), { recursive: true })
@@ -42,7 +42,7 @@ function setup() {
   const source = fixture()
   writeFileSync(datasetFile, JSON.stringify(source))
   writeFileSync(reportFile, JSON.stringify({ status: 'ZERO_UNEXPLAINED_DIFF', unresolved: [], clientRecipeGroups: 2, clientRecipes: 2, codexLivePages: 2, codexLiveRecipeIds: [101, 201], datasetFingerprint: reconciliationDatasetFingerprint(source) }))
-  writeFileSync(catalogFile, JSON.stringify(completeCatalog()))
+  writeFileSync(catalogFile, JSON.stringify(catalog))
   const promoted = spawnSync(process.execPath, ['scripts/promote-release-dataset.mjs', datasetFile, reportFile, catalogFile], { cwd: process.cwd(), encoding: 'utf8' })
   expect(promoted.status).toBe(0)
   return { datasetFile, reportFile, catalogFile }
@@ -51,6 +51,58 @@ function gate(datasetFile, reportFile, catalogFile) { return spawnSync(process.e
 
 describe('final release gate', () => {
   it('accepts a promoted structurally valid dataset with independently complete Codex catalogs', () => { const files = setup(); expect(gate(files.datasetFile, files.reportFile, files.catalogFile).status).toBe(0) })
+  it('accepts browser-captured POST scope evidence when server totals match the full id set', () => {
+    const catalog = completeCatalog()
+    for (const entry of catalog.catalogs) {
+      entry.endpointUsed = 'https://bdocodex.com/query.php'
+      entry.endpointFinalUrl = 'https://bdocodex.com/query.php'
+      entry.endpointRequest = {
+        method: 'POST',
+        params: { a: 'recipes', type: entry.skill === 'cooking' ? 'culinary' : 'alchemy', l: 'kr' },
+      }
+      entry.endpointEvidence.acquisition = 'playwright-network-capture'
+    }
+    const files = setup(catalog)
+    expect(gate(files.datasetFile, files.reportFile, files.catalogFile).status).toBe(0)
+  })
+  it('accepts an unpaginated captured full-array only when browser rendering cross-checks the same complete id count', () => {
+    const catalog = completeCatalog()
+    for (const entry of catalog.catalogs) {
+      entry.endpointUsed = `https://bdocodex.com/query.php?a=recipes&type=${entry.skill === 'cooking' ? 'culinary' : 'alchemy'}&id=1&l=kr`
+      entry.endpointFinalUrl = entry.endpointUsed
+      entry.endpointRequest = {
+        method: 'GET',
+        params: { a: 'recipes', type: entry.skill === 'cooking' ? 'culinary' : 'alchemy', id: '1', l: 'kr' },
+      }
+      entry.endpointEvidence = {
+        recordsReported: null,
+        fullArrayRows: entry.recipeCount,
+        renderedRecipeIds: entry.recipeCount,
+        requestPaginationParametersPresent: false,
+        completenessMode: 'unpaginated-full-array+rendered-id-crosscheck',
+        acquisition: 'playwright-network-capture',
+      }
+    }
+    const files = setup(catalog)
+    expect(gate(files.datasetFile, files.reportFile, files.catalogFile).status).toBe(0)
+  })
+  it('rejects unpaginated full-array evidence when the rendered id cross-check is incomplete', () => {
+    const catalog = completeCatalog()
+    const entry = catalog.catalogs[0]
+    entry.endpointRequest = { method: 'GET', params: { a: 'recipes', type: 'culinary', id: '1', l: 'kr' } }
+    entry.endpointEvidence = {
+      recordsReported: null,
+      fullArrayRows: entry.recipeCount,
+      renderedRecipeIds: 0,
+      requestPaginationParametersPresent: false,
+      completenessMode: 'unpaginated-full-array+rendered-id-crosscheck',
+      acquisition: 'playwright-network-capture',
+    }
+    const files = setup(catalog)
+    const result = gate(files.datasetFile, files.reportFile, files.catalogFile)
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('auditable completeness evidence')
+  })
   it('rejects reconciliation evidence that omitted a client recipe', () => {
     const { datasetFile, reportFile, catalogFile } = setup(); const report = JSON.parse(readFileSync(reportFile, 'utf8')); report.clientRecipes = 1; writeFileSync(reportFile, JSON.stringify(report)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('client recipe count')
   })

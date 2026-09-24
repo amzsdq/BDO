@@ -57,7 +57,9 @@ BDO Codex category pages currently render the table shell and report "Loading da
 
 Independent implementations confirm a JSON recipe transport of the form `https://bdocodex.com/query.php?a=recipes&type=product&item_id=<id>&l=<locale>`. That route is explicitly product/item scoped: it can retrieve recipes associated with one item, but its row count and ID set cannot establish the complete Cooking or Alchemy catalog. It must never be supplied to the completeness collector as catalog evidence. The complete skill-scoped transport/count remains unverified.
 
-Once recipe detail URLs are enumerated, their linked item IDs provide a deterministic bridge back to the client graph; the remaining hard problem is exhaustive enumeration, not entity identity.
+The repository now removes the manual endpoint-discovery step with `scripts/collect-codex-catalog-browser.mjs`: Playwright opens each KR skill catalog, captures the site's actual recipe XHR (including POST form parameters when used), validates that the request is skill-scoped rather than product/item-scoped, and replays its pagination until the unique recipe-id set equals the server-reported total. The captured request parameters and totals are retained as auditable completeness evidence.
+
+Once recipe detail URLs are enumerated, their linked item IDs provide a deterministic bridge back to the client graph. The remaining non-cloud input is the installed-client structural snapshot itself; on Windows `scripts/bootstrap-production-data.ps1` reduces that to one command and records snapshot provenance automatically.
 
 ## Licensing / provenance
 

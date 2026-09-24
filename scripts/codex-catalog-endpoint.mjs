@@ -39,3 +39,26 @@ export function catalogEndpointForSkill(template, skill) {
   const category = skill === 'cooking' ? 'culinary' : skill
   return String(template).replaceAll('{skill}', skill).replaceAll('{category}', category)
 }
+
+
+function normalizeEvidenceParams(value) {
+  const out = new Map()
+  if (!value || typeof value !== 'object') return out
+  for (const [key, child] of Object.entries(value)) {
+    if (child == null) continue
+    out.set(String(key).toLowerCase(), String(child).toLowerCase())
+  }
+  return out
+}
+
+export function validateCapturedCatalogRequest(url, requestEvidence, expectedSkill = null) {
+  let synthetic
+  try { synthetic = new URL(String(url || '').trim()) } catch { return { ok: false, reason: 'catalog endpoint must be an absolute URL' } }
+  for (const [key, value] of normalizeEvidenceParams(requestEvidence?.params)) synthetic.searchParams.set(key, value)
+
+  const base = parseAndValidateResolvedCodexUrl(synthetic.toString())
+  if (!base.ok) return { ok: false, reason: base.reason }
+  const method = String(requestEvidence?.method || 'GET').toUpperCase()
+  if (!['GET', 'POST'].includes(method)) return { ok: false, reason: 'captured request method must be GET or POST' }
+  return validateSkillScope(base.params, expectedSkill)
+}
