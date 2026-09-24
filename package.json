@@ -23,6 +23,17 @@
     "data:release-gate": "node scripts/assert-production-release.mjs",
     "data:codex:browser": "node scripts/collect-codex-catalog-browser.mjs"
   },
-  "dependencies": { "react": "^19.1.1", "react-dom": "^19.1.1" },
-  "devDependencies": { "@playwright/test": "^1.55.0", "@types/react": "^19.1.16", "@types/react-dom": "^19.1.9", "@vitejs/plugin-react": "^5.0.2", "typescript": "^5.9.2", "vite": "^7.1.5", "vitest": "^3.2.4" }
+  "dependencies": {
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "@types/react": "^19.1.16",
+    "@types/react-dom": "^19.1.9",
+    "@vitejs/plugin-react": "^5.0.2",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.5",
+    "vitest": "^3.2.4"
+  }
 }
