@@ -30,6 +30,7 @@ if (!sha256.test(manifest.masterySha256 ?? '') || allZero(manifest.masterySha256
 if (!evidenceString(manifest.reconciliationTimestamp)) fail('reconciliationTimestamp is required');
 if (Number.isNaN(Date.parse(manifest.reconciliationTimestamp))) fail('reconciliationTimestamp must be ISO-8601 parseable');
 if (!Array.isArray(manifest.browsers) || manifest.browsers.length === 0 || manifest.browsers.some((x) => !evidenceString(x))) fail('at least one concrete browser is required');
+const requiredBrowsers = new Set(manifest.browsers);
 if (!Array.isArray(manifest.viewports)) fail('viewports must be an array');
 const viewportLabels = new Set();
 for (const viewport of manifest.viewports) {
@@ -53,6 +54,8 @@ for (const id of required) {
   const scenario = byId.get(id);
   if (!scenario) fail(`missing ${id}`);
   if (scenario.status !== 'PASS') fail(`${id} must be PASS`);
+  const scenarioBrowsers = new Set(Array.isArray(scenario.browsers) ? scenario.browsers : []);
+  if ([...requiredBrowsers].some((browser) => !scenarioBrowsers.has(browser))) fail(`${id} must PASS on every declared browser`);
   const scenarioViewports = new Set(Array.isArray(scenario.viewports) ? scenario.viewports : []);
   if (!scenarioViewports.has('desktop') || !scenarioViewports.has('narrow')) fail(`${id} must PASS on desktop and narrow viewports`);
   if (scenario.keyboardOnly !== true) fail(`${id} must record keyboard-only primary-control PASS`);
