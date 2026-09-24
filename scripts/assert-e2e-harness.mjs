@@ -4,6 +4,7 @@ const pkg = JSON.parse(await readFile(new URL('../package.json', import.meta.url
 const workflow = await readFile(new URL('../.github/workflows/ci.yml', import.meta.url), 'utf8')
 const acceptance = await readFile(new URL('../docs/E2E-ACCEPTANCE.md', import.meta.url), 'utf8')
 const productionGate = await readFile(new URL('./assert-production-release.mjs', import.meta.url), 'utf8')
+const releaseBindings = await readFile(new URL('./release-e2e-bindings.mjs', import.meta.url), 'utf8')
 const evidenceGate = await readFile(new URL('./assert-e2e-release-evidence.mjs', import.meta.url), 'utf8')
 
 const failures = []
@@ -18,7 +19,7 @@ if (!/@playwright\/test/.test(JSON.stringify(pkg.devDependencies ?? {}))) failur
 if (!/npm run e2e:ci/.test(workflow)) failures.push('CI must execute npm run e2e:ci')
 if (!/npm run test:release-evidence/.test(workflow)) failures.push('CI must explicitly execute release evidence validator tests')
 if (!/assert-e2e-release-evidence\.mjs/.test(productionGate)) failures.push('production release gate must execute the E2E evidence validator')
-if (!/mainCommit/.test(productionGate) || !/rev-parse/.test(productionGate)) failures.push('production release gate must bind E2E evidence to exact git HEAD')
+if (!/rev-parse/.test(productionGate) || !/assertReleaseE2eBindings/.test(productionGate) || !/mainCommit/.test(releaseBindings)) failures.push('production release gate must bind E2E evidence to exact git HEAD')
 if (!evidenceGate.includes('E2E-') || !evidenceGate.includes('scenario')) failures.push('release evidence validator must enforce scenario coverage')
 
 for (let i = 1; i <= 9; i += 1) {
