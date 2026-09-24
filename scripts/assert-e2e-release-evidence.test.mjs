@@ -16,7 +16,7 @@ const base = {
   masterySha256: 'b'.repeat(64),
   masteryEvidenceFingerprint: 'mastery-fp',
   browsers: ['chromium'],
-  viewports: ['desktop', 'narrow'],
+  viewports: [{ label: 'desktop', width: 1440, height: 900 }, { label: 'narrow', width: 390, height: 844 }],
   keyboardOnlyPrimaryControls: true,
   scenarios: Array.from({ length: 9 }, (_, i) => ({ id: `E2E-${String(i + 1).padStart(2, '0')}`, status: 'PASS', evidence: `artifacts/e2e-${i + 1}.zip` })),
 };
@@ -28,7 +28,8 @@ assert.match(run(base), /9\/9 scenarios/);
 for (const mutate of [
   (m) => { m.scenarios[4].status = 'FAIL'; },
   (m) => { m.scenarios.pop(); },
-  (m) => { m.viewports = ['desktop']; },
+  (m) => { m.viewports = [{ label: 'desktop', width: 1440, height: 900 }]; },
+  (m) => { m.viewports[1].width = 0; },
   (m) => { m.keyboardOnlyPrimaryControls = false; },
   (m) => { m.masterySha256 = 'not-a-sha'; },
   (m) => { m.mainCommit = '0'.repeat(40); },
