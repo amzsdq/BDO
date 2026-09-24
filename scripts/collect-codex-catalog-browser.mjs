@@ -110,7 +110,21 @@ async function collectCatalog(browser, catalog, timeoutMs) {
 
   const initial = await captured.json()
   const total = totalFromPayload(initial)
-  if (!Number.isSafeInteger(total) || total <= 0) throw new Error(`${catalog.skill}: Codex response lacks a positive total-row count`)
+  if (!Number.isSafeInteger(total) || total <= 0) {
+    console.error(JSON.stringify({
+      diagnostic: 'codex-catalog-shape',
+      skill: catalog.skill,
+      url: captured.url(),
+      request: evidence,
+      topLevelKeys: initial && typeof initial === 'object' && !Array.isArray(initial) ? Object.keys(initial).sort() : [],
+      isArray: Array.isArray(initial),
+      arrayLength: Array.isArray(initial) ? initial.length : null,
+      aaDataLength: Array.isArray(initial?.aaData) ? initial.aaData.length : null,
+      dataLength: Array.isArray(initial?.data) ? initial.data.length : null,
+      firstRowShape: Array.isArray(initial?.aaData?.[0]) ? { kind: 'array', length: initial.aaData[0].length } : initial?.aaData?.[0] && typeof initial.aaData[0] === 'object' ? { kind: 'object', keys: Object.keys(initial.aaData[0]).sort() } : null,
+    }))
+    throw new Error(`${catalog.skill}: Codex response lacks a positive total-row count`)
+  }
 
   const ids = new Set(recipeIdsFromJson(initial, { allowCodexAaData: true }))
   let pagesFetched = 1
