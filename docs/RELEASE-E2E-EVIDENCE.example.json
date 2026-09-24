@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "mainCommit": "0000000000000000000000000000000000000000",
+  "datasetFingerprint": "REPLACE_WITH_PROMOTED_DATASET_FINGERPRINT",
+  "reconciliationFingerprint": "REPLACE_WITH_RECONCILIATION_FINGERPRINT",
+  "reconciliationTimestamp": "2026-01-01T00:00:00Z",
+  "masterySha256": "0000000000000000000000000000000000000000000000000000000000000000",
+  "masteryEvidenceFingerprint": "REPLACE_WITH_MASTERY_EVIDENCE_FINGERPRINT",
+  "browsers": ["chromium"],
+  "viewports": ["desktop", "narrow"],
+  "keyboardOnlyPrimaryControls": true,
+  "scenarios": [
+    {"id":"E2E-01","status":"PASS","evidence":"REPLACE"},
+    {"id":"E2E-02","status":"PASS","evidence":"REPLACE"},
+    {"id":"E2E-03","status":"PASS","evidence":"REPLACE"},
+    {"id":"E2E-04","status":"PASS","evidence":"REPLACE"},
+    {"id":"E2E-05","status":"PASS","evidence":"REPLACE"},
+    {"id":"E2E-06","status":"PASS","evidence":"REPLACE"},
+    {"id":"E2E-07","status":"PASS","evidence":"REPLACE"},
+    {"id":"E2E-08","status":"PASS","evidence":"REPLACE"},
+    {"id":"E2E-09","status":"PASS","evidence":"REPLACE"}
+  ]
+}
