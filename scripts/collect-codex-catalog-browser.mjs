@@ -66,6 +66,19 @@ function hasPaginationParameters(params) {
 
 async function renderedRecipeIds(page) {
   await page.waitForFunction(() => !document.body.innerText.includes('Loading data from server'), null, { timeout: 10000 }).catch(() => {})
+
+  const tableRows = await page.evaluate(() => {
+    const jq = window.jQuery
+    if (!jq?.fn?.dataTable) return []
+    for (const table of document.querySelectorAll('table')) {
+      if (!jq.fn.dataTable.isDataTable(table)) continue
+      const rows = jq(table).DataTable().rows().data().toArray()
+      if (Array.isArray(rows) && rows.length) return rows
+    }
+    return []
+  })
+  if (tableRows.length) return recipeIdsFromJson({ aaData: tableRows }, { allowCodexAaData: true })
+
   const hrefs = await page.locator('a[href*="/kr/recipe/"]').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('href') || ''))
   const ids = new Set()
   for (const href of hrefs) {
