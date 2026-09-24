@@ -65,7 +65,38 @@ test('alchemy flow stays separate from Cooking mass-preparation controls', async
 })
 
 test('weight profile limits the requested batch and exposes exact carry quantities', async ({ page }) => {
+  // Exercise the positive weight-planning path with an explicit browser fixture.
+  // The bundled fallback deliberately omits item weights, so relying on it would
+  // only test the fail-closed path rather than E2E-04's exact carry calculation.
+  await page.route('**/data/dataset.json', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        metadata: {
+          generatedAt: '2026-09-24T00:00:00Z',
+          sources: ['E2E synthetic fixture'],
+          supportedRegion: 'KR',
+        },
+        items: {
+          '910001': { id: 910001, nameKo: 'E2E 무게 요리' },
+          '910002': { id: 910002, nameKo: 'E2E 무게 재료', weightLT: 0.1 },
+        },
+        recipes: {
+          'e2e-weight-cooking': {
+            id: 'e2e-weight-cooking',
+            skill: 'cooking',
+            outputItemId: 910001,
+            yield: { min: 1, max: 1 },
+            variants: [{ id: 'default', inputs: [{ itemId: 910002, count: 5 }] }],
+          },
+        },
+        recipesByOutput: { '910001': ['e2e-weight-cooking'] },
+      }),
+    })
+  })
+
   await page.goto('/')
+  await expect(page.locator('.selected-target strong')).toHaveText('E2E 무게 요리')
 
   await page.getByText('캐릭터 설정 · 무게/숙련도').click()
   await page.getByLabel('최대 무게 (LT)').fill('10')
@@ -74,10 +105,10 @@ test('weight profile limits the requested batch and exposes exact carry quantiti
   const batchSummary = page.locator('.batch-summary')
   await expect(batchSummary).toBeVisible()
   await expect(batchSummary).toContainText('가용 8 LT')
-  await expect(batchSummary).toContainText(/1회분 \d+(?:\.\d+)? LT/)
-  await expect(batchSummary).toContainText(/최대 적재 \d+회분/)
+  await expect(batchSummary).toContainText('1회분 0.5 LT')
+  await expect(batchSummary).toContainText('최대 적재 16회분')
 
   const carryLines = batchSummary.locator('.carry-lines li')
   await expect(carryLines.first()).toBeVisible()
-  await expect(carryLines.first()).toContainText(/\d+개/)
+  await expect(carryLines.first()).toContainText('80개')
 })
