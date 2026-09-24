@@ -1,7 +1,7 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
-async function routeStateDataset(page: Parameters<typeof test>[0] extends never ? never : any) {
-  await page.route('**/data/dataset.json', async (route: any) => {
+async function routeStateDataset(page: Page) {
+  await page.route('**/data/dataset.json', async (route) => {
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
       metadata: { generatedAt: '2026-09-24T00:00:00Z', sources: ['E2E synthetic fixture'], supportedRegion: 'KR' },
       items: { '960001': { id: 960001, nameKo: 'E2E 상태 요리' }, '960002': { id: 960002, nameKo: 'E2E 상태 재료', weightLT: 0.1 } },
