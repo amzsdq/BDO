@@ -26,7 +26,7 @@ export function resolvePlanTarget(
 
   if (persisted.mode === 'output') {
     if (!Number.isInteger(persisted.amount)) return { error: 'desired output quantity must be a positive integer' }
-    return { target: { recipeId: persisted.recipeId, variantId, mode: 'output', amount: persisted.amount } }
+    return { target: { recipeId: persisted.recipeId, variantId, mode: 'output', amount: persisted.amount, yieldPolicy: persisted.yieldPolicy ?? 'minimum' } }
   }
   if (persisted.mode === 'servings') {
     if (!Number.isInteger(persisted.amount)) return { error: 'recipe servings must be a positive integer' }
