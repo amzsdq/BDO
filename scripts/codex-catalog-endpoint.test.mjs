@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { catalogEndpointForSkill, validateCatalogEndpointTemplate, validateResolvedCatalogEndpoint } from './codex-catalog-endpoint.mjs'
+import { catalogEndpointForSkill, validateCapturedCatalogRequest, validateCatalogEndpointTemplate, validateResolvedCatalogEndpoint } from './codex-catalog-endpoint.mjs'
 
 describe('Codex complete-catalog endpoint scope', () => {
   it('requires explicit per-skill or per-category binding in a recognized scope parameter', () => {
@@ -44,4 +44,26 @@ describe('Codex complete-catalog endpoint scope', () => {
     expect(validateResolvedCatalogEndpoint('https://bdocodex.com/query.php?a=recipes&type=culinary&l=kr', 'alchemy').ok).toBe(false)
     expect(validateResolvedCatalogEndpoint('https://bdocodex.com/query.php?a=recipes&skill=alchemy&l=kr', 'cooking').ok).toBe(false)
   })
+  it('accepts a live browser-captured POST whose skill scope is carried in form parameters', () => {
+    const result = validateCapturedCatalogRequest(
+      'https://bdocodex.com/query.php',
+      { method: 'POST', params: { a: 'recipes', type: 'culinary', l: 'kr' } },
+      'cooking',
+    )
+    expect(result.ok).toBe(true)
+  })
+
+  it('rejects browser-captured product scope and cross-skill scope', () => {
+    expect(validateCapturedCatalogRequest(
+      'https://bdocodex.com/query.php',
+      { method: 'POST', params: { a: 'recipes', type: 'product', item_id: '123', l: 'kr' } },
+      'cooking',
+    ).ok).toBe(false)
+    expect(validateCapturedCatalogRequest(
+      'https://bdocodex.com/query.php?a=recipes',
+      { method: 'POST', params: { type: 'alchemy', l: 'kr' } },
+      'cooking',
+    ).ok).toBe(false)
+  })
+
 })
