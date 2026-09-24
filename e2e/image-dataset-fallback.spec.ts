@@ -29,3 +29,18 @@ test('dataset fetch failure enters explicit sample fallback mode instead of blan
   await expect(page.locator('.status-pill')).toContainText('검증 중')
   await expect(page.getByRole('heading', { name: '요리·연금 준비를 한 화면에서' })).toBeVisible()
 })
+
+test('malformed dataset JSON fails closed into explicit sample fallback mode', async ({ page }) => {
+  await page.route('**/data/dataset.json', (route) => route.fulfill({ contentType: 'application/json', body: '{malformed' }))
+  await page.goto('/')
+  await expect(page.getByRole('status')).toContainText('샘플 모드')
+  await expect(page.locator('.status-pill')).toContainText('검증 중')
+})
+
+test('well-shaped dataset without release evidence is visibly unreconciled', async ({ page }) => {
+  await page.route('**/data/dataset.json', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(fixture) }))
+  await page.goto('/')
+  await expect(page.getByRole('status')).toContainText('대조 검증 전')
+  await expect(page.locator('.status-pill')).toContainText('검증 중')
+  await expect(page.locator('.status-pill')).not.toContainText('검증 완료')
+})
