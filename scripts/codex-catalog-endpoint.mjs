@@ -52,17 +52,13 @@ function normalizeEvidenceParams(value) {
 }
 
 export function validateCapturedCatalogRequest(url, requestEvidence, expectedSkill = null) {
-  const base = parseAndValidateResolvedCodexUrl(url)
+  let synthetic
+  try { synthetic = new URL(String(url || '').trim()) } catch { return { ok: false, reason: 'catalog endpoint must be an absolute URL' } }
+  for (const [key, value] of normalizeEvidenceParams(requestEvidence?.params)) synthetic.searchParams.set(key, value)
+
+  const base = parseAndValidateResolvedCodexUrl(synthetic.toString())
   if (!base.ok) return { ok: false, reason: base.reason }
-
-  const merged = new Map(base.params)
-  for (const [key, value] of normalizeEvidenceParams(requestEvidence?.params)) merged.set(key, value)
-
-  if (merged.get('a') !== 'recipes') return { ok: false, reason: 'captured request must use a=recipes' }
-  if (merged.has('item_id') || merged.get('type') === 'product') {
-    return { ok: false, reason: 'product/item-scoped Codex endpoints cannot prove complete Cooking/Alchemy catalogs' }
-  }
   const method = String(requestEvidence?.method || 'GET').toUpperCase()
   if (!['GET', 'POST'].includes(method)) return { ok: false, reason: 'captured request method must be GET or POST' }
-  return validateSkillScope(merged, expectedSkill)
+  return validateSkillScope(base.params, expectedSkill)
 }
