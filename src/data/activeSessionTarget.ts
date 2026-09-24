@@ -1,5 +1,5 @@
 import type { CookingPreparationPolicy } from '../domain/durabilityPlan'
-import type { RecipeDataset, RecipeId } from '../domain/types'
+import type { RecipeDataset, RecipeId, YieldPolicy } from '../domain/types'
 import type { PersistedPlanTarget, PlanInputMode, PlanSessionState } from './planSession'
 import { replacePlanTarget } from './planSessionTargets'
 
@@ -35,19 +35,22 @@ export function updateActiveSessionTarget(
   if (!current) throw new RangeError(`Plan target index ${index} is out of range`)
   const next = { ...current, ...patch }
   if (patch.mode != null && patch.mode !== 'durability') delete next.cookingPreparationPolicy
+  if (patch.mode != null && patch.mode !== 'output') delete next.yieldPolicy
   return replacePlanTarget(session, index, next)
 }
 
-/** Keep Cooking durability transitions immediately resolvable while Alchemy stays separate. */
+/** Keep mode-specific policy fields immediately resolvable. */
 export function updateActiveSessionTargetMode(
   session: PlanSessionState,
   index: number,
   skill: 'cooking' | 'alchemy',
   mode: PlanInputMode,
   cookingPolicy: CookingPreparationPolicy = 'safe95',
+  yieldPolicy: YieldPolicy = 'minimum',
 ): PlanSessionState {
   return updateActiveSessionTarget(session, index, {
     mode,
+    yieldPolicy: mode === 'output' ? yieldPolicy : undefined,
     cookingPreparationPolicy: mode === 'durability' && skill === 'cooking' ? cookingPolicy : undefined,
   })
 }

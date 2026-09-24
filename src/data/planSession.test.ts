@@ -1,64 +1,37 @@
 import { describe, expect, it } from 'vitest'
 import { readPlanSession, writePlanSession, type PlanSessionState } from './planSession'
 
-function memoryStorage() {
-  const data = new Map<string, string>()
-  return {
-    getItem: (key: string) => data.get(key) ?? null,
-    setItem: (key: string, value: string) => { data.set(key, value) },
-  }
-}
+function memoryStorage() { const data = new Map<string, string>(); return { getItem: (key: string) => data.get(key) ?? null, setItem: (key: string, value: string) => { data.set(key, value) } } }
+const envelope = (targets: unknown[]) => ({ version: 1, targets, craftIntermediateItemIds: [], intermediateRecipeIdByItemId: {}, variantIdByRecipeId: {} })
 
 describe('versioned plan session state', () => {
-  it('round-trips multiple targets and recursive craft/substitution choices', () => {
+  it('round-trips multiple targets, output yield policy, and recursive choices', () => {
     const storage = memoryStorage()
-    const state: PlanSessionState = {
-      version: 1,
-      targets: [
-        { recipeId: 'cooking:10', variantId: 'v2', mode: 'durability', amount: 100, cookingPreparationPolicy: 'safe95' },
-        { recipeId: 'alchemy:11', mode: 'servings', amount: 50 },
-      ],
-      craftIntermediateItemIds: [20, 30],
-      intermediateRecipeIdByItemId: { '20': 'cooking:20' },
-      variantIdByRecipeId: { 'cooking:20': 'v3' },
-      selectedSubstitutionItemIdByGroupId: { 'codex:6502': 21 },
-    }
+    const state: PlanSessionState = { version: 1, targets: [
+      { recipeId: 'cooking:9', mode: 'output', amount: 100, yieldPolicy: 'expected' },
+      { recipeId: 'cooking:10', variantId: 'v2', mode: 'durability', amount: 100, cookingPreparationPolicy: 'safe95' },
+      { recipeId: 'alchemy:11', mode: 'servings', amount: 50 },
+    ], craftIntermediateItemIds: [20, 30], intermediateRecipeIdByItemId: { '20': 'cooking:20' }, variantIdByRecipeId: { 'cooking:20': 'v3' }, selectedSubstitutionItemIdByGroupId: { 'codex:6502': 21 } }
     writePlanSession(state, storage)
     expect(readPlanSession(storage)).toEqual(state)
   })
 
   it('fails closed on unknown versions or invalid target quantities', () => {
-    const storage = memoryStorage()
-    storage.setItem('bdo-planner:plan-session:v1', JSON.stringify({ version: 2, targets: [] }))
-    expect(readPlanSession(storage).targets).toEqual([])
-    storage.setItem('bdo-planner:plan-session:v1', JSON.stringify({ version: 1, targets: [{ recipeId: 'x', mode: 'output', amount: -1 }], craftIntermediateItemIds: [], intermediateRecipeIdByItemId: {}, variantIdByRecipeId: {} }))
-    expect(readPlanSession(storage).targets).toEqual([])
-    storage.setItem('bdo-planner:plan-session:v1', JSON.stringify({ version: 1, targets: [{ recipeId: 'x', mode: 'output', amount: 1.5 }], craftIntermediateItemIds: [], intermediateRecipeIdByItemId: {}, variantIdByRecipeId: {} }))
-    expect(readPlanSession(storage).targets).toEqual([])
+    const storage = memoryStorage(); storage.setItem('bdo-planner:plan-session:v1', JSON.stringify({ version: 2, targets: [] })); expect(readPlanSession(storage).targets).toEqual([])
+    storage.setItem('bdo-planner:plan-session:v1', JSON.stringify(envelope([{ recipeId: 'x', mode: 'output', amount: -1 }]))); expect(readPlanSession(storage).targets).toEqual([])
+    storage.setItem('bdo-planner:plan-session:v1', JSON.stringify(envelope([{ recipeId: 'x', mode: 'output', amount: 1.5 }]))); expect(readPlanSession(storage).targets).toEqual([])
   })
 
-  it('rejects Cooking preparation policy on a non-durability target', () => {
+  it('accepts only supported yield policies on output targets', () => {
     const storage = memoryStorage()
-    storage.setItem('bdo-planner:plan-session:v1', JSON.stringify({ version: 1, targets: [{ recipeId: 'cooking:10', mode: 'output', amount: 10, cookingPreparationPolicy: 'safe95' }], craftIntermediateItemIds: [], intermediateRecipeIdByItemId: {}, variantIdByRecipeId: {} }))
-    expect(readPlanSession(storage).targets).toEqual([])
+    for (const yieldPolicy of ['minimum', 'expected', 'maximum']) { storage.setItem('bdo-planner:plan-session:v1', JSON.stringify(envelope([{ recipeId: 'x', mode: 'output', amount: 10, yieldPolicy }]))); expect(readPlanSession(storage).targets[0]?.yieldPolicy).toBe(yieldPolicy) }
+    storage.setItem('bdo-planner:plan-session:v1', JSON.stringify(envelope([{ recipeId: 'x', mode: 'output', amount: 10, yieldPolicy: 'optimistic' }]))); expect(readPlanSession(storage).targets).toEqual([])
+    storage.setItem('bdo-planner:plan-session:v1', JSON.stringify(envelope([{ recipeId: 'x', mode: 'servings', amount: 10, yieldPolicy: 'expected' }]))); expect(readPlanSession(storage).targets).toEqual([])
   })
 
-  it('deduplicates persisted intermediate craft ids and accepts legacy sessions without substitution choices', () => {
-    const storage = memoryStorage()
-    storage.setItem('bdo-planner:plan-session:v1', JSON.stringify({ version: 1, targets: [], craftIntermediateItemIds: [20, 20], intermediateRecipeIdByItemId: {}, variantIdByRecipeId: {} }))
-    expect(readPlanSession(storage)).toEqual({
-      version: 1,
-      targets: [],
-      craftIntermediateItemIds: [20],
-      intermediateRecipeIdByItemId: {},
-      variantIdByRecipeId: {},
-      selectedSubstitutionItemIdByGroupId: {},
-    })
-  })
+  it('rejects Cooking preparation policy on a non-durability target', () => { const storage = memoryStorage(); storage.setItem('bdo-planner:plan-session:v1', JSON.stringify(envelope([{ recipeId: 'cooking:10', mode: 'output', amount: 10, cookingPreparationPolicy: 'safe95' }]))); expect(readPlanSession(storage).targets).toEqual([]) })
 
-  it('fails closed on invalid substitution selections', () => {
-    const storage = memoryStorage()
-    storage.setItem('bdo-planner:plan-session:v1', JSON.stringify({ version: 1, targets: [], craftIntermediateItemIds: [], intermediateRecipeIdByItemId: {}, variantIdByRecipeId: {}, selectedSubstitutionItemIdByGroupId: { 'codex:6502': -1 } }))
-    expect(readPlanSession(storage).selectedSubstitutionItemIdByGroupId).toEqual({})
-  })
+  it('deduplicates persisted intermediate craft ids and accepts legacy sessions without substitution choices', () => { const storage = memoryStorage(); storage.setItem('bdo-planner:plan-session:v1', JSON.stringify({ version: 1, targets: [], craftIntermediateItemIds: [20, 20], intermediateRecipeIdByItemId: {}, variantIdByRecipeId: {} })); expect(readPlanSession(storage)).toEqual({ version: 1, targets: [], craftIntermediateItemIds: [20], intermediateRecipeIdByItemId: {}, variantIdByRecipeId: {}, selectedSubstitutionItemIdByGroupId: {} }) })
+
+  it('fails closed on invalid substitution selections', () => { const storage = memoryStorage(); storage.setItem('bdo-planner:plan-session:v1', JSON.stringify({ version: 1, targets: [], craftIntermediateItemIds: [], intermediateRecipeIdByItemId: {}, variantIdByRecipeId: {}, selectedSubstitutionItemIdByGroupId: { 'codex:6502': -1 } })); expect(readPlanSession(storage).selectedSubstitutionItemIdByGroupId).toEqual({}) })
 })
