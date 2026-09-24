@@ -28,7 +28,8 @@ export function applyYieldEvidence(dataset, evidence) {
   return { ...dataset, recipes, metadata }
 }
 
-if (process.argv[1]?.endsWith('apply-yield-evidence.mjs') && process.argv.length >= 5) {
+if (process.argv[1]?.endsWith('apply-yield-evidence.mjs')) {
+  if (process.argv.length !== 5) fail('usage: node scripts/apply-yield-evidence.mjs <dataset.json> <yield-evidence.json> <out.json>')
   const [, , datasetPath, evidencePath, outPath] = process.argv
   const dataset = JSON.parse(fs.readFileSync(datasetPath, 'utf8'))
   const evidence = JSON.parse(fs.readFileSync(evidencePath, 'utf8'))
