@@ -1,7 +1,7 @@
-import { expect, test } from '@playwright/test'
+import { expect, test, type Page } from '@playwright/test'
 
-async function installFixture(page: Parameters<typeof test>[0] extends never ? never : any, weightLT?: number) {
-  await page.route('**/data/dataset.json', async (route: any) => {
+async function installFixture(page: Page, weightLT?: number) {
+  await page.route('**/data/dataset.json', async (route) => {
     await route.fulfill({ contentType: 'application/json', body: JSON.stringify({
       metadata: { generatedAt: '2026-09-24T00:00:00Z', sources: ['E2E synthetic fixture'], supportedRegion: 'KR' },
       items: {
