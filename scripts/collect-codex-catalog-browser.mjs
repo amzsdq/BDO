@@ -59,6 +59,22 @@ function rowsFromPayload(payload) {
   return 0
 }
 
+function hasPaginationParameters(params) {
+  const keys = new Set(Object.keys(params || {}).map((key) => key.toLowerCase()))
+  return ['start', 'length', 'idisplaystart', 'idisplaylength', 'page', 'offset', 'limit'].some((key) => keys.has(key))
+}
+
+async function renderedRecipeIds(page) {
+  await page.waitForFunction(() => !document.body.innerText.includes('Loading data from server'), null, { timeout: 10000 }).catch(() => {})
+  const hrefs = await page.locator('a[href*="/kr/recipe/"]').evaluateAll((nodes) => nodes.map((node) => node.getAttribute('href') || ''))
+  const ids = new Set()
+  for (const href of hrefs) {
+    const match = href.match(/\/kr\/recipe\/(\d+)\//)
+    if (match) ids.add(Number(match[1]))
+  }
+  return [...ids].sort((a, b) => a - b)
+}
+
 function requestHeaders(request) {
   const source = request.headers()
   const headers = {}
@@ -109,40 +125,41 @@ async function collectCatalog(browser, catalog, timeoutMs) {
   if (!scope.ok) throw new Error(`${catalog.skill}: captured Codex request failed scope validation: ${scope.reason}`)
 
   const initial = await captured.json()
-  const total = totalFromPayload(initial)
-  if (!Number.isSafeInteger(total) || total <= 0) {
-    console.error(JSON.stringify({
-      diagnostic: 'codex-catalog-shape',
-      skill: catalog.skill,
-      url: captured.url(),
-      request: evidence,
-      topLevelKeys: initial && typeof initial === 'object' && !Array.isArray(initial) ? Object.keys(initial).sort() : [],
-      isArray: Array.isArray(initial),
-      arrayLength: Array.isArray(initial) ? initial.length : null,
-      aaDataLength: Array.isArray(initial?.aaData) ? initial.aaData.length : null,
-      dataLength: Array.isArray(initial?.data) ? initial.data.length : null,
-      firstRowShape: Array.isArray(initial?.aaData?.[0]) ? { kind: 'array', length: initial.aaData[0].length } : initial?.aaData?.[0] && typeof initial.aaData[0] === 'object' ? { kind: 'object', keys: Object.keys(initial.aaData[0]).sort() } : null,
-    }))
-    throw new Error(`${catalog.skill}: Codex response lacks a positive total-row count`)
-  }
-
+  const reportedTotal = totalFromPayload(initial)
+  const initialRows = rowsFromPayload(initial)
   const ids = new Set(recipeIdsFromJson(initial, { allowCodexAaData: true }))
   let pagesFetched = 1
-  const initialRows = rowsFromPayload(initial)
-  if (ids.size < total) {
-    const batchSize = Math.min(Math.max(initialRows || 100, 100), 500)
-    ids.clear()
-    for (let start = 0; start < total; start += batchSize) {
-      const payload = await replayPage(context, captured, start, batchSize)
-      pagesFetched += 1
-      const pageIds = recipeIdsFromJson(payload, { allowCodexAaData: true })
-      for (const id of pageIds) ids.add(id)
-      if (rowsFromPayload(payload) === 0) break
+  let completenessMode = 'server-reported-total'
+  let renderedIds = []
+
+  if (Number.isSafeInteger(reportedTotal) && reportedTotal > 0) {
+    if (ids.size < reportedTotal) {
+      const batchSize = Math.min(Math.max(initialRows || 100, 100), 500)
+      ids.clear()
+      for (let start = 0; start < reportedTotal; start += batchSize) {
+        const payload = await replayPage(context, captured, start, batchSize)
+        pagesFetched += 1
+        const pageIds = recipeIdsFromJson(payload, { allowCodexAaData: true })
+        for (const id of pageIds) ids.add(id)
+        if (rowsFromPayload(payload) === 0) break
+      }
     }
+  } else {
+    if (!Array.isArray(initial?.aaData) || initialRows <= 0) {
+      throw new Error(`${catalog.skill}: Codex response has neither a reported total nor a non-empty aaData full-array response`)
+    }
+    if (hasPaginationParameters(evidence.params)) {
+      throw new Error(`${catalog.skill}: Codex omitted a total while the request contains pagination parameters; completeness cannot be proven`)
+    }
+    renderedIds = await renderedRecipeIds(page)
+    completenessMode = 'unpaginated-full-array+rendered-id-crosscheck'
   }
 
   const recipeIds = [...ids].sort((a, b) => a - b)
-  const complete = recipeIds.length === total
+  const targetCount = Number.isSafeInteger(reportedTotal) && reportedTotal > 0 ? reportedTotal : initialRows
+  const renderedMatches = completenessMode !== 'unpaginated-full-array+rendered-id-crosscheck'
+    || (renderedIds.length === recipeIds.length && JSON.stringify(renderedIds) === JSON.stringify(recipeIds))
+  const complete = recipeIds.length === targetCount && renderedMatches
   const result = {
     skill: catalog.skill,
     catalogUrl: catalog.url,
@@ -153,15 +170,21 @@ async function collectCatalog(browser, catalog, timeoutMs) {
     endpointFinalUrl: captured.url(),
     endpointRequest: evidence,
     endpointEvidence: {
-      recordsReported: total,
+      recordsReported: Number.isSafeInteger(reportedTotal) && reportedTotal > 0 ? reportedTotal : null,
+      fullArrayRows: initialRows,
+      renderedRecipeIds: renderedIds.length || null,
+      requestPaginationParametersPresent: hasPaginationParameters(evidence.params),
       firstResponseRows: initialRows,
       pagesFetched,
+      completenessMode,
       acquisition: 'playwright-network-capture',
     },
     countMatchesExpected: null,
   }
   await context.close()
-  if (!complete) throw new Error(`${catalog.skill}: captured ${recipeIds.length} unique recipe ids but Codex reports ${total}`)
+  if (!complete) {
+    throw new Error(`${catalog.skill}: completeness cross-check failed: ids=${recipeIds.length}, target=${targetCount}, rendered=${renderedIds.length || 'n/a'}, mode=${completenessMode}`)
+  }
   return result
 }
 
@@ -180,7 +203,7 @@ try {
   }
   await mkdir(dirname(args.out), { recursive: true })
   await writeFile(args.out, `${JSON.stringify(result, null, 2)}\n`)
-  for (const catalog of catalogs) console.log(`${catalog.skill}: ${catalog.recipeCount}/${catalog.endpointEvidence.recordsReported} complete via ${catalog.endpointRequest.method} ${catalog.endpointUsed}`)
+  for (const catalog of catalogs) console.log(`${catalog.skill}: ${catalog.recipeCount} complete via ${catalog.endpointEvidence.completenessMode} / ${catalog.endpointRequest.method} ${catalog.endpointUsed}`)
 } finally {
   await browser.close()
 }
