@@ -5,14 +5,30 @@ import { assertYieldReleaseEvidence } from './yield-release-evidence.mjs'
 
 function fail(message) { console.error(`release blocked: ${message}`); process.exit(1) }
 const args = process.argv.slice(2)
-if (args.length !== 5 || args.some((value) => !value || value.startsWith('--'))) fail('usage: node scripts/assert-production-release.mjs <dataset.json> <reconciliation-report.json> <codex-catalog.json> <mastery-evidence.json> <mastery.json>')
-const [datasetFile] = args
-if (!fs.existsSync(datasetFile)) fail(`dataset not found: ${datasetFile}`)
+if (args.length !== 6 || args.some((value) => !value || value.startsWith('--'))) fail('usage: node scripts/assert-production-release.mjs <dataset.json> <reconciliation-report.json> <codex-catalog.json> <mastery-evidence.json> <mastery.json> <e2e-release-evidence.json>')
+const [datasetFile, reconciliationFile, catalogFile, masteryEvidenceFile, masteryFile, e2eEvidenceFile] = args
+for (const file of [datasetFile, reconciliationFile, catalogFile, masteryEvidenceFile, masteryFile, e2eEvidenceFile]) {
+  if (!fs.existsSync(file)) fail(`required release artifact not found: ${file}`)
+}
 try {
   const dataset = JSON.parse(fs.readFileSync(datasetFile, 'utf8'))
   assertKoreanNameReleaseEvidence(dataset)
   assertYieldReleaseEvidence(dataset)
 } catch (error) { fail(error instanceof Error ? error.message : String(error)) }
-const existingGate = spawnSync(process.execPath, ['scripts/assert-release-readiness.mjs', ...args], { cwd: process.cwd(), encoding: 'utf8' })
+
+const readinessArgs = [datasetFile, reconciliationFile, catalogFile, masteryEvidenceFile, masteryFile]
+const existingGate = spawnSync(process.execPath, ['scripts/assert-release-readiness.mjs', ...readinessArgs], { cwd: process.cwd(), encoding: 'utf8' })
 if (existingGate.status !== 0) { process.stderr.write(existingGate.stderr || existingGate.stdout || 'release blocked: existing readiness gate failed\n'); process.exit(1) }
+
+const e2eGate = spawnSync(process.execPath, ['scripts/assert-e2e-release-evidence.mjs', e2eEvidenceFile], { cwd: process.cwd(), encoding: 'utf8' })
+if (e2eGate.status !== 0) { process.stderr.write(e2eGate.stderr || e2eGate.stdout || 'release blocked: E2E evidence gate failed\n'); process.exit(1) }
+
+let evidence
+try { evidence = JSON.parse(fs.readFileSync(e2eEvidenceFile, 'utf8')) } catch (error) { fail(`cannot parse E2E evidence: ${error instanceof Error ? error.message : String(error)}`) }
+const git = spawnSync('git', ['rev-parse', 'HEAD'], { cwd: process.cwd(), encoding: 'utf8' })
+if (git.status !== 0) fail('cannot resolve exact release git HEAD')
+const head = git.stdout.trim()
+if (evidence.mainCommit !== head) fail(`E2E evidence mainCommit ${evidence.mainCommit} does not match release HEAD ${head}`)
+
 process.stdout.write(existingGate.stdout)
+process.stdout.write(e2eGate.stdout)
