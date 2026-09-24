@@ -68,9 +68,14 @@ for (const skill of ['cooking', 'alchemy']) {
     : validateResolvedCatalogEndpoint(entry.endpointFinalUrl || entry.endpointUsed, skill)
   if (!configuredScope.ok || !finalScope.ok) fail(`Codex ${skill} catalog endpoint scope is invalid`)
   const endpointCountMatches = entry.endpointEvidence.recordsReported === entry.recipeCount
+  const fullArrayTransportMatches =
+    entry.endpointEvidence.completenessMode === 'unpaginated-full-array+rendered-id-crosscheck'
+    && entry.endpointEvidence.requestPaginationParametersPresent === false
+    && entry.endpointEvidence.fullArrayRows === entry.recipeCount
+    && entry.endpointEvidence.renderedRecipeIds === entry.recipeCount
   const expectedEvidence = normalizeExpectedCountEvidence({ [skill]: entry.expectedCountEvidence }, skill)
   const independentCountMatches = entry.countMatchesExpected === true && expectedEvidence?.valid === true && expectedEvidence.count === entry.recipeCount
-  if (!endpointCountMatches && !independentCountMatches) fail(`Codex ${skill} catalog lacks independently auditable count evidence`)
+  if (!endpointCountMatches && !fullArrayTransportMatches && !independentCountMatches) fail(`Codex ${skill} catalog lacks auditable completeness evidence`)
   if (!Array.isArray(entry.recipeIds) || sortedIds(entry.recipeIds).length !== entry.recipeCount) fail(`Codex ${skill} catalog recipe-id evidence is incomplete`)
 }
 const completeCatalogPages = ['cooking', 'alchemy'].reduce((sum, skill) => sum + catalogBySkill.get(skill).recipeCount, 0)
