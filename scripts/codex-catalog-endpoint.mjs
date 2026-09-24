@@ -39,3 +39,30 @@ export function catalogEndpointForSkill(template, skill) {
   const category = skill === 'cooking' ? 'culinary' : skill
   return String(template).replaceAll('{skill}', skill).replaceAll('{category}', category)
 }
+
+
+function normalizeEvidenceParams(value) {
+  const out = new Map()
+  if (!value || typeof value !== 'object') return out
+  for (const [key, child] of Object.entries(value)) {
+    if (child == null) continue
+    out.set(String(key).toLowerCase(), String(child).toLowerCase())
+  }
+  return out
+}
+
+export function validateCapturedCatalogRequest(url, requestEvidence, expectedSkill = null) {
+  const base = parseAndValidateResolvedCodexUrl(url)
+  if (!base.ok) return { ok: false, reason: base.reason }
+
+  const merged = new Map(base.params)
+  for (const [key, value] of normalizeEvidenceParams(requestEvidence?.params)) merged.set(key, value)
+
+  if (merged.get('a') !== 'recipes') return { ok: false, reason: 'captured request must use a=recipes' }
+  if (merged.has('item_id') || merged.get('type') === 'product') {
+    return { ok: false, reason: 'product/item-scoped Codex endpoints cannot prove complete Cooking/Alchemy catalogs' }
+  }
+  const method = String(requestEvidence?.method || 'GET').toUpperCase()
+  if (!['GET', 'POST'].includes(method)) return { ok: false, reason: 'captured request method must be GET or POST' }
+  return validateSkillScope(merged, expectedSkill)
+}
