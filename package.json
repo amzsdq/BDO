@@ -19,7 +19,8 @@
     "data:validate": "node scripts/validate-dataset.mjs",
     "data:reconcile": "node scripts/reconcile-codex.mjs",
     "data:promote": "node scripts/promote-production-dataset.mjs",
-    "data:release-gate": "node scripts/assert-production-release.mjs"
+    "data:release-gate": "node scripts/assert-production-release.mjs",
+    "data:codex:browser": "node scripts/collect-codex-catalog-browser.mjs"
   },
   "dependencies": {
     "react": "^19.1.1",
