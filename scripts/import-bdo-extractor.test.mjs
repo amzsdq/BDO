@@ -5,6 +5,8 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
 
+const TEST_EXTRACTOR_SHA = '5bf11bd7bc60dcbb6126be34bf3d76633abdd8b2'
+
 function importDataset(items, recipes) {
   const dir = mkdtempSync(join(tmpdir(), 'bdo-import-'))
   const itemsPath = join(dir, 'items.json')
@@ -12,7 +14,7 @@ function importDataset(items, recipes) {
   const outPath = join(dir, 'dataset.json')
   writeFileSync(itemsPath, JSON.stringify(items))
   writeFileSync(recipesPath, JSON.stringify(recipes))
-  execFileSync(process.execPath, [resolve('scripts/import-bdo-extractor.mjs'), '--items', itemsPath, '--recipes', recipesPath, '--out', outPath, '--source-revision', 'test'])
+  execFileSync(process.execPath, [resolve('scripts/import-bdo-extractor.mjs'), '--items', itemsPath, '--recipes', recipesPath, '--out', outPath, '--source-revision', TEST_EXTRACTOR_SHA])
   return { dataset: JSON.parse(readFileSync(outPath, 'utf8')), outPath }
 }
 function expectedVariantId(identity) {
@@ -33,6 +35,7 @@ describe('bdo extractor importer icon contract', () => {
     expect(dataset.items['101'].iconPath).toBe('icons/101.webp')
     expect(dataset.items['200'].iconPath).toBe('icons/200.webp')
     expect(dataset.metadata.extractorContract).toContain('icons/<itemId>.webp')
+    expect(dataset.metadata.sourceRevision).toBe(`iDevelopThings/bdo-data-extractor@${TEST_EXTRACTOR_SHA}`)
   })
 
   it('emits a byproduct graph that satisfies the structural validator', () => {
@@ -107,5 +110,16 @@ describe('bdo extractor importer icon contract', () => {
     const result = spawnSync(process.execPath, [resolve('scripts/import-bdo-extractor.mjs'), ...extraArgs], { encoding: 'utf8' })
     expect(result.status).not.toBe(0)
     expect(result.stderr).toContain(expectedError)
+  })
+
+  it('rejects floating or missing extractor revisions', () => {
+    const base = [resolve('scripts/import-bdo-extractor.mjs'), '--items', 'missing-items.json', '--recipes', 'missing-recipes.json', '--out', 'missing-out.json']
+    const missing = spawnSync(process.execPath, base, { encoding: 'utf8' })
+    expect(missing.status).not.toBe(0)
+    expect(missing.stderr).toContain('required: --items --recipes --out --source-revision')
+
+    const floating = spawnSync(process.execPath, [...base, '--source-revision', 'v0.1.9'], { encoding: 'utf8' })
+    expect(floating.status).not.toBe(0)
+    expect(floating.stderr).toContain('exact 40-character')
   })
 })
