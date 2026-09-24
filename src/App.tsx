@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { verifiedAlchemyMasteryRow } from './domain/alchemyMastery'
 import { searchRecipes } from './domain/search'
-import type { ItemId, RecipeId } from './domain/types'
+import type { ItemId, RecipeId, YieldPolicy } from './domain/types'
 import type { CookingPreparationPolicy } from './domain/durabilityPlan'
 import type { PlannerBootstrap } from './data/plannerBootstrap'
 import { buildActivePlanView } from './data/activePlanView'
@@ -37,6 +37,7 @@ export function App({ bootstrap }: { bootstrap: ReadyBootstrap }) {
   const skill = selectedRecipe?.skill ?? 'cooking'
   const mode = active?.target.mode ?? 'servings'
   const amount = active?.target.amount ?? 1
+  const yieldPolicy: YieldPolicy = active?.target.yieldPolicy ?? 'minimum'
   const cookingPreparationPolicy: CookingPreparationPolicy = active?.target.cookingPreparationPolicy ?? 'safe95'
   const craftIntermediateItemIds = useMemo(() => new Set<ItemId>(session.craftIntermediateItemIds as ItemId[]), [session.craftIntermediateItemIds])
   const intermediateRecipeIdByItemId = session.intermediateRecipeIdByItemId as Record<string, RecipeId>
@@ -46,8 +47,9 @@ export function App({ bootstrap }: { bootstrap: ReadyBootstrap }) {
   const activeResult = results[activeResultIndex]
   const activePlan = useMemo(() => selectedRecipe ? buildActivePlanView(dataset, {
     recipeId: selectedRecipe.id, variantId: selectedVariant?.id, mode, amount, skill: selectedRecipe.skill,
+    yieldPolicy: mode === 'output' ? yieldPolicy : undefined,
     cookingPreparationPolicy: mode === 'durability' && selectedRecipe.skill === 'cooking' ? cookingPreparationPolicy : undefined,
-  }, inventory, profile, { craftIntermediateItemIds, intermediateRecipeIdByItemId }) : { estimatedPreparation: false }, [amount, cookingPreparationPolicy, craftIntermediateItemIds, dataset, intermediateRecipeIdByItemId, inventory, mode, profile, selectedRecipe, selectedVariant])
+  }, inventory, profile, { craftIntermediateItemIds, intermediateRecipeIdByItemId }) : { estimatedPreparation: false }, [amount, cookingPreparationPolicy, craftIntermediateItemIds, dataset, intermediateRecipeIdByItemId, inventory, mode, profile, selectedRecipe, selectedVariant, yieldPolicy])
   const sessionPlan = useMemo(() => buildPlanFromSession(dataset, session, inventory, profile), [dataset, inventory, profile, session])
   const requestedServings = activePlan.materialServings
   const batch = activePlan.batch
@@ -77,7 +79,7 @@ export function App({ bootstrap }: { bootstrap: ReadyBootstrap }) {
       <div className="search-wrap"><label className="field"><span>제작물 검색</span><input value={query} onChange={(e) => { setQuery(e.target.value); setActiveResultIndex(0) }} onKeyDown={handleSearchKeyDown} placeholder={selectedItem?.nameKo ?? '예: 맥주'} aria-label="제작물 검색" role="combobox" aria-autocomplete="list" aria-expanded={searchOpen} aria-controls="recipe-search-results" aria-activedescendant={searchOpen && activeResult ? `recipe-option-${activeResult.recipe.id}` : undefined} autoComplete="off" /></label>{searchOpen && <div id="recipe-search-results" className="search-results" role="listbox" aria-label="검색 결과">{results.length ? results.map(({ recipe, item }, index) => <button id={`recipe-option-${recipe.id}`} key={recipe.id} role="option" aria-selected={index === activeResultIndex} onMouseEnter={() => setActiveResultIndex(index)} onClick={() => selectSearchResult(index)}><span>{item.nameKo}</span><small>{recipe.skill === 'cooking' ? '요리' : '연금'}</small></button>) : <p>일치하는 제작물이 없습니다.</p>}</div>}</div>
       <div className="selected-target"><small>선택한 제작물 · {skill === 'cooking' ? '요리' : '연금'}</small><strong>{selectedItem?.nameKo ?? '선택 필요'}</strong></div>
       {selectedRecipe.variants.length > 1 && <label className="field"><span>재료 조합</span><select value={selectedVariant?.id ?? ''} onChange={(e) => setSession((current) => selectTargetVariant(current, active.index, selectedRecipe.id, e.target.value))}>{selectedRecipe.variants.map((variant, index) => <option key={variant.id} value={variant.id}>조합 {index + 1} · {variant.inputs.map((input) => `${dataset.items[String(input.itemId)]?.nameKo ?? `#${input.itemId}`} ×${input.count}`).join(' + ')}</option>)}</select><small>선택한 조합은 준비 목록과 무게 계산에 동일하게 적용됩니다.</small></label>}
-      <PlanTargetControls skill={skill} mode={mode} amount={amount} cookingPreparationPolicy={cookingPreparationPolicy} onModeChange={(next) => setSession((current) => updateActiveSessionTargetMode(current, active.index, skill, next, cookingPreparationPolicy))} onAmountChange={(next) => patchActive({ amount: next })} onCookingPreparationPolicyChange={(next) => patchActive({ cookingPreparationPolicy: next })} />
+      <PlanTargetControls skill={skill} mode={mode} amount={amount} yieldPolicy={yieldPolicy} cookingPreparationPolicy={cookingPreparationPolicy} onModeChange={(next) => setSession((current) => updateActiveSessionTargetMode(current, active.index, skill, next, cookingPreparationPolicy, yieldPolicy))} onAmountChange={(next) => patchActive({ amount: next })} onYieldPolicyChange={(next) => patchActive({ yieldPolicy: next })} onCookingPreparationPolicyChange={(next) => patchActive({ cookingPreparationPolicy: next })} />
       <IntermediateCraftControls dataset={dataset} variant={selectedVariant} craftItemIds={craftIntermediateItemIds} producerByItemId={intermediateRecipeIdByItemId} onCraftChange={setIntermediateCraft} onProducerChange={setIntermediateProducer} />
       <details className="profile-card"><summary>캐릭터 설정 · 무게/숙련도</summary><div className="profile-grid"><label className="field"><span>최대 무게 (LT)</span><input type="number" min="0" value={profile.maxWeightLT ?? ''} onChange={(e) => setProfileNumber('maxWeightLT', e.target.value)} /></label><label className="field"><span>예약 무게 (LT)</span><input type="number" min="0" value={profile.reservedWeightLT ?? ''} onChange={(e) => setProfileNumber('reservedWeightLT', e.target.value)} /></label><label className="field"><span>요리 숙련도</span><input type="number" min="0" value={profile.cookingMastery ?? ''} onChange={(e) => setProfileNumber('cookingMastery', e.target.value)} /></label><label className="field"><span>연금 숙련도</span><input type="number" min="0" value={profile.alchemyMastery ?? ''} onChange={(e) => setProfileNumber('alchemyMastery', e.target.value)} /></label></div><small>숙련도는 요리·연금을 별도로 저장합니다. 확률 효과는 검증된 표의 정확한 숙련도 값에서만 계산합니다.</small></details>
       {activePlan.error && <p className="data-notice" role="alert">{activePlan.error}</p>}
