@@ -65,10 +65,10 @@ test('alchemy flow stays separate from Cooking mass-preparation controls', async
 })
 
 test('weight profile limits the requested batch and exposes exact carry quantities', async ({ page }) => {
-  // Exercise the positive weight-planning path with an explicit browser fixture.
-  // The bundled fallback deliberately omits item weights, so relying on it would
-  // only test the fail-closed path rather than E2E-04's exact carry calculation.
-  await page.route('**/data/dataset.json', async (route) => {
+  // Use a unique pathname so the fixture cannot be confused with Vite's bundled
+  // public/data/dataset.json. Runtime fetch is relative to the current pathname,
+  // so this deterministically exercises the routed fixture on both CI projects.
+  await page.route('**/e2e-weight/data/dataset.json', async (route) => {
     await route.fulfill({
       contentType: 'application/json',
       body: JSON.stringify({
@@ -95,7 +95,7 @@ test('weight profile limits the requested batch and exposes exact carry quantiti
     })
   })
 
-  await page.goto('/')
+  await page.goto('/e2e-weight/')
   await expect(page.locator('.selected-target strong')).toHaveText('E2E 무게 요리')
 
   await page.getByText('캐릭터 설정 · 무게/숙련도').click()
@@ -105,7 +105,7 @@ test('weight profile limits the requested batch and exposes exact carry quantiti
   const batchSummary = page.locator('.batch-summary')
   await expect(batchSummary).toBeVisible()
   await expect(batchSummary).toContainText('가용 8 LT')
-  await expect(batchSummary).toContainText('1회분 0.5 LT')
+  await expect(batchSummary).toContainText('1회분 0.50 LT')
   await expect(batchSummary).toContainText('최대 적재 16회분')
 
   const carryLines = batchSummary.locator('.carry-lines li')
