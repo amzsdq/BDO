@@ -53,6 +53,9 @@ for (const id of required) {
   const scenario = byId.get(id);
   if (!scenario) fail(`missing ${id}`);
   if (scenario.status !== 'PASS') fail(`${id} must be PASS`);
+  const scenarioViewports = new Set(Array.isArray(scenario.viewports) ? scenario.viewports : []);
+  if (!scenarioViewports.has('desktop') || !scenarioViewports.has('narrow')) fail(`${id} must PASS on desktop and narrow viewports`);
+  if (scenario.keyboardOnly !== true) fail(`${id} must record keyboard-only primary-control PASS`);
   if (!evidencePointerResolves(scenario.evidence)) fail(`${id} evidence must be an existing manifest-relative file or HTTPS URL`);
   if (!sha256.test(scenario.evidenceSha256 ?? '') || allZero(scenario.evidenceSha256)) fail(`${id} evidenceSha256 must be a non-placeholder SHA-256`);
   const localPath = localEvidencePath(scenario.evidence);
