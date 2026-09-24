@@ -121,3 +121,66 @@ test('weight profile limits the requested batch and exposes exact carry quantiti
   await expect(carryLines.first()).toBeVisible()
   await expect(carryLines.first()).toContainText('80개')
 })
+
+
+test('cooking durability uses source-verified mastery policies for material servings', async ({ page }) => {
+  await page.route('**/data/dataset.json', async (route) => {
+    await route.fulfill({
+      contentType: 'application/json',
+      body: JSON.stringify({
+        metadata: {
+          generatedAt: '2026-09-24T00:00:00Z',
+          sources: ['E2E synthetic fixture'],
+          supportedRegion: 'KR',
+        },
+        items: {
+          '920001': { id: 920001, nameKo: 'E2E 숙련 요리' },
+          '920002': { id: 920002, nameKo: 'E2E 숙련 재료', weightLT: 0.1 },
+        },
+        recipes: {
+          'e2e-mastery-cooking': {
+            id: 'e2e-mastery-cooking',
+            skill: 'cooking',
+            outputItemId: 920001,
+            yield: { min: 1, max: 1 },
+            variants: [{ id: 'default', inputs: [{ itemId: 920002, count: 5 }] }],
+          },
+        },
+        recipesByOutput: { '920001': ['e2e-mastery-cooking'] },
+      }),
+    })
+  })
+
+  await page.goto('/')
+  await expect(page.locator('.selected-target strong')).toHaveText('E2E 숙련 요리')
+
+  await page.getByRole('button', { name: '도구 사용' }).click()
+  await page.getByLabel('사용할 도구 내구도').fill('10')
+
+  await page.getByText('캐릭터 설정 · 무게/숙련도').click()
+  await page.getByLabel('요리 숙련도').fill('1000')
+  await page.getByLabel('최대 무게 (LT)').fill('1000')
+
+  const policy = page.getByLabel('대량 요리 준비 기준')
+  const summary = page.locator('.summary-card').filter({ hasText: '현재 목표 준비 재료' })
+  const batchSummary = page.locator('.batch-summary')
+  const materialRow = page.locator('.material-row').filter({ hasText: 'E2E 숙련 재료' })
+
+  const cases = [
+    { value: 'minimum', servings: 10, required: 50, totalLT: '5.00' },
+    { value: 'expected', servings: 41, required: 205, totalLT: '20.50' },
+    { value: 'safe95', servings: 64, required: 320, totalLT: '32.00' },
+    { value: 'maximum', servings: 100, required: 500, totalLT: '50.00' },
+  ] as const
+
+  for (const entry of cases) {
+    await policy.selectOption(entry.value)
+    await expect(summary).toContainText(`${entry.servings}회분`)
+    await expect(batchSummary).toContainText(`${entry.servings}회분 · ${entry.totalLT} LT`)
+    await expect(materialRow.locator('.quantity').first()).toContainText(String(entry.required))
+  }
+
+  // Off-grid mastery must fail closed rather than interpolate.
+  await page.getByLabel('요리 숙련도').fill('1001')
+  await expect(page.getByRole('alert').filter({ hasText: 'Cooking mastery is not a source-verified breakpoint' }).first()).toBeVisible()
+})
