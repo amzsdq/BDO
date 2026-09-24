@@ -6,8 +6,9 @@ import type { PersistedPlanTarget, PlanSessionState } from './planSession'
  * index-based: duplicate recipe targets are valid when a user plans separate
  * batches, so recipeId is not a safe identity key.
  *
- * The recipe-level variant preference participates in recursive planning, so a
- * recipe replacement must keep that projection synchronized with the target.
+ * Recipe replacement moves the recursive-planner preference to the new recipe.
+ * Same-recipe edits with no explicit target variant preserve an existing
+ * recipe-level fallback instead of accidentally erasing it.
  */
 export function replacePlanTarget(
   session: PlanSessionState,
@@ -22,13 +23,14 @@ export function replacePlanTarget(
   const targets = session.targets.slice()
   targets[index] = { ...target }
   const variantIdByRecipeId = { ...session.variantIdByRecipeId }
+  const recipeChanged = previous?.recipeId !== target.recipeId
 
-  if (previous?.recipeId !== target.recipeId && previous?.recipeId) {
+  if (recipeChanged && previous?.recipeId) {
     const siblingStillUsesPrevious = targets.some((entry, targetIndex) => targetIndex !== index && entry.recipeId === previous.recipeId)
     if (!siblingStillUsesPrevious) delete variantIdByRecipeId[String(previous.recipeId)]
   }
   if (target.variantId) variantIdByRecipeId[String(target.recipeId)] = target.variantId
-  else delete variantIdByRecipeId[String(target.recipeId)]
+  else if (recipeChanged) delete variantIdByRecipeId[String(target.recipeId)]
 
   return { ...session, targets, variantIdByRecipeId }
 }
@@ -55,10 +57,7 @@ export function removePlanTarget(session: PlanSessionState, index: number): Plan
   return { ...session, targets, variantIdByRecipeId }
 }
 
-/**
- * Keep the selected variant in both places used by the planner session model:
- * the target projection and the recipe-level preference map.
- */
+/** Keep explicit variant selection synchronized in target and recipe-level preference. */
 export function selectTargetVariant(
   session: PlanSessionState,
   index: number,
@@ -70,5 +69,9 @@ export function selectTargetVariant(
     throw new RangeError(`Plan target index ${index} does not match recipe ${recipeId}`)
   }
 
-  return replacePlanTarget(session, index, { ...current, variantId })
+  const replaced = replacePlanTarget(session, index, { ...current, variantId })
+  const variantIdByRecipeId = { ...replaced.variantIdByRecipeId }
+  if (variantId) variantIdByRecipeId[String(recipeId)] = variantId
+  else delete variantIdByRecipeId[String(recipeId)]
+  return { ...replaced, variantIdByRecipeId }
 }
