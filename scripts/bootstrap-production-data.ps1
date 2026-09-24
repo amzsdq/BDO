@@ -1,7 +1,7 @@
 param(
   [string]$GameDir = "",
   [string]$OutDir = ".bdo-production-snapshot",
-  [string]$ExtractorVersion = "v0.1.9"
+  [string]$ExtractorRevision = "5bf11bd7bc60dcbb6126be34bf3d76633abdd8b2"
 )
 
 $ErrorActionPreference = "Stop"
@@ -51,6 +51,10 @@ function Require-Command {
   return $command.Source
 }
 
+if ($ExtractorRevision -notmatch '^[0-9a-f]{40}$') {
+  throw "ExtractorRevision must be an exact 40-character git commit SHA, not a floating tag/ref: $ExtractorRevision"
+}
+
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $ResolvedGameDir = Resolve-BdoGameDir $GameDir
 $ResolvedOutDir = [System.IO.Path]::GetFullPath((Join-Path $RepoRoot $OutDir))
@@ -60,8 +64,8 @@ Require-Command "go" | Out-Null
 Require-Command "node" | Out-Null
 Require-Command "npm" | Out-Null
 
-Write-Host "[1/6] Installing reviewed extractor $ExtractorVersion"
-& go install "github.com/iDevelopThings/bdo-data-extractor@$ExtractorVersion"
+Write-Host "[1/6] Installing reviewed extractor commit $ExtractorRevision"
+& go install "github.com/iDevelopThings/bdo-data-extractor@$ExtractorRevision"
 if ($LASTEXITCODE -ne 0) { throw "go install failed" }
 
 $GoPath = (& go env GOPATH).Trim()
@@ -99,7 +103,7 @@ if ($ClientExe) {
   $ClientVersion = $null
 }
 $ClientFingerprint = "sha256:$ClientHash"
-$SourceRevision = "iDevelopThings/bdo-data-extractor@$ExtractorVersion"
+$SourceRevision = "iDevelopThings/bdo-data-extractor@$ExtractorRevision"
 
 Write-Host "[4/6] Recording same-snapshot provenance"
 $Hashes = @{}
@@ -111,7 +115,7 @@ $Provenance = [ordered]@{
   source = "installed Black Desert client"
   supportedRegion = "KR"
   extractor = "iDevelopThings/bdo-data-extractor"
-  extractorRevision = $ExtractorVersion
+  extractorRevision = $ExtractorRevision
   extractedAt = $ExtractedAt
   clientFingerprint = $ClientFingerprint
   clientFileVersion = $ClientVersion
@@ -141,5 +145,6 @@ Write-Host "Production client snapshot acquired successfully."
 Write-Host "snapshot=$ResolvedOutDir"
 Write-Host "dataset=$Dataset"
 Write-Host "provenance=$ProvenancePath"
+Write-Host "extractorRevision=$ExtractorRevision"
 Write-Host "clientFingerprint=$ClientFingerprint"
 Write-Host "Next: collect Codex KR catalog evidence, enrich Korean names/icons, reconcile, then run release gate."
