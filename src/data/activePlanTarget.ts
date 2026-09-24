@@ -1,5 +1,5 @@
 import type { CookingPreparationPolicy } from '../domain/durabilityPlan'
-import type { RecipeId } from '../domain/types'
+import type { RecipeId, YieldPolicy } from '../domain/types'
 import type { PersistedPlanTarget, PlanInputMode } from './planSession'
 
 export interface ActivePlanTargetInput {
@@ -8,14 +8,11 @@ export interface ActivePlanTargetInput {
   mode: PlanInputMode
   amount: number
   skill: 'cooking' | 'alchemy'
+  yieldPolicy?: YieldPolicy
   cookingPreparationPolicy?: CookingPreparationPolicy
 }
 
-/**
- * Convert the primary single-target UI controls into the persisted/session target
- * consumed by resolvePlanTarget(s). This keeps durability semantics out of App.tsx:
- * Cooking durability may carry a preparation policy; Alchemy never does.
- */
+/** Convert primary UI controls into the persisted/session target consumed by resolvePlanTarget(s). */
 export function activePlanTarget(input: ActivePlanTargetInput): PersistedPlanTarget {
   const amount = Number(input.amount)
   if (!Number.isFinite(amount) || amount <= 0 || !Number.isInteger(amount)) throw new Error('plan amount must be a positive integer')
@@ -28,6 +25,7 @@ export function activePlanTarget(input: ActivePlanTargetInput): PersistedPlanTar
     variantId: input.variantId,
     mode: input.mode,
     amount,
+    yieldPolicy: input.mode === 'output' ? input.yieldPolicy ?? 'minimum' : undefined,
     cookingPreparationPolicy: input.mode === 'durability' && input.skill === 'cooking'
       ? input.cookingPreparationPolicy
       : undefined,
