@@ -148,9 +148,16 @@ async function fetchWithRetry(url, fetchImpl, timeoutMs, retries) {
     try {
       const response = await fetchImpl(url, { headers: { 'user-agent': 'BDO-Planner-Completeness-Audit/1.0', accept: 'text/html' }, signal: AbortSignal.timeout(timeoutMs) })
       if (response.ok) return response
-      if (response.status < 500 && response.status !== 429) throw new Error(`${response.status} ${response.statusText}`)
-      last = new Error(`${response.status} ${response.statusText}`)
-    } catch (error) { last = error }
+      const error = new Error(`${response.status} ${response.statusText}`)
+      if (response.status < 500 && response.status !== 429) {
+        error.nonRetryable = true
+        throw error
+      }
+      last = error
+    } catch (error) {
+      if (error?.nonRetryable) throw error
+      last = error
+    }
   }
   throw last
 }
