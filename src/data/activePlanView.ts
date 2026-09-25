@@ -25,7 +25,7 @@ export function buildActivePlanView(
   dataset: RecipeDataset,
   input: ActivePlanTargetInput,
   inventory: Readonly<Record<string, number>>,
-  profile: Pick<CharacterProfileState, 'cookingMastery' | 'maxWeightLT' | 'reservedWeightLT'>,
+  profile: Pick<CharacterProfileState, 'cookingMastery' | 'alchemyMastery' | 'maxWeightLT' | 'reservedWeightLT'>,
   options: Partial<ActivePlanOptions> = {},
 ): ActivePlanView {
   const built = buildActivePlan(dataset, input, inventory, profile, options)
