@@ -6,149 +6,21 @@
   "reconciliationTimestamp": "2026-01-01T00:00:00Z",
   "masterySha256": "0000000000000000000000000000000000000000000000000000000000000000",
   "masteryEvidenceFingerprint": "REPLACE_WITH_MASTERY_EVIDENCE_SHA256",
-  "browsers": [
-    "chromium"
-  ],
+  "browsers": ["chromium"],
   "viewports": [
-    {
-      "label": "desktop",
-      "width": 1440,
-      "height": 900
-    },
-    {
-      "label": "narrow",
-      "width": 390,
-      "height": 844
-    }
+    {"label":"desktop","width":1440,"height":900},
+    {"label":"narrow","width":390,"height":844}
   ],
   "keyboardOnlyPrimaryControls": true,
   "scenarios": [
-    {
-      "id": "E2E-01",
-      "status": "PASS",
-      "browsers": [
-        "chromium"
-      ],
-      "viewports": [
-        "desktop",
-        "narrow"
-      ],
-      "keyboardOnly": true,
-      "evidence": "REPLACE",
-      "evidenceSha256": "REPLACE"
-    },
-    {
-      "id": "E2E-02",
-      "status": "PASS",
-      "browsers": [
-        "chromium"
-      ],
-      "viewports": [
-        "desktop",
-        "narrow"
-      ],
-      "keyboardOnly": true,
-      "evidence": "REPLACE",
-      "evidenceSha256": "REPLACE"
-    },
-    {
-      "id": "E2E-03",
-      "status": "PASS",
-      "browsers": [
-        "chromium"
-      ],
-      "viewports": [
-        "desktop",
-        "narrow"
-      ],
-      "keyboardOnly": true,
-      "evidence": "REPLACE",
-      "evidenceSha256": "REPLACE"
-    },
-    {
-      "id": "E2E-04",
-      "status": "PASS",
-      "browsers": [
-        "chromium"
-      ],
-      "viewports": [
-        "desktop",
-        "narrow"
-      ],
-      "keyboardOnly": true,
-      "evidence": "REPLACE",
-      "evidenceSha256": "REPLACE"
-    },
-    {
-      "id": "E2E-05",
-      "status": "PASS",
-      "browsers": [
-        "chromium"
-      ],
-      "viewports": [
-        "desktop",
-        "narrow"
-      ],
-      "keyboardOnly": true,
-      "evidence": "REPLACE",
-      "evidenceSha256": "REPLACE"
-    },
-    {
-      "id": "E2E-06",
-      "status": "PASS",
-      "browsers": [
-        "chromium"
-      ],
-      "viewports": [
-        "desktop",
-        "narrow"
-      ],
-      "keyboardOnly": true,
-      "evidence": "REPLACE",
-      "evidenceSha256": "REPLACE"
-    },
-    {
-      "id": "E2E-07",
-      "status": "PASS",
-      "browsers": [
-        "chromium"
-      ],
-      "viewports": [
-        "desktop",
-        "narrow"
-      ],
-      "keyboardOnly": true,
-      "evidence": "REPLACE",
-      "evidenceSha256": "REPLACE"
-    },
-    {
-      "id": "E2E-08",
-      "status": "PASS",
-      "browsers": [
-        "chromium"
-      ],
-      "viewports": [
-        "desktop",
-        "narrow"
-      ],
-      "keyboardOnly": true,
-      "evidence": "REPLACE",
-      "evidenceSha256": "REPLACE"
-    },
-    {
-      "id": "E2E-09",
-      "status": "PASS",
-      "browsers": [
-        "chromium"
-      ],
-      "viewports": [
-        "desktop",
-        "narrow"
-      ],
-      "keyboardOnly": true,
-      "evidence": "REPLACE",
-      "evidenceSha256": "REPLACE"
-    }
-  ],
-  "codexManifestSha256": "0000000000000000000000000000000000000000000000000000000000000000"
+    {"id":"E2E-01","status":"PASS","browsers":["chromium"],"viewports":["desktop","narrow"],"keyboardOnly":true,"evidence":"REPLACE","evidenceSha256":"REPLACE"},
+    {"id":"E2E-02","status":"PASS","browsers":["chromium"],"viewports":["desktop","narrow"],"keyboardOnly":true,"evidence":"REPLACE","evidenceSha256":"REPLACE"},
+    {"id":"E2E-03","status":"PASS","browsers":["chromium"],"viewports":["desktop","narrow"],"keyboardOnly":true,"evidence":"REPLACE","evidenceSha256":"REPLACE"},
+    {"id":"E2E-04","status":"PASS","browsers":["chromium"],"viewports":["desktop","narrow"],"keyboardOnly":true,"evidence":"REPLACE","evidenceSha256":"REPLACE"},
+    {"id":"E2E-05","status":"PASS","browsers":["chromium"],"viewports":["desktop","narrow"],"keyboardOnly":true,"evidence":"REPLACE","evidenceSha256":"REPLACE"},
+    {"id":"E2E-06","status":"PASS","browsers":["chromium"],"viewports":["desktop","narrow"],"keyboardOnly":true,"evidence":"REPLACE","evidenceSha256":"REPLACE"},
+    {"id":"E2E-07","status":"PASS","browsers":["chromium"],"viewports":["desktop","narrow"],"keyboardOnly":true,"evidence":"REPLACE","evidenceSha256":"REPLACE"},
+    {"id":"E2E-08","status":"PASS","browsers":["chromium"],"viewports":["desktop","narrow"],"keyboardOnly":true,"evidence":"REPLACE","evidenceSha256":"REPLACE"},
+    {"id":"E2E-09","status":"PASS","browsers":["chromium"],"viewports":["desktop","narrow"],"keyboardOnly":true,"evidence":"REPLACE","evidenceSha256":"REPLACE"}
+  ]
 }

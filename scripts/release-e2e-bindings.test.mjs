@@ -4,7 +4,6 @@ import { assertReleaseE2eBindings } from './release-e2e-bindings.mjs';
 
 const sha = (bytes) => createHash('sha256').update(bytes).digest('hex');
 const reconciliationBytes = Buffer.from('{"generatedAt":"2026-09-24T00:00:00Z"}');
-const codexManifestBytes = Buffer.from('codex-details');
 const masteryEvidenceBytes = Buffer.from('mastery-evidence');
 const masteryBytes = Buffer.from('mastery');
 const base = {
@@ -13,14 +12,12 @@ const base = {
     datasetFingerprint: 'dataset-fp',
     reconciliationFingerprint: sha(reconciliationBytes),
     reconciliationTimestamp: '2026-09-24T00:00:00Z',
-    codexManifestSha256: sha(codexManifestBytes),
     masteryEvidenceFingerprint: sha(masteryEvidenceBytes),
     masterySha256: sha(masteryBytes),
   },
   dataset: { metadata: { fingerprint: 'dataset-fp' } },
   reconciliation: { generatedAt: '2026-09-24T00:00:00Z' },
   reconciliationBytes,
-  codexManifestBytes,
   masteryEvidenceBytes,
   masteryBytes,
   head: 'a'.repeat(40),
@@ -31,7 +28,6 @@ for (const mutate of [
   (v) => { v.dataset.metadata.fingerprint = 'other'; },
   (v) => { v.reconciliationBytes = Buffer.from('changed'); },
   (v) => { v.reconciliation.generatedAt = '2026-09-25T00:00:00Z'; },
-  (v) => { v.codexManifestBytes = Buffer.from('changed'); },
   (v) => { v.masteryEvidenceBytes = Buffer.from('changed'); },
   (v) => { v.masteryBytes = Buffer.from('changed'); },
 ]) {
