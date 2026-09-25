@@ -57,6 +57,10 @@ export function applyYieldEvidence(dataset, evidence) {
     const expected = needsYield && entry.expected != null ? finitePositive(entry.expected, `${recipeId}.expected`) : undefined
     if (needsYield && min > max) fail(`${recipeId}: min exceeds max`)
     if (needsYield && expected != null && (expected < min || expected > max)) fail(`${recipeId}: expected must be between min and max`)
+    if (outputStatus === 'single-base') {
+      if (baseOutputs?.length !== 1 || Number(baseOutputs[0].itemId) !== Number(recipe.outputItemId)) fail(`${recipeId}: single-base evidence must identify exactly the recipe output item`)
+      if (Number(baseOutputs[0].min) !== min || Number(baseOutputs[0].max) !== max) fail(`${recipeId}: single-base output range must match deterministic yield`)
+    }
     if (variantId) {
       let matched = false
       const variants = (recipe.variants ?? []).map((variant) => {

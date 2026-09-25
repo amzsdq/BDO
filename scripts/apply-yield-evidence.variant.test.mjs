@@ -13,6 +13,13 @@ describe('variant yield evidence', () => {
     expect(result.recipes.r.variants.map((v) => v.sourceRecipeId)).toEqual([169, 637])
   })
 
+  it('rejects inconsistent single-base evidence before writing it', () => {
+    const evidence = { recipeId: 'r', variantId: 'a', outputStatus: 'single-base', min: 1, max: 4, sourceRecipeId: 169, sourceUrl: 'https://bdocodex.com/kr/recipe/169/' }
+    expect(() => applyYieldEvidence(base, { entries: [{ ...evidence, baseOutputs: [{ itemId: 2, min: 1, max: 4 }] }] })).toThrow(/recipe output item/)
+    expect(() => applyYieldEvidence(base, { entries: [{ ...evidence, baseOutputs: [{ itemId: 1, min: 1, max: 3 }] }] })).toThrow(/range must match/)
+    expect(applyYieldEvidence(base, { entries: [{ ...evidence, baseOutputs: [{ itemId: 1, min: 1, max: 4 }] }] }).recipes.r.variants[0].yield?.max).toBe(4)
+  })
+
   it('applies random-only classification without inventing a yield', () => {
     const result = applyYieldEvidence(base, { entries: [
       { recipeId: 'r', variantId: 'a', outputStatus: 'random-only', sourceRecipeId: 346, sourceUrl: 'https://bdocodex.com/kr/recipe/346/', randomOutputs: [{ itemId: 1, min: 1, max: 1 }] },
