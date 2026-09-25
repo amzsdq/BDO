@@ -80,4 +80,15 @@ describe('buildActivePlanView', () => {
     expect(result.batch).toBeUndefined()
     expect(result.error).toMatch(/Cooking mastery is required/)
   })
+  it('exposes verified base-output weight without requiring a carry-weight profile', () => {
+    const dataset = structuredClone(sampleDataset)
+    const recipe = dataset.recipes['sample-cooking']
+    const variant = recipe.variants[0]
+    dataset.items[String(recipe.outputItemId)].weightLT = 0.1
+    variant.outputEvidence = { status: 'single-base', baseOutputs: [{ itemId: recipe.outputItemId, min: 1, max: 4 }], randomOutputs: [{ itemId: 990099, min: 1, max: 1 }] }
+    const result = buildActivePlanView(dataset, { recipeId: recipe.id, variantId: variant.id, mode: 'servings', amount: 10, skill: 'cooking' }, {}, {})
+    expect(result.outputWeight).toEqual({ attempts: 10, minLT: 1, maxLT: 4, excludedRandomOutputItemIds: [990099] })
+    expect(result.batch).toBeUndefined()
+  })
+
 })
