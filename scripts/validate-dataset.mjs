@@ -61,6 +61,14 @@ for (const [recipeId, recipe] of Object.entries(recipes)) {
     if (seenVariantIds.has(variantKey)) errors.push(`${recipeId}: duplicate variant id ${variant.id}`)
     seenVariantIds.add(variantKey)
     if (!Array.isArray(variant.inputs) || !variant.inputs.length) errors.push(`${recipeId}/${variant.id}: no inputs`)
+    if (variant.outputEvidence) {
+      const allowedStatuses = new Set(['single-base', 'random-only', 'multiple-base', 'no-output', 'unavailable', 'unresolved'])
+      if (!allowedStatuses.has(variant.outputEvidence.status)) errors.push(`${recipeId}/${variant.id}: invalid output evidence status`)
+      if (variant.outputEvidence.status === 'single-base' && (!variant.yield || !Number.isFinite(variant.yield.min) || variant.yield.min <= 0 || !Number.isFinite(variant.yield.max) || variant.yield.max < variant.yield.min)) errors.push(`${recipeId}/${variant.id}: single-base output evidence requires positive variant yield`)
+      if (variant.outputEvidence.status === 'random-only' && !(variant.outputEvidence.randomOutputs || []).length) errors.push(`${recipeId}/${variant.id}: random-only output evidence requires random outputs`)
+      if (variant.outputEvidence.status === 'random-only' && (variant.outputEvidence.baseOutputs || []).length) errors.push(`${recipeId}/${variant.id}: random-only output evidence cannot contain base outputs`)
+      if (variant.outputEvidence.status === 'no-output' && ((variant.outputEvidence.baseOutputs || []).length || (variant.outputEvidence.randomOutputs || []).length)) errors.push(`${recipeId}/${variant.id}: no-output evidence cannot contain outputs`)
+    }
     const signature = `${recipe.skill}:${recipe.outputItemId}:` + (variant.inputs || []).map((input) => `${input.itemId}:${input.count}:${input.substitutionGroupId || ''}`).sort().join('|')
     if (seenSignatures.has(signature)) errors.push(`${recipeId}/${variant.id}: duplicate variant signature`)
     seenSignatures.add(signature)
