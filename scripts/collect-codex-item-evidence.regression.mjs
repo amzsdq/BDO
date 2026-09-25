@@ -8,7 +8,7 @@ const html = `
 <html><body>
 <div id="outside"><span id="item_name">wrong duplicate</span></div>
 <div class="item_info card">
-  <div class="card-header">
+  <div class="card-header">ID: 6214
     <div><span id="item_name" class="rarity item_title"><b>테스트 아이템</b></span></div>
   </div>
   <div class="card-body">
