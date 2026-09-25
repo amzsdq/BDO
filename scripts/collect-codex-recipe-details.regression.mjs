@@ -38,6 +38,16 @@ assert(nested.status === 'single-base' && nested.yield.max === 3, 'nested div ou
 const unavailable = parseCodexRecipeDetailHtml('<html><body><h1>페이지를 찾을 수 없습니다</h1></body></html>', 999999, 'alchemy')
 assert(unavailable.status === 'unavailable', 'explicit unavailable page classification')
 
+const disabled = `<div class="card item_info"><a href="/kr/recipe/340/"><span class="item_title">비활성 연금식</span></a> 연금 스킬 레벨: 숙련 Lv. 1<div>이 레시피는 게임에서 사용할 수 없습니다!</div><table>
+<tr><th>재료</th></tr><tr><td><a href="/kr/item/4481/">재료 A</a> x1</td></tr>
+<tr><th>기본 제품:</th></tr><tr><td><a href="/kr/item/999/">오래된 결과</a> x1</td></tr><tr><th>랜덤 제품:</th></tr><tr><td><a href="/kr/item/998/">오래된 랜덤 결과</a> x1</td></tr>
+</table></div>`
+const disabledParsed = parseCodexRecipeDetailHtml(disabled, 340, 'alchemy')
+assert(disabledParsed.status === 'unavailable' && disabledParsed.baseOutputs.length === 0 && disabledParsed.randomOutputs.length === 0, 'scoped disabled marker must override stale output rows')
+
+const harmlessNotFound = single.replace('요리 스킬 레벨:', '<!-- not found --> 요리 스킬 레벨:')
+assert(parseCodexRecipeDetailHtml(harmlessNotFound, 169, 'cooking').status === 'single-base', 'generic not found text outside a missing-page marker must not disable a valid card')
+
 let mismatch = false
 try { parseCodexRecipeDetailHtml(single.replace('/recipe/169/', '/recipe/637/'), 169, 'cooking') } catch { mismatch = true }
 assert(mismatch, 'recipe id mismatch must fail closed')
