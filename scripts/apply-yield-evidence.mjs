@@ -17,20 +17,27 @@ export function applyYieldEvidence(dataset, evidence) {
     seen.add(evidenceKey)
     const recipe = recipes[recipeId]
     if (!recipe) fail(`yield evidence references unknown recipe: ${recipeId}`)
-    const min = finitePositive(entry.min, `${recipeId}.min`)
-    const max = finitePositive(entry.max, `${recipeId}.max`)
-    const expected = entry.expected == null ? undefined : finitePositive(entry.expected, `${recipeId}.expected`)
-    if (min > max) fail(`${recipeId}: min exceeds max`)
-    if (expected != null && (expected < min || expected > max)) fail(`${recipeId}: expected must be between min and max`)
     const sourceUrl = String(entry.sourceUrl ?? '').trim()
     const sourceRecipeId = Number(entry.sourceRecipeId)
     if (!Number.isSafeInteger(sourceRecipeId) || sourceRecipeId <= 0 || codexRecipeId(sourceUrl) !== sourceRecipeId) fail(`${recipeId}: sourceUrl/sourceRecipeId must identify the same BDO Codex KR recipe`)
+    const outputStatus = String(entry.outputStatus ?? '').trim()
+    const classified = Boolean(outputStatus)
+    if (classified && !variantId) fail(`${recipeId}: classified output evidence requires variantId`)
+    const allowed = new Set(['single-base', 'random-only', 'multiple-base', 'no-output', 'unavailable', 'unresolved'])
+    if (classified && !allowed.has(outputStatus)) fail(`${recipeId}: invalid outputStatus ${outputStatus}`)
+    const needsYield = !classified || outputStatus === 'single-base'
+    const min = needsYield ? finitePositive(entry.min, `${recipeId}.min`) : undefined
+    const max = needsYield ? finitePositive(entry.max, `${recipeId}.max`) : undefined
+    const expected = needsYield && entry.expected != null ? finitePositive(entry.expected, `${recipeId}.expected`) : undefined
+    if (needsYield && min > max) fail(`${recipeId}: min exceeds max`)
+    if (needsYield && expected != null && (expected < min || expected > max)) fail(`${recipeId}: expected must be between min and max`)
     if (variantId) {
       let matched = false
       const variants = (recipe.variants ?? []).map((variant) => {
         if (variant.id !== variantId) return variant
         matched = true
-        return { ...variant, sourceRecipeId, yield: { min, ...(expected == null ? {} : { expected }), max, provenance: sourceUrl } }
+        const outputEvidence = classified ? { status: outputStatus, sourceUrl, ...(entry.baseOutputs ? { baseOutputs: entry.baseOutputs } : {}), ...(entry.randomOutputs ? { randomOutputs: entry.randomOutputs } : {}) } : variant.outputEvidence
+        return { ...variant, sourceRecipeId, ...(needsYield ? { yield: { min, ...(expected == null ? {} : { expected }), max, provenance: sourceUrl } } : {}), ...(outputEvidence ? { outputEvidence } : {}) }
       })
       if (!matched) fail(`${recipeId}: unknown variantId ${variantId}`)
       recipes[recipeId] = { ...recipe, variants }
