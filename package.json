@@ -9,7 +9,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "check": "npm test && npm run test:release-evidence && npm run build && npm run e2e:harness",
-    "test:release-evidence": "node scripts/bootstrap-production-data.regression.mjs && node scripts/collect-codex-item-evidence.regression.mjs && node scripts/collect-codex-recipe-details.regression.mjs && node scripts/assert-e2e-release-evidence.test.mjs && node scripts/release-e2e-bindings.test.mjs",
+    "test:release-evidence": "node scripts/bootstrap-production-data.regression.mjs && node scripts/collect-codex-item-evidence.regression.mjs && node scripts/collect-codex-recipe-details.regression.mjs && node scripts/assert-e2e-release-evidence.test.mjs && node scripts/release-e2e-bindings.test.mjs && node --check scripts/bind-codex-detail-evidence.mjs",
     "e2e:release-evidence": "node scripts/assert-e2e-release-evidence.mjs",
     "e2e:harness": "node scripts/assert-e2e-harness.mjs",
     "e2e": "playwright test",
@@ -26,7 +26,8 @@
     "data:codex:browser": "node scripts/collect-codex-catalog-browser.mjs",
     "data:codex:items": "node scripts/collect-codex-item-evidence.mjs",
     "data:codex:groups": "node scripts/collect-codex-substitution-groups.mjs",
-    "data:codex:details": "node scripts/collect-codex-recipe-details.mjs"
+    "data:codex:details": "node scripts/collect-codex-recipe-details.mjs",
+    "data:codex:bind": "node scripts/bind-codex-detail-evidence.mjs"
   },
   "dependencies": {
     "react": "^19.1.1",
