@@ -42,6 +42,10 @@ let mismatch = false
 try { parseCodexRecipeDetailHtml(single.replace('/recipe/169/', '/recipe/637/'), 169, 'cooking') } catch { mismatch = true }
 assert(mismatch, 'recipe id mismatch must fail closed')
 
+let skillMismatch = false
+try { parseCodexRecipeDetailHtml(single, 169, 'alchemy') } catch { skillMismatch = true }
+assert(skillMismatch, 'catalog/page skill mismatch must fail closed')
+
 const catalog = { complete: true, catalogs: [{ skill: 'cooking', complete: true, recipeIds: [169] }, { skill: 'alchemy', complete: true, recipeIds: [346] }] }
 const pages = new Map([[169, single], [346, randomOnly]])
 const fakeFetch = async (url) => {
