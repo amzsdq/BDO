@@ -55,6 +55,9 @@ assert(disabledParsed.status === 'unavailable' && disabledParsed.baseOutputs.len
 const harmlessNotFound = single.replace('요리 스킬 레벨:', '<span>not found</span> 요리 스킬 레벨:')
 assert(parseCodexRecipeDetailHtml(harmlessNotFound, 169, 'cooking').status === 'single-base', 'generic not found text outside a missing-page marker must not disable a valid card')
 
+const harmlessKoreanMissingText = single.replace('요리 스킬 레벨:', '<span>페이지를 찾을 수 없습니다</span> 요리 스킬 레벨:')
+assert(parseCodexRecipeDetailHtml(harmlessKoreanMissingText, 169, 'cooking').status === 'single-base', 'missing-page prose must not override a valid identified recipe card')
+
 let mismatch = false
 try { parseCodexRecipeDetailHtml(single.replace('/recipe/169/', '/recipe/637/'), 169, 'cooking') } catch { mismatch = true }
 assert(mismatch, 'recipe id mismatch must fail closed')
