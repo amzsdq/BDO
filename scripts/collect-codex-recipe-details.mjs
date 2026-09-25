@@ -60,7 +60,7 @@ function itemRow(row) {
   return { itemId, ...(name ? { name } : {}), min, max }
 }
 
-function rowsAfterLabel(card, labels) {
+function rowsAfterLabel(card, labels, { rejectOpaqueQuantities = false } = {}) {
   const rows = logicalRows(card)
   let active = false
   const found = []
@@ -70,7 +70,13 @@ function rowsAfterLabel(card, labels) {
     const isAnySection = /(?:재료|Ingredients|기본 제품|Base product|랜덤 제품|추가\s*\(무작위\)\s*제품|Random product|Additional\s*\(random\)\s*products?)/i.test(text)
     if (isTarget) { active = true; const parsed = itemRow(row); if (parsed) found.push(parsed); continue }
     if (active && isAnySection) break
-    if (active) { const parsed = itemRow(row); if (parsed) found.push(parsed) }
+    if (active) {
+      const parsed = itemRow(row)
+      if (parsed) found.push(parsed)
+      else if (rejectOpaqueQuantities && /(?:^|\s)(?:x|×)\s*\d+(?:\.\d+)?\b|^\s*\d+(?:\.\d+)?\s*[-–]\s*/i.test(text)) {
+        throw new Error('ingredient section contains a quantified row without an exact item identity')
+      }
+    }
   }
   return found
 }
@@ -113,7 +119,7 @@ export function parseCodexRecipeDetailHtml(html, expectedRecipeId, expectedSkill
   if (/이\s*레시피는\s*게임에서\s*사용할\s*수\s*없습니다\s*!?/i.test(cardText)) return { recipeId: Number(expectedRecipeId), skill: expectedSkill, ...(titleKo ? { titleKo } : {}), status: 'unavailable', ingredients: [], baseOutputs: [], randomOutputs: [] }
   const skillText = cardText.match(/(?:초급|견습|숙련|전문|장인|명장|도인)\s*Lv\.?\s*\d+/i)?.[0]
 
-  const ingredients = uniqueRows(rowsAfterLabel(card, ['재료', 'Ingredients'])).map(({ itemId, name, min, max }) => {
+  const ingredients = uniqueRows(rowsAfterLabel(card, ['재료', 'Ingredients'], { rejectOpaqueQuantities: true })).map(({ itemId, name, min, max }) => {
     if (min !== max) throw new Error(`recipe ${expectedRecipeId}: ingredient ${itemId} count must be exact`)
     return { itemId, ...(name ? { name } : {}), count: min }
   })

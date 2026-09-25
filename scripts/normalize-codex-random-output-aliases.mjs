@@ -17,8 +17,15 @@ export function normalizeCodexRandomOutputAliases(dataset, details) {
   if (Number(details?.schemaVersion) < 2 || details?.complete !== true || Number(details?.unresolvedCount || 0) !== 0) {
     fail('complete schema-v2 Codex detail evidence with zero unresolved routes is required')
   }
-  if (details?.supplementalDiscovery?.method !== 'catalog-gap-probe' || details?.supplementalDiscovery?.complete !== true) {
+  const supplemental = details?.supplementalDiscovery
+  if (supplemental?.method !== 'catalog-gap-probe' || supplemental?.complete !== true) {
     fail('complete catalog-gap supplemental discovery is required before random-output alias normalization')
+  }
+  if (supplemental?.boundedByCatalogHighWater !== true
+      || Number(supplemental?.probedMinRecipeId) !== 1
+      || !Number.isSafeInteger(Number(supplemental?.probedMaxRecipeId))
+      || Number(supplemental.probedMaxRecipeId) < 1) {
+    fail('supplemental discovery must declare its catalog-high-water probe bounds')
   }
   const sources = details.recipes || []
   const protectedDirect = new Set()

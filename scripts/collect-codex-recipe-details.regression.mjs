@@ -26,6 +26,13 @@ const noOutput = `<div class="card item_info"><a href="/kr/recipe/343/"><span cl
 </table></div>`
 assert(parseCodexRecipeDetailHtml(noOutput, 343, 'alchemy').status === 'no-output', 'no-output classification')
 
+const partialNoOutput = `<div class="card item_info"><a href="/kr/recipe/344/"><span class="item_title">부분 게시 연금식</span></a> 연금 스킬 레벨: 숙련 Lv. 1<table>
+<tr><th>재료</th></tr><tr><td><a href="/kr/item/4917/">평온의 오일</a> x10</td></tr><tr><td>x4</td></tr><tr><td>4 - </td></tr>
+<tr><th>기본 제품:</th></tr><tr><th>랜덤 제품:</th></tr></table></div>`
+let partialRejected = false
+try { parseCodexRecipeDetailHtml(partialNoOutput, 344, 'alchemy') } catch (error) { partialRejected = /quantified row without an exact item identity/.test(error.message) }
+assert(partialRejected, 'partial ingredient rows must fail closed instead of producing an incomplete no-output signature')
+
 
 const nestedDiv = `<div class="card item_info"><div class="card-header"><a href="/kr/recipe/24/"><span class="item_title">중첩 행 테스트</span></a> 요리 스킬 레벨: 초급 Lv. 1</div>
 <div class="row section">재료</div><div class="row item"><div><a href="/kr/item/100/">재료 X</a></div><span>x2</span></div>
