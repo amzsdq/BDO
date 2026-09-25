@@ -59,7 +59,7 @@ describe('buildActivePlanView', () => {
     dataset.items[String(firstCanonicalId)]!.weightLT = 1
     dataset.items[String(secondCanonicalId)] = { id: secondCanonicalId, nameKo: '두 번째 재료', weightLT: 2 }
     dataset.items[String(substituteId)] = { id: substituteId, nameKo: '공통 대체 재료', weightLT: 0.25 }
-    const source = { provider: 'BDO client', sourceId: 'fixture', verifiedAt: '2026-09-25T00:00:00Z' }
+    const source = { provider: 'BDO client', sourceId: 'fixture', verifiedAt: '2026-09-25T00:00:00Z' } as const
     dataset.substitutionGroups = {
       'slot-a': { id: 'slot-a', memberItemIds: [firstCanonicalId, substituteId], memberValueByItemId: { [String(firstCanonicalId)]: 1, [String(substituteId)]: 1 }, source },
       'slot-b': { id: 'slot-b', memberItemIds: [secondCanonicalId, substituteId], memberValueByItemId: { [String(secondCanonicalId)]: 1, [String(substituteId)]: 1 }, source },
