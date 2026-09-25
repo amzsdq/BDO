@@ -8,7 +8,7 @@ const source = (recipeId, status, ingredientId, baseOutputs=[], randomOutputs=[]
 
 describe('Codex random-output alias normalization', () => {
   it('removes markerless parallel random aliases and records the base output as producer', () => {
-    const dataset={metadata:{},recipes:{
+    const dataset={metadata:{fingerprint:'stale'},recipes:{
       'cooking:9601':{id:'cooking:9601',skill:'cooking',outputItemId:9601,variants:[variant('base169',9203),variant('base637',9282)]},
       'cooking:9602':{id:'cooking:9602',skill:'cooking',outputItemId:9602,variants:[variant('alias169',9203),variant('alias637',9282)]},
     },recipesByOutput:{'9601':['cooking:9601'],'9602':['cooking:9602']},byproducts:{}}
@@ -21,6 +21,9 @@ describe('Codex random-output alias normalization', () => {
     expect(out.recipesByOutput['9602']).toBeUndefined()
     expect(out.byproducts['9602']).toEqual({outputItemId:9602,producedWhileCraftingItemIds:[9601]})
     expect(out.metadata.codexRandomAliasNormalization.removedVariants).toBe(2)
+    expect(out.metadata.fingerprint).toBeUndefined()
+    expect(out.metadata.counts).toEqual({cooking:1,alchemy:0})
+    expect(out.metadata.sources).toContain('BDO Codex KR random-output role evidence')
   })
 
   it('preserves a distinct true direct signature and is idempotent', () => {

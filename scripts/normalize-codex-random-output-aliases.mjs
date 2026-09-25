@@ -86,6 +86,12 @@ export function normalizeCodexRandomOutputAliases(dataset, details) {
     normalizedAliases: normalizedAliases.sort((a,b)=>a.recipeId.localeCompare(b.recipeId) || a.signature.localeCompare(b.signature)),
     removedVariants,
   }
+  normalized.metadata.sources = [...new Set([...(normalized.metadata.sources || []), 'BDO Codex KR random-output role evidence'])]
+  normalized.metadata.counts = {
+    cooking: Object.values(normalized.recipes || {}).filter((recipe) => recipe.skill === 'cooking').length,
+    alchemy: Object.values(normalized.recipes || {}).filter((recipe) => recipe.skill === 'alchemy').length,
+  }
+  delete normalized.metadata.fingerprint
   return normalized
 }
 
