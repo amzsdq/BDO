@@ -30,6 +30,9 @@ const opt = args(process.argv.slice(2))
 if (!opt.dataset || !opt.codex) fail('usage: --dataset <dataset.json> --codex <codex-manifest.json> [--review <review.json>] [--out <report.json>]')
 const dataset = JSON.parse(fs.readFileSync(opt.dataset, 'utf8'))
 const manifest = JSON.parse(fs.readFileSync(opt.codex, 'utf8'))
+if (Number(manifest.schemaVersion) >= 2 && (manifest.complete !== true || Number(manifest.unresolvedCount || 0) > 0 || (manifest.recipes || []).some((entry) => entry.status === 'unresolved'))) {
+  fail('schema-v2 Codex manifest must be complete with zero unresolved routes')
+}
 const review = opt.review && fs.existsSync(opt.review) ? JSON.parse(fs.readFileSync(opt.review, 'utf8')) : { acceptedDiffs: [] }
 const clientByKey = new Map()
 let clientRecipeCount = 0
@@ -46,7 +49,7 @@ for (const recipe of Object.values(dataset.recipes || {})) {
   clientByKey.set(key, group)
   clientRecipeCount += 1
 }
-const codexLive = (manifest.recipes || []).filter((entry) => entry.available !== false)
+const codexLive = (manifest.recipes || []).filter((entry) => entry.available !== false && entry.status !== 'unavailable')
 const codexLiveRecipeIds = liveRecipeIds(codexLive)
 const codexByKey = new Map()
 for (const entry of codexLive) {

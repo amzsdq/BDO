@@ -91,6 +91,19 @@ describe('Codex reconciliation', () => {
     const { exitCode, report } = run(dataset, { recipes: [...matchingManifest.recipes, { recipeId: 1000, skill: 'alchemy', outputItemId: 77, titleKo: '퇴역', available: false, ingredients: [] }] })
     expect(exitCode).toBe(0); expect(report.status).toBe('ZERO_UNEXPLAINED_DIFF'); expect(report.codexDisabledPages).toBe(1); expect(report.codexLiveRecipeIds).toEqual([999])
   })
+  it('understands schema-v2 unavailable status without legacy available=false', () => {
+    const manifest = { schemaVersion: 2, complete: true, unresolvedCount: 0, recipes: [...matchingManifest.recipes, { recipeId: 1000, skill: 'alchemy', status: 'unavailable', ingredients: [], baseOutputs: [], randomOutputs: [] }] }
+    const { exitCode, report } = run(dataset, manifest)
+    expect(exitCode).toBe(0); expect(report.codexDisabledPages).toBe(1); expect(report.codexLiveRecipeIds).toEqual([999])
+  })
+  it('fails closed before reconciliation when schema-v2 collection is unresolved', () => {
+    const manifest = { schemaVersion: 2, complete: false, unresolvedCount: 1, recipes: [{ recipeId: 999, skill: 'cooking', status: 'unresolved', ingredients: [] }] }
+    const dir = mkdtempSync(join(tmpdir(), 'bdo-reconcile-unresolved-'))
+    const datasetPath = join(dir, 'dataset.json'), codexPath = join(dir, 'codex.json')
+    writeFileSync(datasetPath, JSON.stringify(dataset)); writeFileSync(codexPath, JSON.stringify(manifest))
+    const result = spawnSync(process.execPath, ['scripts/reconcile-codex.mjs', '--dataset', datasetPath, '--codex', codexPath], { cwd: process.cwd(), encoding: 'utf8' })
+    expect(result.status).toBe(1); expect(result.stderr).toContain('complete with zero unresolved routes')
+  })
   it.each([
     [['--bogus', 'x'], 'unknown argument: --bogus'],
     [['--dataset', 'a', '--dataset', 'b'], 'duplicate argument: --dataset'],
