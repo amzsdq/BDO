@@ -16,6 +16,13 @@ describe('assertYieldReleaseEvidence', () => {
     expect(() => assertYieldReleaseEvidence(broken)).toThrow(/r:b/)
   })
 
+  it('accepts explicit random-only evidence without inventing deterministic yield', () => {
+    const randomOnly = { metadata: { yieldEvidenceApplied: true, yieldEvidenceCount: 1 }, recipes: { r: { id: 'r', variants: [{ id: 'v', sourceRecipeId: 346, outputEvidence: { status: 'random-only', sourceUrl: 'https://bdocodex.com/kr/recipe/346/', randomOutputs: [{ itemId: 45340, min: 1, max: 1 }] } }] } } }
+    expect(assertYieldReleaseEvidence(randomOnly)).toBe(true)
+    const unresolved = structuredClone(randomOnly); unresolved.recipes.r.variants[0].outputEvidence.status = 'unresolved'
+    expect(() => assertYieldReleaseEvidence(unresolved)).toThrow(/r:v/)
+  })
+
   it('rejects unknown server yield and incomplete coverage', () => {
     expect(() => assertYieldReleaseEvidence({ ...verified, recipes: { r: { id: 'r', yield: { min: 1, max: 1, provenance: 'unknown-server-yield' } } } })).toThrow(/canonical Codex KR/)
     expect(() => assertYieldReleaseEvidence({ ...verified, recipes: { r: { id: 'r', yield: { min: 1, max: 4, provenance: 'https://bdocodex.com/kr/recipe/595/', sourceRecipeId: 594 } } } })).toThrow(/canonical Codex KR/)
