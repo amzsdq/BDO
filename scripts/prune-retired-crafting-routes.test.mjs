@@ -20,7 +20,7 @@ describe('reviewed retired crafting route evidence', () => {
   it('turns observed supplemental historical routes into reviewed unavailable evidence', () => {
     const details = { schemaVersion: 2, exactCoverage: true, unresolvedCount: 1, complete: false, recipes: [
       { recipeId: 1, skill: 'cooking', catalogListed: true, status: 'single-base' },
-      { recipeId: 342, skill: 'unknown', catalogListed: false, discovery: 'catalog-gap-probe', sourceUrl: 'https://bdocodex.com/kr/recipe/342/', status: 'unresolved' },
+      { recipeId: 342, skill: 'alchemy', catalogListed: false, discovery: 'catalog-gap-probe', sourceUrl: 'https://bdocodex.com/kr/recipe/342/', status: 'unresolved' },
     ] }
     const result = applyRetiredRouteStateToDetails(details, evidence)
     expect(result.complete).toBe(true)
