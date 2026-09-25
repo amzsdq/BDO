@@ -33,7 +33,7 @@ describe('buildActivePlan', () => {
 
   it('labels output-target math as conservative when server yield is unknown', () => {
     const dataset = structuredClone(sampleDataset)
-    dataset.recipes['sample-cooking'].yield.provenance = 'unknown-server-yield'
+    dataset.recipes['sample-cooking'].yield!.provenance = 'unknown-server-yield'
     const result = buildActivePlan(dataset, {
       recipeId: 'sample-cooking', variantId: 'default', mode: 'output', amount: 20, skill: 'cooking',
     }, {}, {})
@@ -44,7 +44,7 @@ describe('buildActivePlan', () => {
 
   it('does not add the unknown-yield warning to exact servings mode', () => {
     const dataset = structuredClone(sampleDataset)
-    dataset.recipes['sample-cooking'].yield.provenance = 'unknown-server-yield'
+    dataset.recipes['sample-cooking'].yield!.provenance = 'unknown-server-yield'
     const result = buildActivePlan(dataset, {
       recipeId: 'sample-cooking', variantId: 'default', mode: 'servings', amount: 20, skill: 'cooking',
     }, {}, {})

@@ -33,7 +33,7 @@ describe('buildPlanFromSession', () => {
 
   it('keeps unknown server-yield warnings on the multi-target/session path', () => {
     const dataset = structuredClone(sampleDataset)
-    dataset.recipes['sample-cooking'].yield.provenance = 'unknown-server-yield'
+    dataset.recipes['sample-cooking'].yield!.provenance = 'unknown-server-yield'
     const session = baseSession()
     session.targets = [{ recipeId: 'sample-cooking', variantId: 'default', mode: 'output', amount: 20 }]
     const result = buildPlanFromSession(dataset, session, {}, {})

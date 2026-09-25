@@ -26,10 +26,12 @@ export function PlanTargetList({ dataset, session, activeIndex, onSelect, onAdd,
         const recipe = dataset.recipes[target.recipeId]
         const item = recipe ? dataset.items[String(recipe.outputItemId)] : undefined
         const label = item?.nameKo ?? `목표 ${index + 1}`
+        const selectedVariant = target.variantId ? recipe?.variants.find((entry) => entry.id === target.variantId) : recipe?.variants[0]
+        const expectedYieldAvailable = (selectedVariant?.yield ?? recipe?.yield)?.expected != null
         return <div role="listitem" key={`${index}:${target.recipeId}`} className="target-chip">
           <button type="button" aria-pressed={index === activeIndex} onClick={() => onSelect(index)}>
             <ItemIcon item={item} />
-            <span className="target-chip-label"><span>{label}</span><small>{targetContext(target, recipe?.yield.expected != null)}{item ? ` · #${item.id}` : ''}</small></span>
+            <span className="target-chip-label"><span>{label}</span><small>{targetContext(target, expectedYieldAvailable)}{item ? ` · #${item.id}` : ''}</small></span>
           </button>
           {session.targets.length > 1 && <button type="button" aria-label={`${label} 목표 제거`} onClick={() => onRemove(index)}>×</button>}
         </div>
