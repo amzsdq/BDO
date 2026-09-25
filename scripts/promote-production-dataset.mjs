@@ -6,7 +6,7 @@ import { assertClientFingerprint, assertReviewedExtractorRevision } from './prod
 
 function fail(message) { console.error(`promotion blocked: ${message}`); process.exit(1) }
 const args = process.argv.slice(2)
-if (args.length < 3 || args.length > 4 || args.some((value) => !value || value.startsWith('--'))) fail('usage: node scripts/promote-production-dataset.mjs <dataset.json> <reconciliation-report.json> <codex-catalog.json> [out.json]')
+if (args.length < 4 || args.length > 5 || args.some((value) => !value || value.startsWith('--'))) fail('usage: node scripts/promote-production-dataset.mjs <dataset.json> <reconciliation-report.json> <codex-catalog.json> <codex-details.json> [out.json]')
 const [datasetFile] = args
 if (!fs.existsSync(datasetFile)) fail(`dataset not found: ${datasetFile}`)
 try {
