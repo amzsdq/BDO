@@ -31,7 +31,7 @@ The exact Codex detail artifact bytes are SHA-256 bound through reconciliation a
 ## Core commands
 
 ```text
-npm run data:import:broad -- --items <items.json> --recipes <recipes.json> --out <client-broad.json> --source-revision <exact-extractor-sha> --client-fingerprint <sha256:...>
+node scripts/prepare-client-broad-from-snapshot.mjs <bootstrap-snapshot-dir> <client-broad.json>\n# Equivalent manual primitive when starting from separately verified raw files:\nnpm run data:import:broad -- --items <items.json> --recipes <recipes.json> --out <client-broad.json> --source-revision <exact-extractor-sha> --client-fingerprint <sha256:...>
 npm run data:codex:browser -- --out <codex-catalog.json>
 npm run data:codex:details:reviewed -- --catalog <codex-catalog.json> --route-state-evidence data/evidence/retired-crafting-routes.kr.json --out <codex-details.json>
 npm run data:retired:prune -- <client-broad.json> data/evidence/retired-crafting-routes.kr.json <client-live.json>
@@ -53,4 +53,4 @@ Use the current README/package scripts for the exact reconcile/promote/release-g
 
 Do not declare production completeness if the extractor/client fingerprint is missing, artifacts are mixed across snapshots, reviewed retired routes survive in the dataset, bounded supplemental discovery is incomplete, exact item/name/yield/substitution evidence is incomplete, icon bytes/manifest fail verification, reconciliation is not `ZERO_UNEXPLAINED_DIFF`, mastery evidence is not same-snapshot, or any required production E2E/release binding is absent.
 
-The Windows bootstrap is currently expected to produce the broad `client-broad.json` entry point. If its checked-in implementation still emits scoped `client-dataset.json`, treat that as an operational blocker rather than silently following the stale path.
+The Windows bootstrap still emits legacy scoped `client-dataset.json`, but it also preserves same-snapshot raw `items.json`/`recipes.json` plus hashed `provenance.json`. Immediately run `prepare-client-broad-from-snapshot.mjs` on that snapshot and use its verified `client-broad.json`; do not use the legacy scoped dataset as the evidence-first entry point.
