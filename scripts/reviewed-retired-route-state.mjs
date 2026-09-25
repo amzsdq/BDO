@@ -45,8 +45,11 @@ export function applyRetiredRouteStateToDetails(details, evidence) {
 }
 
 export function assertNoRetiredCraftingRoutes(dataset, details) {
-  const retired = new Set((details?.retiredCraftingOutputItemIds || []).map(Number))
-  if (!retired.size || !details?.routeStateEvidence) throw new Error('reviewed retired crafting route evidence missing from Codex details')
+  if (!details?.routeStateEvidence) throw new Error('reviewed retired crafting route evidence missing from Codex details')
+  const reviewed = validateRetiredCraftingRouteEvidence(details.routeStateEvidence)
+  const recorded = [...new Set((details.retiredCraftingOutputItemIds || []).map(Number))].sort((a, b) => a - b)
+  if (JSON.stringify(recorded) !== JSON.stringify(reviewed.retiredCraftingOutputItemIds)) throw new Error('retired crafting output ids do not match reviewed route-state evidence')
+  const retired = new Set(recorded)
   const conflicts = Object.values(dataset?.recipes || {}).filter((recipe) => retired.has(Number(recipe.outputItemId))).map((recipe) => recipe.id || recipe.outputItemId)
   if (conflicts.length) throw new Error(`dataset contains retired crafting routes: ${conflicts.join(', ')}`)
   return true
