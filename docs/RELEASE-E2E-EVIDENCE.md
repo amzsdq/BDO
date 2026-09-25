@@ -19,6 +19,7 @@ npm run data:release-gate -- \
   public/data/dataset.json \
   <reconciliation-report.json> \
   <codex-catalog.json> \
+  <codex-details.json> \
   <mastery-evidence.json> \
   <mastery.json> \
   <release-e2e-evidence.json>
