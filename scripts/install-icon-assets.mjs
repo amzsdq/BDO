@@ -31,8 +31,10 @@ function sourceForItem(itemId) {
   const source = path.resolve(root, normalized)
   if (source !== root && !source.startsWith(root + path.sep)) fail(`extractor icon redirect escapes data root for item ${itemId}: ${redirect}`)
   if (fs.existsSync(source)) return source
-  const legacyRelative = normalized.startsWith('icons/') ? normalized.slice('icons/'.length) : normalized
-  return path.resolve(root, legacyRelative)
+  if (!fs.existsSync(path.join(root, 'icons')) && normalized.startsWith('icons/')) {
+    return path.resolve(root, normalized.slice('icons/'.length))
+  }
+  return source
 }
 
 fs.mkdirSync(outDir, { recursive: true })
