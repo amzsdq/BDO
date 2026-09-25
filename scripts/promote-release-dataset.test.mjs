@@ -17,7 +17,8 @@ function fixture() {
     recipesByOutput: { '10': ['cook'], '11': ['alch'] },
   }
 }
-const CODEX_DETAILS = JSON.stringify({ schemaVersion: 2, source: 'BDO Codex KR', complete: true, unresolvedCount: 0, recipes: [] })
+const RETIRED_EVIDENCE = { schemaVersion: 1, scope: 'kr-pc-crafting-route-live-state', reviewedAt: '2026-09-26', source: { url: 'https://www.kr.playblackdesert.com/ko-KR/News/Detail?groupContentNo=16141', effectiveDate: '2026-09-02' }, routes: [{ recipeId: 99999, skill: 'alchemy', status: 'retired' }], retiredCraftingOutputItemIds: [99999], retiredCraftingIngredientItemIds: [99998] }
+const CODEX_DETAILS = JSON.stringify({ schemaVersion: 2, source: 'BDO Codex KR', complete: true, unresolvedCount: 0, recipes: [], routeStateEvidence: RETIRED_EVIDENCE, retiredCraftingOutputItemIds: [99999] })
 const CODEX_DETAILS_SHA256 = crypto.createHash('sha256').update(CODEX_DETAILS).digest('hex')
 function reportFor(dataset, overrides = {}) { return { codexManifestSha256: CODEX_DETAILS_SHA256, status: 'ZERO_UNEXPLAINED_DIFF', unresolved: [], clientRecipeGroups: 2, clientRecipes: Object.keys(dataset.recipes || {}).length, codexAccountedPages: 2, codexAccountedRecipeIds: [101, 201], codexAccountedRoutes: ['alchemy:201', 'cooking:101'], codexLivePages: 2, codexLiveRecipeIds: [101, 201], datasetFingerprint: reconciliationDatasetFingerprint(dataset), ...overrides } }
 function catalog(overrides = {}) { return { source: 'BDO Codex KR', collectedAt: '2026-09-23T00:00:00.000Z', complete: true, catalogs: [{ skill: 'cooking', complete: true, recipeCount: 1, recipeIds: [101], endpointUsed: 'https://bdocodex.com/query.php?a=recipes&type=culinary&l=kr', endpointFinalUrl: 'https://bdocodex.com/query.php?a=recipes&type=culinary&l=kr', endpointEvidence: { recordsReported: 1 }, countMatchesExpected: null }, { skill: 'alchemy', complete: true, recipeCount: 1, recipeIds: [201], endpointUsed: 'https://bdocodex.com/query.php?a=recipes&type=alchemy&l=kr', endpointFinalUrl: 'https://bdocodex.com/query.php?a=recipes&type=alchemy&l=kr', endpointEvidence: { recordsReported: 1 }, countMatchesExpected: null }], ...overrides } }
@@ -31,6 +32,12 @@ function run(dataset, reconciliation, catalogEvidence = catalog(), missingIconId
 describe('release dataset promotion', () => {
   it('promotes only reconciled, resolved Cooking+Alchemy data with complete catalog evidence', () => {
     const dataset = fixture(); const { result, promoted } = run(dataset, reportFor(dataset)); expect(result.status).toBe(0); expect(promoted.metadata.status).toBe('COMPLETE_VERIFIED'); expect(promoted.metadata.reconciliationStatus).toBe('ZERO_UNEXPLAINED_DIFF'); expect(promoted.metadata.codexCatalogPages).toBe(2); expect(promoted.metadata.codexManifestSha256).toBe(CODEX_DETAILS_SHA256); expect(promoted.metadata.fingerprint).toMatch(/^[0-9a-f]{64}$/)
+  })
+  it('blocks promotion when a reviewed retired crafting route survives in the candidate dataset', () => {
+    const dataset = fixture(); dataset.recipes.alch.outputItemId = 99999; const attempt = run(dataset, reportFor(dataset)); expect(attempt.result.status).toBe(1); expect(attempt.result.stderr).toContain('dataset contains retired crafting routes')
+  })
+  it('blocks promotion when a reviewed deleted crafting ingredient survives in a candidate variant', () => {
+    const dataset = fixture(); dataset.recipes.alch.variants[0].inputs = [{ itemId: 99998, count: 1 }]; const attempt = run(dataset, reportFor(dataset)); expect(attempt.result.status).toBe(1); expect(attempt.result.stderr).toContain('dataset contains retired crafting routes')
   })
   it('blocks promotion when reconciliation Codex detail hash is missing or stale', () => {
     const dataset = fixture(); const attempt = run(dataset, reportFor(dataset, { codexManifestSha256: '0'.repeat(64) })); expect(attempt.result.status).toBe(1); expect(attempt.result.stderr).toContain('manifest hash does not match')

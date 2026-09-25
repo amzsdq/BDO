@@ -3,6 +3,7 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.mjs'
 import { validateCatalogEntryEvidence } from './catalog-release-evidence.mjs'
+import { assertNoRetiredCraftingRoutes } from './reviewed-retired-route-state.mjs'
 
 function fail(message) { console.error(`promotion blocked: ${message}`); process.exit(1) }
 function fingerprint(value) { return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex') }
@@ -39,9 +40,11 @@ const dataset = JSON.parse(fs.readFileSync(datasetFile, 'utf8'))
 const reconciliation = JSON.parse(fs.readFileSync(reconciliationFile, 'utf8'))
 if (!fs.existsSync(codexManifestFile)) fail('Codex detail manifest is required')
 const codexManifestBytes = fs.readFileSync(codexManifestFile)
+const codexManifest = JSON.parse(codexManifestBytes.toString('utf8'))
 const codexManifestSha256 = sha256(codexManifestBytes)
 if (!/^[0-9a-f]{64}$/.test(String(reconciliation.codexManifestSha256 || '')) || reconciliation.codexManifestSha256 !== codexManifestSha256) fail('reconciliation Codex manifest hash does not match exact detail manifest bytes')
 const items = dataset.items || {}, recipes = dataset.recipes || {}
+try { assertNoRetiredCraftingRoutes(dataset, codexManifest) } catch (error) { fail(error instanceof Error ? error.message : String(error)) }
 if (dataset.metadata?.supportedRegion !== 'KR') fail('supportedRegion must be KR')
 if (!Array.isArray(dataset.metadata?.sources) || dataset.metadata.sources.length < 2) fail('source provenance incomplete')
 if (!hasRecordedSourceRevision(dataset.metadata?.sourceRevision)) fail('sourceRevision must identify the canonical client snapshot; unrecorded provenance cannot be promoted')
