@@ -101,6 +101,24 @@ describe('canonical dataset validator', () => {
     expect(result.stderr).toContain('expected yield outside min/max')
   })
 
+  it('accepts an explicitly classified random-only route without fake recipe yield', () => {
+    const dataset = validDataset()
+    delete dataset.recipes.alch.yield
+    dataset.recipes.alch.variants[0].sourceRecipeId = 346
+    dataset.recipes.alch.variants[0].outputEvidence = { status: 'random-only', sourceUrl: 'https://bdocodex.com/kr/recipe/346/', randomOutputs: [{ itemId: 11, min: 1, max: 1 }] }
+    const result = run(dataset)
+    expect(result.status).toBe(0)
+  })
+
+  it('rejects malformed random-only output evidence', () => {
+    const dataset = validDataset()
+    dataset.recipes.alch.variants[0].outputEvidence = { status: 'random-only', baseOutputs: [{ itemId: 11, min: 1, max: 1 }] }
+    const result = run(dataset)
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('random-only output evidence requires random outputs')
+    expect(result.stderr).toContain('random-only output evidence cannot contain base outputs')
+  })
+
   it('accepts a byproduct whose output and craftable parent items are known', () => {
     const dataset = validDataset()
     dataset.byproducts = { '30': { outputItemId: 30, producedWhileCraftingItemIds: [10] } }
