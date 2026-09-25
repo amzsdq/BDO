@@ -8,7 +8,7 @@ function unverifiedDatasetFile() {
   const dir = mkdtempSync(join(tmpdir(), 'bdo-production-boundary-'))
   const file = join(dir, 'dataset.json')
   writeFileSync(file, JSON.stringify({
-    metadata: {},
+    metadata: { sourceRevision: 'iDevelopThings/bdo-data-extractor@5bf11bd7bc60dcbb6126be34bf3d76633abdd8b2', clientFingerprint: 'sha256:' + 'a'.repeat(64) },
     items: {
       '10': { id: 10, nameKo: '임의 이름' },
     },
