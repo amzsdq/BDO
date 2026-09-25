@@ -15,10 +15,27 @@ function decodeText(fragment) {
     .trim()
 }
 
+function itemInfoCard(html, expectedItemId) {
+  const opening = /<div\b[^>]*>/gi
+  let match
+  while ((match = opening.exec(html))) {
+    const classes = match[0].match(/class=["']([^"']*)["']/i)?.[1]?.split(/\s+/) ?? []
+    if (!classes.includes('card') || !classes.includes('item_info')) continue
+    const tag = /<\/?div\b[^>]*>/gi
+    tag.lastIndex = opening.lastIndex
+    let depth = 1
+    let end
+    while (depth > 0 && (end = tag.exec(html))) depth += /^<\/div/i.test(end[0]) ? -1 : 1
+    if (depth !== 0 || !end) throw new Error(`item ${expectedItemId}: unterminated item_info card`)
+    return html.slice(match.index, tag.lastIndex)
+  }
+  throw new Error(`item ${expectedItemId}: item_info card missing`)
+}
+
 export function parseCodexItemEvidenceHtml(html, expectedItemId) {
-  const card = html.match(/<div\b[^>]*class=["'][^"']*\bcard\b[^"']*\bitem_info\b[^"']*["'][^>]*>([\s\S]*?)<\/div>\s*<\/div>/i)?.[1] ?? html
-  const nameMatch = card.match(/<[^>]*class=["'][^"']*\bitem_title\b[^"']*["'][^>]*id=["']item_name["'][^>]*>([\s\S]*?)<\//i)
-  const nameKo = nameMatch ? decodeText(nameMatch[1]) : ''
+  const card = itemInfoCard(html, expectedItemId)
+  const nameMatch = card.match(/<([a-z][\w:-]*)\b(?=[^>]*class=["'][^"']*\bitem_title\b[^"']*["'])(?=[^>]*id=["']item_name["'])[^>]*>([\s\S]*?)<\/\1>/i)
+  const nameKo = nameMatch ? decodeText(nameMatch[2]) : ''
   if (!nameKo) throw new Error(`item ${expectedItemId}: Korean card-header item name missing`)
 
   const canonicalIds = [...card.matchAll(/href=["'][^"']*\/kr\/item\/(\d+)\/?["']/gi)].map((match) => Number(match[1]))
