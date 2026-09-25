@@ -23,6 +23,11 @@ describe('assertYieldReleaseEvidence', () => {
     expect(() => assertYieldReleaseEvidence(unresolved)).toThrow(/r:v/)
   })
 
+  it('accepts explicit no-output source accounting without inventing output', () => {
+    const noOutput = { metadata: { yieldEvidenceApplied: true, yieldEvidenceCount: 1 }, recipes: { r: { id: 'r', variants: [{ id: 'v', sourceRecipeId: 343, outputEvidence: { status: 'no-output', sourceUrl: 'https://bdocodex.com/kr/recipe/343/' } }] } } }
+    expect(assertYieldReleaseEvidence(noOutput)).toBe(true)
+  })
+
   it('rejects unknown server yield and incomplete coverage', () => {
     expect(() => assertYieldReleaseEvidence({ ...verified, recipes: { r: { id: 'r', yield: { min: 1, max: 1, provenance: 'unknown-server-yield' } } } })).toThrow(/canonical Codex KR/)
     expect(() => assertYieldReleaseEvidence({ ...verified, recipes: { r: { id: 'r', yield: { min: 1, max: 4, provenance: 'https://bdocodex.com/kr/recipe/595/', sourceRecipeId: 594 } } } })).toThrow(/canonical Codex KR/)
