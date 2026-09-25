@@ -153,6 +153,7 @@ async function fetchWithRetry(url, fetchImpl, timeoutMs, retries) {
       const response = await fetchImpl(url, { headers: { 'user-agent': 'BDO-Planner-Completeness-Audit/1.0', accept: 'text/html' }, signal: AbortSignal.timeout(timeoutMs) })
       if (response.ok) return response
       const error = new Error(`${response.status} ${response.statusText}`)
+      error.status = response.status
       if (response.status < 500 && response.status !== 429) {
         error.nonRetryable = true
         throw error
@@ -166,8 +167,23 @@ async function fetchWithRetry(url, fetchImpl, timeoutMs, retries) {
   throw last
 }
 
-export async function collectCodexRecipeDetails(catalogManifest, { fetchImpl = fetch, concurrency = 6, timeoutMs = 20000, retries = 2, collectedAt = new Date().toISOString() } = {}) {
-  const routes = catalogRows(catalogManifest)
+export async function collectCodexRecipeDetails(catalogManifest, { fetchImpl = fetch, concurrency = 6, timeoutMs = 20000, retries = 2, collectedAt = new Date().toISOString(), probeGaps = false } = {}) {
+  const catalogRoutes = catalogRows(catalogManifest)
+  const listed = new Set(catalogRoutes.map((row) => `${row.skill}:${row.recipeId}`))
+  const probeRoutes = []
+  if (probeGaps) {
+    for (const skill of ['cooking', 'alchemy']) {
+      const ids = catalogRoutes.filter((row) => row.skill === skill).map((row) => row.recipeId)
+      const maxId = Math.max(0, ...ids)
+      for (let recipeId = 1; recipeId <= maxId; recipeId += 1) {
+        if (!listed.has(`${skill}:${recipeId}`)) probeRoutes.push({ skill, recipeId, catalogListed: false, discovery: 'catalog-gap-probe' })
+      }
+    }
+  }
+  const routes = [
+    ...catalogRoutes.map((row) => ({ ...row, catalogListed: true, discovery: 'catalog' })),
+    ...probeRoutes,
+  ]
   const results = new Array(routes.length)
   let cursor = 0
   const worker = async () => {
@@ -178,19 +194,37 @@ export async function collectCodexRecipeDetails(catalogManifest, { fetchImpl = f
       const sourceUrl = `${BASE}/${route.recipeId}/`
       try {
         const response = await fetchWithRetry(sourceUrl, fetchImpl, timeoutMs, retries)
-        results[index] = { ...parseCodexRecipeDetailHtml(await response.text(), route.recipeId, route.skill), sourceUrl: response.url || sourceUrl }
+        const parsed = parseCodexRecipeDetailHtml(await response.text(), route.recipeId, route.skill)
+        if (!route.catalogListed && parsed.status === 'unavailable') {
+          results[index] = null
+        } else {
+          results[index] = { ...parsed, catalogListed: route.catalogListed, discovery: route.discovery, sourceUrl: response.url || sourceUrl }
+        }
       } catch (error) {
-        results[index] = { recipeId: route.recipeId, skill: route.skill, status: 'unresolved', ingredients: [], baseOutputs: [], randomOutputs: [], sourceUrl, error: String(error?.message || error) }
+        const expectedProbeAbsence = !route.catalogListed && (error?.status === 404 || /page skill identity missing or mismatched/.test(String(error?.message || '')))
+        if (expectedProbeAbsence) results[index] = null
+        else results[index] = { recipeId: route.recipeId, skill: route.skill, catalogListed: route.catalogListed, discovery: route.discovery, status: 'unresolved', ingredients: [], baseOutputs: [], randomOutputs: [], sourceUrl, error: String(error?.message || error) }
       }
     }
   }
   await Promise.all(Array.from({ length: Math.max(1, Math.min(Number(concurrency) || 1, 16)) }, () => worker()))
-  results.sort((a, b) => a.skill.localeCompare(b.skill) || a.recipeId - b.recipeId)
-  const expected = routes.map((row) => `${row.skill}:${row.recipeId}`).sort()
-  const actual = results.map((row) => `${row.skill}:${row.recipeId}`).sort()
+  const present = results.filter(Boolean)
+  present.sort((a, b) => a.skill.localeCompare(b.skill) || a.recipeId - b.recipeId)
+  const expected = catalogRoutes.map((row) => `${row.skill}:${row.recipeId}`).sort()
+  const actual = present.filter((row) => row.catalogListed).map((row) => `${row.skill}:${row.recipeId}`).sort()
   const exactCoverage = JSON.stringify(expected) === JSON.stringify(actual)
-  const unresolved = results.filter((row) => row.status === 'unresolved')
-  return { schemaVersion: 2, source: 'BDO Codex KR', collectedAt, complete: exactCoverage && unresolved.length === 0, exactCoverage, unresolvedCount: unresolved.length, recipes: results }
+  const unresolved = present.filter((row) => row.status === 'unresolved')
+  return {
+    schemaVersion: 2,
+    source: 'BDO Codex KR',
+    collectedAt,
+    complete: exactCoverage && unresolved.length === 0,
+    exactCoverage,
+    unresolvedCount: unresolved.length,
+    catalogRouteCount: expected.length,
+    supplementalRouteCount: present.filter((row) => !row.catalogListed).length,
+    recipes: present,
+  }
 }
 
 function parseArgs(argv) {
@@ -203,9 +237,10 @@ function parseArgs(argv) {
     else if (flag === '--concurrency') out.concurrency = Number(value)
     else if (flag === '--timeout-ms') out.timeoutMs = Number(value)
     else if (flag === '--retries') out.retries = Number(value)
+    else if (flag === '--probe-gaps') out.probeGaps = value === 'true' ? true : value === 'false' ? false : (() => { throw new Error('--probe-gaps must be true or false') })()
     else throw new Error(`unknown argument: ${flag}`)
   }
-  if (!out.catalog || !out.out) throw new Error('usage: --catalog data/codex-catalog.json --out data/codex-details.json [--concurrency 6] [--timeout-ms 20000] [--retries 2]')
+  if (!out.catalog || !out.out) throw new Error('usage: --catalog data/codex-catalog.json --out data/codex-details.json [--concurrency 6] [--timeout-ms 20000] [--retries 2] [--probe-gaps true]')
   if (!Number.isSafeInteger(out.concurrency) || out.concurrency < 1 || out.concurrency > 16) throw new Error('--concurrency must be 1..16')
   if (!Number.isFinite(out.timeoutMs) || out.timeoutMs < 1000) throw new Error('--timeout-ms must be >=1000')
   if (!Number.isSafeInteger(out.retries) || out.retries < 0 || out.retries > 5) throw new Error('--retries must be 0..5')

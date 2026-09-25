@@ -56,6 +56,20 @@ const artifact = await collectCodexRecipeDetails(catalog, { fetchImpl: fakeFetch
 assert(artifact.complete && artifact.exactCoverage && artifact.recipes.length === 2, 'exact catalog coverage')
 assert(artifact.recipes[0].skill === 'alchemy' && artifact.recipes[1].skill === 'cooking', 'deterministic sort')
 
+const cookingPage = (id) => single.replaceAll('/recipe/169/', `/recipe/${id}/`)
+const gapCatalog = { complete: true, catalogs: [{ skill: 'cooking', complete: true, recipeIds: [1, 3] }] }
+const gapFetch = async (url) => {
+  const id = Number(url.match(/\/recipe\/(\d+)\//)[1])
+  if (id >= 1 && id <= 3) return { ok: true, status: 200, statusText: 'OK', url, text: async () => cookingPage(id) }
+  return { ok: false, status: 404, statusText: 'Not Found', url, text: async () => '' }
+}
+const gapArtifact = await collectCodexRecipeDetails(gapCatalog, { fetchImpl: gapFetch, retries: 0, probeGaps: true, collectedAt: '2026-09-26T00:00:00Z' })
+assert(gapArtifact.complete && gapArtifact.exactCoverage, 'catalog-listed subset remains exact under supplemental discovery')
+assert(gapArtifact.catalogRouteCount === 2 && gapArtifact.supplementalRouteCount === 1, 'gap route is supplemental, not catalog coverage')
+const supplemental = gapArtifact.recipes.find((row) => row.recipeId === 2)
+assert(supplemental && supplemental.catalogListed === false && supplemental.discovery === 'catalog-gap-probe', 'supplemental route preserves discovery provenance')
+assert(gapArtifact.recipes.filter((row) => row.catalogListed).length === 2, 'catalog accounting excludes supplemental route')
+
 let terminalCalls = 0
 const terminalFetch = async () => {
   terminalCalls += 1
