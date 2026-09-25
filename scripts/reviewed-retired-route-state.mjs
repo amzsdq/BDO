@@ -38,6 +38,7 @@ export function applyRetiredRouteStateToDetails(details, evidence) {
     ...details,
     complete: details.exactCoverage === true && unresolvedCount === 0,
     unresolvedCount,
+    ...(details.supplementalDiscovery ? { supplementalDiscovery: { ...details.supplementalDiscovery, complete: unresolvedCount === 0 } } : {}),
     recipes,
     routeStateEvidence: evidence,
     retiredCraftingOutputItemIds: reviewed.retiredCraftingOutputItemIds,
