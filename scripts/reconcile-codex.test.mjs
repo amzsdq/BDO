@@ -22,7 +22,7 @@ const mismatchManifest = { recipes: [{ recipeId: 999, skill: 'cooking', outputIt
 describe('Codex reconciliation', () => {
   it('earns ZERO_UNEXPLAINED_DIFF when canonical item ids and counts agree', () => {
     const { exitCode, report } = run(dataset, matchingManifest)
-    expect(exitCode).toBe(0); expect(report.status).toBe('ZERO_UNEXPLAINED_DIFF'); expect(report.unresolved).toEqual([]); expect(report.codexLiveRecipeIds).toEqual([999])
+    expect(exitCode).toBe(0); expect(report.status).toBe('ZERO_UNEXPLAINED_DIFF'); expect(report.unresolved).toEqual([]); expect(report.codexLiveRecipeIds).toEqual([999]); expect(report.codexAccountedRecipeIds).toEqual([999])
     expect(report.clientRecipes).toBe(1)
   })
   it('reports a deterministic signature mismatch when canonical ingredient counts differ', () => {
@@ -108,7 +108,7 @@ describe('Codex reconciliation', () => {
   })
   it('keeps unavailable Codex recipes out of live completeness diffs and id evidence', () => {
     const { exitCode, report } = run(dataset, { recipes: [...matchingManifest.recipes, { recipeId: 1000, skill: 'alchemy', outputItemId: 77, titleKo: '퇴역', available: false, ingredients: [] }] })
-    expect(exitCode).toBe(0); expect(report.status).toBe('ZERO_UNEXPLAINED_DIFF'); expect(report.codexDisabledPages).toBe(1); expect(report.codexLiveRecipeIds).toEqual([999])
+    expect(exitCode).toBe(0); expect(report.status).toBe('ZERO_UNEXPLAINED_DIFF'); expect(report.codexDisabledPages).toBe(1); expect(report.codexLiveRecipeIds).toEqual([999]); expect(report.codexAccountedRecipeIds).toEqual([999, 1000])
   })
   it('understands schema-v2 unavailable status without legacy available=false', () => {
     const manifest = { schemaVersion: 2, complete: true, unresolvedCount: 0, recipes: [...matchingManifest.recipes, { recipeId: 1000, skill: 'alchemy', status: 'unavailable', ingredients: [], baseOutputs: [], randomOutputs: [] }] }

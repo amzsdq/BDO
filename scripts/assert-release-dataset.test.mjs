@@ -41,7 +41,7 @@ function setup(catalog = completeCatalog(), expectPromotion = true) {
   for (const id of [10, 11, 20]) writeFileSync(join(dir, '..', 'icons', `${id}.webp`), 'fixture')
   const source = fixture()
   writeFileSync(datasetFile, JSON.stringify(source))
-  writeFileSync(reportFile, JSON.stringify({ status: 'ZERO_UNEXPLAINED_DIFF', unresolved: [], clientRecipeGroups: 2, clientRecipes: 2, codexLivePages: 2, codexLiveRecipeIds: [101, 201], datasetFingerprint: reconciliationDatasetFingerprint(source) }))
+  writeFileSync(reportFile, JSON.stringify({ status: 'ZERO_UNEXPLAINED_DIFF', unresolved: [], clientRecipeGroups: 2, clientRecipes: 2, codexAccountedPages: 2, codexAccountedRecipeIds: [101, 201], codexLivePages: 2, codexLiveRecipeIds: [101, 201], datasetFingerprint: reconciliationDatasetFingerprint(source) }))
   writeFileSync(catalogFile, JSON.stringify(catalog))
   const promoted = spawnSync(process.execPath, ['scripts/promote-release-dataset.mjs', datasetFile, reportFile, catalogFile], { cwd: process.cwd(), encoding: 'utf8' })
   if (expectPromotion) expect(promoted.status).toBe(0)
