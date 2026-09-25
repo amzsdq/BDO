@@ -100,6 +100,7 @@ export function parseCodexRecipeDetailHtml(html, expectedRecipeId, expectedSkill
 
   const hrefIds = [...card.matchAll(/href=["'][^"']*\/kr\/recipe\/(\d+)\/?["']/gi)].map((m) => Number(m[1]))
   if (hrefIds.length && !hrefIds.includes(Number(expectedRecipeId))) throw new Error(`recipe ${expectedRecipeId}: card recipe id mismatch`)
+  if (!hrefIds.length && !new RegExp(`\\b(?:ID|Recipe\\s*ID)\\s*:?\\s*${Number(expectedRecipeId)}\\b`, 'i').test(decodeText(card))) throw new Error(`recipe ${expectedRecipeId}: card recipe identity missing`)
 
   const titleMatch = card.match(/<([a-z][\w:-]*)\b(?=[^>]*class=["'][^"']*(?:\bitem_title\b|\bcard-title\b)[^"']*["'])[^>]*>([\s\S]*?)<\/\1>/i)
   const titleKo = titleMatch ? decodeText(titleMatch[2]) : undefined
