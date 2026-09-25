@@ -2,6 +2,16 @@ import fs from 'node:fs'
 
 function fail(message) { throw new Error(message) }
 function finitePositive(value, field) { const number = Number(value); if (!Number.isFinite(number) || number <= 0) fail(`${field} must be a positive finite number`); return number }
+function outputRows(value, field) {
+  if (value == null) return undefined
+  if (!Array.isArray(value)) fail(`${field} must be an array`)
+  return value.map((row, index) => {
+    const itemId = Number(row?.itemId), min = finitePositive(row?.min, `${field}[${index}].min`), max = finitePositive(row?.max, `${field}[${index}].max`)
+    if (!Number.isSafeInteger(itemId) || itemId <= 0) fail(`${field}[${index}].itemId must be a positive integer`)
+    if (min > max) fail(`${field}[${index}]: min exceeds max`)
+    return { itemId, min, max }
+  })
+}
 function codexRecipeId(value) { const match = String(value ?? '').trim().match(/^https:\/\/(?:www\.)?bdocodex\.com\/kr\/recipe\/(\d+)\/?$/i); return match ? Number(match[1]) : null }
 
 export function applyYieldEvidence(dataset, evidence) {
@@ -25,7 +35,7 @@ export function applyYieldEvidence(dataset, evidence) {
     if (classified && !variantId) fail(`${recipeId}: classified output evidence requires variantId`)
     const allowed = new Set(['single-base', 'random-only', 'multiple-base', 'no-output', 'unavailable', 'unresolved'])
     if (classified && !allowed.has(outputStatus)) fail(`${recipeId}: invalid outputStatus ${outputStatus}`)
-    const needsYield = !classified || outputStatus === 'single-base'
+    const baseOutputs = classified ? outputRows(entry.baseOutputs, `${recipeId}.baseOutputs`) : undefined\n    const randomOutputs = classified ? outputRows(entry.randomOutputs, `${recipeId}.randomOutputs`) : undefined\n    if (outputStatus === 'random-only' && (!randomOutputs?.length || baseOutputs?.length)) fail(`${recipeId}: random-only evidence requires random outputs and no base outputs`)\n    if (outputStatus === 'no-output' && (baseOutputs?.length || randomOutputs?.length)) fail(`${recipeId}: no-output evidence cannot contain outputs`)\n    const needsYield = !classified || outputStatus === 'single-base'
     const min = needsYield ? finitePositive(entry.min, `${recipeId}.min`) : undefined
     const max = needsYield ? finitePositive(entry.max, `${recipeId}.max`) : undefined
     const expected = needsYield && entry.expected != null ? finitePositive(entry.expected, `${recipeId}.expected`) : undefined
@@ -36,7 +46,7 @@ export function applyYieldEvidence(dataset, evidence) {
       const variants = (recipe.variants ?? []).map((variant) => {
         if (variant.id !== variantId) return variant
         matched = true
-        const outputEvidence = classified ? { status: outputStatus, sourceUrl, ...(entry.baseOutputs ? { baseOutputs: entry.baseOutputs } : {}), ...(entry.randomOutputs ? { randomOutputs: entry.randomOutputs } : {}) } : variant.outputEvidence
+        const outputEvidence = classified ? { status: outputStatus, sourceUrl, ...(baseOutputs ? { baseOutputs } : {}), ...(randomOutputs ? { randomOutputs } : {}) } : variant.outputEvidence
         return { ...variant, sourceRecipeId, ...(needsYield ? { yield: { min, ...(expected == null ? {} : { expected }), max, provenance: sourceUrl } } : {}), ...(outputEvidence ? { outputEvidence } : {}) }
       })
       if (!matched) fail(`${recipeId}: unknown variantId ${variantId}`)
