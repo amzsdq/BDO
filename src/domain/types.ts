@@ -28,7 +28,7 @@ export interface IngredientSubstitutionGroup {
     verifiedAt: string
   }
 }
-export interface RecipeVariant { id: string; inputs: Ingredient[] }
+export interface RecipeVariant { id: string; inputs: Ingredient[]; sourceRecipeId?: number; yield?: RecipeYield; skillRequirement?: { skill: LifeSkill; level?: string; minimumMastery?: number } }
 export interface RecipeYield {
   min: number
   max: number

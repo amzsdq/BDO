@@ -23,10 +23,11 @@ function nonNegativeFinite(value: unknown, label: string): number {
   return numeric
 }
 
-function yieldFor(recipe: Recipe, policy: YieldPolicy): number {
-  if (policy === 'minimum') return positive(recipe.yield.min, 'recipe yield.min')
-  if (policy === 'maximum') return positive(recipe.yield.max, 'recipe yield.max')
-  return positive(recipe.yield.expected ?? recipe.yield.min, 'recipe yield.expected')
+function yieldFor(recipe: Recipe, policy: YieldPolicy, variant?: RecipeVariant): number {
+  const value = variant?.yield ?? recipe.yield
+  if (policy === 'minimum') return positive(value.min, 'recipe yield.min')
+  if (policy === 'maximum') return positive(value.max, 'recipe yield.max')
+  return positive(value.expected ?? value.min, 'recipe yield.expected')
 }
 
 function selectVariant(recipe: Recipe, requested?: string): RecipeVariant {
@@ -50,7 +51,8 @@ function recipeForIntermediate(dataset: RecipeDataset, itemId: ItemId, requested
 export function attemptsForTarget(recipe: Recipe, target: PlanTarget): number {
   positive(target.amount, 'target amount')
   if (target.mode === 'attempts') return Math.ceil(target.amount)
-  return Math.ceil(target.amount / yieldFor(recipe, target.yieldPolicy ?? 'minimum'))
+  const variant = selectVariant(recipe, target.variantId)
+  return Math.ceil(target.amount / yieldFor(recipe, target.yieldPolicy ?? 'minimum', variant))
 }
 
 export function buildPlan(dataset: RecipeDataset, targets: readonly PlanTarget[], options: PlanOptions): PlanResult {
@@ -100,8 +102,10 @@ export function buildPlan(dataset: RecipeDataset, targets: readonly PlanTarget[]
         if (shouldCraft && nested) {
           if (!requestedNestedId && recipeIds.length > 1) warnings.push(`중간재 item ${inputItemId}에 제작법 ${recipeIds.length}개가 있습니다. 현재 ${nested.id}을 사용 중입니다.`)
           const incrementalMissing = addMaterial(inputItemId, total, depth + 1, depth === 0, true)
-          const nestedAttempts = Math.ceil(incrementalMissing / yieldFor(nested, 'minimum'))
-          expandRecipe(nested, nestedAttempts, depth + 1)
+          const nestedVariantId = options.variantIdByRecipeId?.[nested.id]
+          const nestedVariant = selectVariant(nested, nestedVariantId)
+          const nestedAttempts = Math.ceil(incrementalMissing / yieldFor(nested, 'minimum', nestedVariant))
+          expandRecipe(nested, nestedAttempts, depth + 1, nestedVariantId)
         } else addMaterial(inputItemId, total, depth + 1, depth === 0, false)
       }
     } finally {

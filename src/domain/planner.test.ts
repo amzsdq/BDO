@@ -16,14 +16,22 @@ const dataset: RecipeDataset = {
     ] },
     intermediate: { id: 'intermediate', skill: 'cooking', outputItemId: 2, yield: { min: 1, max: 1 }, variants: [{ id: 'default', inputs: [{ itemId: 4, count: 3 }] }] },
     'intermediate-alt': { id: 'intermediate-alt', skill: 'cooking', outputItemId: 2, yield: { min: 2, max: 2 }, variants: [{ id: 'default', inputs: [{ itemId: 5, count: 1 }] }] },
+    variantYield: { id: 'variantYield', skill: 'cooking', outputItemId: 1, yield: { min: 1, max: 1 }, variants: [
+      { id: '169', sourceRecipeId: 169, yield: { min: 1, max: 4 }, inputs: [{ itemId: 3, count: 1 }] },
+      { id: '637', sourceRecipeId: 637, yield: { min: 1, max: 1 }, inputs: [{ itemId: 5, count: 1 }] },
+    ] },
   },
-  recipesByOutput: { '1': ['meal'], '2': ['intermediate', 'intermediate-alt'] },
+  recipesByOutput: { '1': ['meal', 'variantYield'], '2': ['intermediate', 'intermediate-alt'] },
 }
 
 describe('planner', () => {
   it('defaults desired-output planning to guaranteed minimum yield', () => { expect(attemptsForTarget(dataset.recipes.meal, { recipeId: 'meal', mode: 'output', amount: 10 })).toBe(10) })
   it('supports explicit expected-yield planning', () => { expect(attemptsForTarget(dataset.recipes.meal, { recipeId: 'meal', mode: 'output', amount: 10, yieldPolicy: 'expected' })).toBe(4) })
   it('uses utensil attempts directly', () => { expect(attemptsForTarget(dataset.recipes.meal, { recipeId: 'meal', mode: 'attempts', amount: 150.2 })).toBe(151) })
+  it('uses selected variant yield for desired output', () => {
+    expect(attemptsForTarget(dataset.recipes.variantYield, { recipeId: 'variantYield', mode: 'output', amount: 100, variantId: '169', yieldPolicy: 'maximum' })).toBe(25)
+    expect(attemptsForTarget(dataset.recipes.variantYield, { recipeId: 'variantYield', mode: 'output', amount: 100, variantId: '637', yieldPolicy: 'maximum' })).toBe(100)
+  })
 
   it('recursively expands selected craftable intermediates', () => {
     const plan = buildPlan(dataset, [{ recipeId: 'meal', mode: 'attempts', amount: 2 }], { craftIntermediateItemIds: new Set([2]) })
