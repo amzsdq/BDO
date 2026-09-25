@@ -13,13 +13,13 @@ function ingredientSignature(rows) {
 function normalizedSkill(value) { return String(value || '').trim().toLowerCase() }
 function outputRows(rows) { return (rows || []).map(({ itemId, min, max }) => ({ itemId: Number(itemId), min: Number(min), max: Number(max) })) }
 
-function sourceMatches(recipe, variant, source) {
+function sourceMatches(recipe, variant, source, allowNoOutput) {
   if (normalizedSkill(recipe.skill) !== normalizedSkill(source.skill)) return false
   if (ingredientSignature(variant.inputs) !== ingredientSignature(source.ingredients)) return false
   if (variant.skillRequirement?.level && source.skillText && variant.skillRequirement.level !== source.skillText) return false
   if (source.status === 'single-base') return source.baseOutputs?.length === 1 && Number(source.baseOutputs[0].itemId) === Number(recipe.outputItemId)
   if (source.status === 'random-only') return source.randomOutputs?.some((row) => Number(row.itemId) === Number(recipe.outputItemId)) === true
-  if (source.status === 'no-output') return true
+  if (source.status === 'no-output') return allowNoOutput
   return false
 }
 
@@ -27,12 +27,21 @@ export function bindCodexDetailEvidence(dataset, details, itemEvidence) {
   const itemEvidenceById = new Map((itemEvidence?.items || []).map((row) => [Number(row.itemId), row]))
   if (Number(details?.schemaVersion) < 2 || details?.complete !== true || Number(details?.unresolvedCount || 0) !== 0) fail('complete schema-v2 detail evidence with zero unresolved routes is required')
   const sources = (details.recipes || []).filter((row) => ['single-base', 'random-only', 'no-output'].includes(row.status))
+  const clientSignatureCounts = new Map()
+  for (const recipe of Object.values(dataset?.recipes || {})) {
+    for (const variant of recipe.variants || []) {
+      const key = `${normalizedSkill(recipe.skill)}|${ingredientSignature(variant.inputs)}`
+      clientSignatureCounts.set(key, (clientSignatureCounts.get(key) || 0) + 1)
+    }
+  }
   const entries = []
   for (const recipe of Object.values(dataset?.recipes || {})) {
     for (const variant of recipe.variants || []) {
       const prebound = Number(variant.sourceRecipeId)
       const pool = Number.isSafeInteger(prebound) && prebound > 0 ? sources.filter((row) => Number(row.recipeId) === prebound) : sources
-      const matches = pool.filter((source) => sourceMatches(recipe, variant, source))
+      const clientKey = `${normalizedSkill(recipe.skill)}|${ingredientSignature(variant.inputs)}`
+      const allowNoOutput = clientSignatureCounts.get(clientKey) === 1
+      const matches = pool.filter((source) => sourceMatches(recipe, variant, source, allowNoOutput))
       if (matches.length !== 1) fail(`${recipe.id}:${variant.id}: expected exactly one Codex source route, found ${matches.length}`)
       const source = matches[0]
       const entry = {

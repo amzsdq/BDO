@@ -37,6 +37,12 @@ describe('Codex detail binder', () => {
     expect(bindCodexDetailEvidence(noOutputDataset, noOutput).entries[0]).toMatchObject({ sourceRecipeId: 343, outputStatus: 'no-output' })
     const ambiguousNoOutput = { ...noOutput, recipes: [...noOutput.recipes, { ...noOutput.recipes[0], recipeId: 342, sourceUrl: 'https://bdocodex.com/kr/recipe/342/' }] }
     expect(() => bindCodexDetailEvidence(noOutputDataset, ambiguousNoOutput)).toThrow(/expected exactly one/)
+
+    const ambiguousClient = { recipes: {
+      hiddenA: { id: 'hiddenA', skill: 'alchemy', outputItemId: 70000, variants: [{ id: 'a', inputs: [{ itemId: 4481, count: 10 }, { itemId: 4917, count: 3 }] }] },
+      hiddenB: { id: 'hiddenB', skill: 'alchemy', outputItemId: 70001, variants: [{ id: 'b', inputs: [{ itemId: 4917, count: 3 }, { itemId: 4481, count: 10 }] }] },
+    } }
+    expect(() => bindCodexDetailEvidence(ambiguousClient, noOutput)).toThrow(/expected exactly one/)
   })
 
   it('fails closed on ambiguous source signatures', () => {
