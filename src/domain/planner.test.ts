@@ -86,6 +86,29 @@ describe('planner', () => {
     expect(plan.materials.find((entry) => entry.itemId === 4)?.required).toBe(6)
   })
 
+  it('does not require deterministic yield for a fully covered random-only intermediate', () => {
+    const randomIntermediate: RecipeDataset = {
+      ...dataset,
+      recipes: {
+        ...dataset.recipes,
+        intermediate: {
+          ...dataset.recipes.intermediate,
+          variants: [{
+            ...dataset.recipes.intermediate.variants[0],
+            outputEvidence: { status: 'random-only', randomOutputs: [{ itemId: 2, min: 1, max: 1 }] },
+          }],
+        },
+      },
+    }
+    const plan = buildPlan(randomIntermediate, [{ recipeId: 'meal', mode: 'attempts', amount: 2, variantId: 'default' }], {
+      craftIntermediateItemIds: new Set([2]),
+      haveByItemId: { '2': 4 },
+    })
+    expect(plan.materials.find((entry) => entry.itemId === 2)).toMatchObject({ required: 4, have: 4, missing: 0 })
+    expect(plan.crafts.find((entry) => entry.recipeId === 'intermediate')).toBeUndefined()
+    expect(plan.materials.find((entry) => entry.itemId === 4)).toBeUndefined()
+  })
+
   it('consumes shared intermediate stock only once across multiple targets', () => {
     const plan = buildPlan(dataset, [{ recipeId: 'meal', mode: 'attempts', amount: 2, variantId: 'default' }, { recipeId: 'meal', mode: 'attempts', amount: 2, variantId: 'default' }], { craftIntermediateItemIds: new Set([2]), haveByItemId: { '2': 4 } })
     expect(plan.materials.find((entry) => entry.itemId === 2)).toMatchObject({ required: 8, have: 4, missing: 4 })
