@@ -70,7 +70,8 @@ const cookingPage = (id) => single.replaceAll('/recipe/169/', `/recipe/${id}/`)
 const gapCatalog = { complete: true, catalogs: [{ skill: 'cooking', complete: true, recipeIds: [1, 3] }] }
 const gapFetch = async (url) => {
   const id = Number(url.match(/\/recipe\/(\d+)\//)[1])
-  if (id >= 1 && id <= 3) return { ok: true, status: 200, statusText: 'OK', url, text: async () => cookingPage(id) }
+  if (id === 2) return { ok: true, status: 200, statusText: 'OK', url, text: async () => disabled }
+  if (id === 1 || id === 3) return { ok: true, status: 200, statusText: 'OK', url, text: async () => cookingPage(id) }
   return { ok: false, status: 404, statusText: 'Not Found', url, text: async () => '' }
 }
 const gapArtifact = await collectCodexRecipeDetails(gapCatalog, { fetchImpl: gapFetch, retries: 0, probeGaps: true, collectedAt: '2026-09-26T00:00:00Z' })
@@ -80,6 +81,7 @@ assert(gapArtifact.supplementalDiscovery.method === 'catalog-gap-probe' && gapAr
 assert(gapArtifact.supplementalDiscovery.probedMinRecipeId === 1 && gapArtifact.supplementalDiscovery.probedMaxRecipeId === 3 && gapArtifact.supplementalDiscovery.boundedByCatalogHighWater === true, 'supplemental completeness is explicitly bounded by catalog high-water')
 const supplemental = gapArtifact.recipes.find((row) => row.recipeId === 2)
 assert(supplemental && supplemental.catalogListed === false && supplemental.discovery === 'catalog-gap-probe', 'supplemental route preserves discovery provenance')
+assert(supplemental.status === 'unavailable' && supplemental.skill === 'alchemy', 'disabled supplemental route is preserved as unavailable evidence')
 assert(gapArtifact.recipes.filter((row) => row.catalogListed).length === 2, 'catalog accounting excludes supplemental route')
 
 let terminalCalls = 0
