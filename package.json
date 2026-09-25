@@ -33,7 +33,8 @@
     "data:scope:finalize": "node scripts/finalize-planner-scope.mjs",
     "data:import:broad": "node scripts/import-bdo-extractor.mjs",
     "data:codex:details:reviewed": "node scripts/collect-reviewed-codex-recipe-details.mjs",
-    "data:retired:prune": "node scripts/prune-retired-crafting-routes.mjs"
+    "data:retired:prune": "node scripts/prune-retired-crafting-routes.mjs",
+    "data:web-evidence": "node scripts/collect-production-web-evidence.mjs"
   },
   "dependencies": {
     "react": "^19.1.1",
