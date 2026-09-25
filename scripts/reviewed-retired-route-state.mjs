@@ -27,7 +27,10 @@ export function applyRetiredRouteStateToDetails(details, evidence) {
     const state = reviewed.routes.get(Number(row.recipeId))
     if (!state) return row
     if (row.catalogListed !== false) throw new Error(`retired route ${row.recipeId} is not supplemental`)
-    if (row.skill !== state.skill && row.skill !== 'unknown') throw new Error(`retired route ${row.recipeId} skill mismatch`)
+    if (row.skill !== state.skill) {
+      const identityReachedPartialGuard = row.skill === 'unknown' && /skill calculator exposes .* exact ingredient identities were parsed/i.test(String(row.error || ''))
+      if (!identityReachedPartialGuard) throw new Error(`retired route ${row.recipeId} skill identity was not established`)
+    }
     return { recipeId: Number(row.recipeId), skill: state.skill, catalogListed: false, discovery: row.discovery, sourceUrl: row.sourceUrl, status: 'unavailable', liveState: 'retired-reviewed', ingredients: [], baseOutputs: [], randomOutputs: [] }
   })
   const unresolvedCount = recipes.filter((row) => row.status === 'unresolved').length
