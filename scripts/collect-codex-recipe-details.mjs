@@ -113,7 +113,7 @@ export function parseCodexRecipeDetailHtml(html, expectedRecipeId, expectedSkill
     return { itemId, ...(name ? { name } : {}), count: min }
   })
   const baseOutputs = uniqueRows(rowsAfterLabel(card, ['기본 제품', 'Base product']))
-  const randomOutputs = uniqueRows(rowsAfterLabel(card, ['랜덤 제품', 'Random product']))
+  const randomOutputs = uniqueRows(rowsAfterLabel(card, ['랜덤 제품', '추가 (무작위) 제품', 'Random product', 'Additional (random) products']))
   const status = classify(baseOutputs, randomOutputs, true)
   if (!STATUSES.has(status)) throw new Error(`recipe ${expectedRecipeId}: invalid output status`)
   if (!ingredients.length) throw new Error(`recipe ${expectedRecipeId}: no exact ingredients parsed`)
