@@ -48,8 +48,9 @@ Pass: Cooking and Alchemy mastery semantics remain separate through the full UI 
 3. Verify available LT, LT per serving, maximum loadable servings, exact per-item carry quantities and total starting ingredient LT.
 4. Request more than capacity and verify a clear warning without silently clipping the requested plan.
 5. Use a fixture with unknown ingredient weight and verify capacity math fails closed.
+6. On a source-verified single-base variant with verified output-item weight, verify the UI shows the base-output LT range for the resolved attempts. Verify random/higher-grade outputs are explicitly excluded without proc-probability evidence, and a random-only route shows no deterministic output-weight range.
 
-Pass: exact input-load math is never mixed with probabilistic output/peak estimates.
+Pass: exact input-load math and verified base-output range remain distinct; probabilistic outputs are never promoted into guaranteed weight.
 
 ## E2E-05 Intermediate acquire vs craft
 
