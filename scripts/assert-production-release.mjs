@@ -42,6 +42,7 @@ try {
     dataset,
     reconciliation,
     reconciliationBytes: fs.readFileSync(reconciliationFile),
+    codexManifestBytes: fs.readFileSync(codexManifestFile),
     masteryEvidenceBytes: fs.readFileSync(masteryEvidenceFile),
     masteryBytes: fs.readFileSync(masteryFile),
     head: git.stdout.trim(),

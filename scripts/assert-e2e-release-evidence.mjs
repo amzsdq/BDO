@@ -26,6 +26,7 @@ if (!gitSha.test(manifest.mainCommit ?? '') || allZero(manifest.mainCommit)) fai
 for (const key of ['datasetFingerprint', 'reconciliationFingerprint', 'masteryEvidenceFingerprint']) {
   if (!evidenceString(manifest[key])) fail(`${key} is required and cannot be a placeholder`);
 }
+if (!sha256.test(manifest.codexManifestSha256 ?? '') || allZero(manifest.codexManifestSha256)) fail('codexManifestSha256 must be a non-placeholder 64-char SHA-256');
 if (!sha256.test(manifest.masterySha256 ?? '') || allZero(manifest.masterySha256)) fail('masterySha256 must be a non-placeholder 64-char SHA-256');
 if (!evidenceString(manifest.reconciliationTimestamp)) fail('reconciliationTimestamp is required');
 if (Number.isNaN(Date.parse(manifest.reconciliationTimestamp))) fail('reconciliationTimestamp must be ISO-8601 parseable');
