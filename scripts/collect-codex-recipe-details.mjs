@@ -38,7 +38,10 @@ function balancedDivByClass(html, requiredClasses) {
 function logicalRows(card) {
   const rows = [...card.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)].map((match) => match[1])
   if (rows.length) return rows
-  return [...card.matchAll(/<div\b[^>]*class=["'][^"']*\brow\b[^"']*["'][^>]*>([\s\S]*?)<\/div>/gi)].map((match) => match[1])
+  const marker = /<(?:div|p|li)\b[^>]*class=["'][^"']*\b(?:row|item|recipe)\b[^"']*["'][^>]*>/gi
+  const starts = [...card.matchAll(marker)].map((match) => match.index)
+  if (!starts.length) return []
+  return starts.map((start, index) => card.slice(start, starts[index + 1] ?? card.length))
 }
 
 function itemRow(row) {
