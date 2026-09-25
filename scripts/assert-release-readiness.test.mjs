@@ -32,5 +32,6 @@ describe('assert-release-readiness CLI contract', () => {
     const source = require('node:fs').readFileSync('scripts/assert-release-readiness.mjs', 'utf8')
     expect(source).toContain('evidence.sourceRevision !== dataset.metadata?.sourceRevision')
     expect(source).toContain('mastery source revision does not match dataset snapshot')
+    expect(source).toContain('dataset client fingerprint is missing')
   })
 })
