@@ -31,7 +31,9 @@ The exact Codex detail artifact bytes are SHA-256 bound through reconciliation a
 ## Core commands
 
 ```text
-node scripts/prepare-client-broad-from-snapshot.mjs <bootstrap-snapshot-dir> <client-broad.json>\n# Equivalent manual primitive when starting from separately verified raw files:\nnpm run data:import:broad -- --items <items.json> --recipes <recipes.json> --out <client-broad.json> --source-revision <exact-extractor-sha> --client-fingerprint <sha256:...>
+node scripts/prepare-client-broad-from-snapshot.mjs <bootstrap-snapshot-dir> <client-broad.json>
+# Equivalent manual primitive when starting from separately verified raw files:
+npm run data:import:broad -- --items <items.json> --recipes <recipes.json> --out <client-broad.json> --source-revision <exact-extractor-sha> --client-fingerprint <sha256:...>
 npm run data:codex:browser -- --out <codex-catalog.json>
 npm run data:codex:details:reviewed -- --catalog <codex-catalog.json> --route-state-evidence data/evidence/retired-crafting-routes.kr.json --out <codex-details.json>
 npm run data:retired:prune -- <client-broad.json> data/evidence/retired-crafting-routes.kr.json <client-live.json>
