@@ -21,12 +21,12 @@ export function buildPlanFromSession(
   dataset: RecipeDataset,
   session: PlanSessionState,
   inventory: Readonly<Record<string, number>>,
-  profile: Pick<CharacterProfileState, 'cookingMastery'>,
+  profile: Pick<CharacterProfileState, 'cookingMastery' | 'alchemyMastery'>,
 ): BuiltPlanSession {
   const validation = validatePlanSessionAgainstDataset(dataset, session)
   if (!validation.valid) return { errors: validation.errors, hasEstimatedPreparation: false }
 
-  const resolved = resolvePlanTargets(dataset, session.targets, { cookingMastery: profile.cookingMastery })
+  const resolved = resolvePlanTargets(dataset, session.targets, { cookingMastery: profile.cookingMastery, alchemyMastery: profile.alchemyMastery })
   if (resolved.errors.length) return { errors: resolved.errors, hasEstimatedPreparation: resolved.hasEstimatedPreparation }
 
   try {
