@@ -66,6 +66,11 @@ for (const [recipeId, recipe] of Object.entries(recipes)) {
       const allowedStatuses = new Set(['single-base', 'random-only', 'multiple-base', 'no-output', 'unavailable', 'unresolved'])
       if (!allowedStatuses.has(variant.outputEvidence.status)) errors.push(`${recipeId}/${variant.id}: invalid output evidence status`)
       if (variant.outputEvidence.status === 'single-base' && (!variant.yield || !Number.isFinite(variant.yield.min) || variant.yield.min <= 0 || !Number.isFinite(variant.yield.max) || variant.yield.max < variant.yield.min)) errors.push(`${recipeId}/${variant.id}: single-base output evidence requires positive variant yield`)
+      if (variant.outputEvidence.status === 'single-base') {
+        const base = variant.outputEvidence.baseOutputs || []
+        if (base.length !== 1 || Number(base[0]?.itemId) !== Number(recipe.outputItemId)) errors.push(`${recipeId}/${variant.id}: single-base evidence must identify exactly the recipe output item`)
+        else if (variant.yield && (Number(base[0].min) !== Number(variant.yield.min) || Number(base[0].max) !== Number(variant.yield.max))) errors.push(`${recipeId}/${variant.id}: single-base output range must match variant yield`)
+      }
       if (variant.outputEvidence.status === 'random-only' && !(variant.outputEvidence.randomOutputs || []).length) errors.push(`${recipeId}/${variant.id}: random-only output evidence requires random outputs`)
       if (variant.outputEvidence.status === 'random-only' && (variant.outputEvidence.baseOutputs || []).length) errors.push(`${recipeId}/${variant.id}: random-only output evidence cannot contain base outputs`)
       if (variant.outputEvidence.status === 'no-output' && ((variant.outputEvidence.baseOutputs || []).length || (variant.outputEvidence.randomOutputs || []).length)) errors.push(`${recipeId}/${variant.id}: no-output evidence cannot contain outputs`)
