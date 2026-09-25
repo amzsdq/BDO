@@ -31,6 +31,20 @@ describe('Codex random-output alias normalization', () => {
     expect(out.metadata.sources).toContain('BDO Codex KR random-output role evidence')
   })
 
+  it('matches the full multi-ingredient signature instead of truncating at the first separator', () => {
+    const inputs=[{itemId:9203,count:1},{itemId:9404,count:2}]
+    const dataset={metadata:{},recipes:{
+      'cooking:9601':{id:'cooking:9601',skill:'cooking',outputItemId:9601,variants:[{id:'base',inputs}]},
+      'cooking:9602':{id:'cooking:9602',skill:'cooking',outputItemId:9602,variants:[{id:'alias',inputs}]},
+    },recipesByOutput:{'9601':['cooking:9601'],'9602':['cooking:9602']},byproducts:{}}
+    const details={schemaVersion:2,complete:true,unresolvedCount:0,supplementalDiscovery:{method:'catalog-gap-probe',complete:true},recipes:[{
+      recipeId:169,skill:'cooking',status:'single-base',ingredients:inputs,baseOutputs:[{itemId:9601,min:1,max:4}],randomOutputs:[{itemId:9602,min:1,max:2}],
+    }]}
+    const out=normalizeCodexRandomOutputAliases(dataset,details)
+    expect(out.recipes['cooking:9602']).toBeUndefined()
+    expect(out.metadata.codexRandomAliasNormalization.removedVariants).toBe(1)
+  })
+
   it('preserves a distinct true direct signature and is idempotent', () => {
     const dataset={metadata:{},recipes:{
       'cooking:9601':{id:'cooking:9601',skill:'cooking',outputItemId:9601,variants:[variant('base',9203)]},

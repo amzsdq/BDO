@@ -54,7 +54,8 @@ export function normalizeCodexRandomOutputAliases(dataset, details) {
   let removedVariants = 0
   const normalizedAliases = []
   for (const [key, parentIds] of aliases) {
-    const [route, sig] = key.split('|')
+    const pipe = key.indexOf('|')
+    const route = key.slice(0, pipe), sig = key.slice(pipe + 1)
     const split = route.indexOf(':')
     const skillName = route.slice(0, split)
     const outputItemId = Number(route.slice(split + 1))
