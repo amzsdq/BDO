@@ -21,7 +21,7 @@ npm install
 npm run dev
 ```
 
-프로덕션 번들 검증:
+프로덕션 번들 검증 (main 및 relay 개발 브랜치는 GitHub CI에서도 동일 검증을 실행합니다):
 
 ```bash
 npm test
