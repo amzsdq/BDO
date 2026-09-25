@@ -50,6 +50,7 @@ const detailIds = exactItemIdsFromRecipeDetails({ schemaVersion: 2, complete: tr
   { recipeId: 1, skill: 'cooking', status: 'single-base', ingredients: [{ itemId: 20 }, { itemId: 10 }], baseOutputs: [{ itemId: 30 }], randomOutputs: [{ itemId: 40 }] },
   { recipeId: 345, skill: 'alchemy', status: 'random-only', ingredients: [{ itemId: 20 }], baseOutputs: [], randomOutputs: [{ itemId: 45334 }] },
 ] })
-assert(JSON.stringify(detailIds) === JSON.stringify([10, 20, 30, 40, 45334]), 'details exact item-id union')\nassert(JSON.stringify(exactItemIdsFromDataset({ items: { '20': { id: 20 }, '10': { id: 10 } } })) === JSON.stringify([10, 20]), 'final dataset exact item-id union')
+assert(JSON.stringify(detailIds) === JSON.stringify([10, 20, 30, 40, 45334]), 'details exact item-id union')
+assert(JSON.stringify(exactItemIdsFromDataset({ items: { '20': { id: 20 }, '10': { id: 10 } } })) === JSON.stringify([10, 20]), 'final dataset exact item-id union')
 assert((() => { try { exactItemIdsFromRecipeDetails({ schemaVersion: 2, complete: true, supplementalDiscovery: { complete: false }, recipes: [] }); return false } catch { return true } })(), 'incomplete supplemental discovery must block item acquisition')
 console.log('collect-codex-item-evidence fixture regression passed')
