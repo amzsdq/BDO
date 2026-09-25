@@ -52,6 +52,7 @@ export function attemptsForTarget(recipe: Recipe, target: PlanTarget): number {
   positive(target.amount, 'target amount')
   if (target.mode === 'attempts') return Math.ceil(target.amount)
   const variant = selectVariant(recipe, target.variantId)
+  if (variant.outputEvidence && variant.outputEvidence.status !== 'single-base') throw new Error(`recipe ${recipe.id} variant ${variant.id} cannot deterministically plan an output target from ${variant.outputEvidence.status} evidence`)
   return Math.ceil(target.amount / yieldFor(recipe, target.yieldPolicy ?? 'minimum', variant))
 }
 
