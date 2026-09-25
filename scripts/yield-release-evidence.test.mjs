@@ -7,6 +7,7 @@ describe('assertYieldReleaseEvidence', () => {
   it('accepts complete canonical Codex yield coverage', () => { expect(assertYieldReleaseEvidence(verified)).toBe(true) })
   it('rejects unknown server yield and incomplete coverage', () => {
     expect(() => assertYieldReleaseEvidence({ ...verified, recipes: { r: { id: 'r', yield: { min: 1, max: 1, provenance: 'unknown-server-yield' } } } })).toThrow(/canonical Codex KR/)
-    expect(() => assertYieldReleaseEvidence({ ...verified, recipes: { r: { id: 'r', yield: { min: 1, max: 4, provenance: 'https://bdocodex.com/kr/recipe/595/', sourceRecipeId: 594 } } } })).toThrow(/canonical Codex KR/)\n    expect(() => assertYieldReleaseEvidence({ ...verified, metadata: { yieldEvidenceApplied: true, yieldEvidenceCount: 0 } })).toThrow(/coverage is incomplete/)
+    expect(() => assertYieldReleaseEvidence({ ...verified, recipes: { r: { id: 'r', yield: { min: 1, max: 4, provenance: 'https://bdocodex.com/kr/recipe/595/', sourceRecipeId: 594 } } } })).toThrow(/canonical Codex KR/)
+    expect(() => assertYieldReleaseEvidence({ ...verified, metadata: { yieldEvidenceApplied: true, yieldEvidenceCount: 0 } })).toThrow(/coverage is incomplete/)
   })
 })
