@@ -70,6 +70,13 @@ for (const [recipeId, recipe] of Object.entries(recipes)) {
       if (!Number.isFinite(input.count) || input.count <= 0) errors.push(`${recipeId}/${variant.id}: invalid count for ${input.itemId}`)
       if (inputIds.has(String(input.itemId))) errors.push(`${recipeId}/${variant.id}: duplicate input item ${input.itemId}; aggregate canonical counts instead`)
       inputIds.add(String(input.itemId))
+      const requiredWeightItemIds = input.substitutionGroupId != null
+        ? (substitutionGroups[input.substitutionGroupId]?.memberItemIds || [input.itemId])
+        : [input.itemId]
+      for (const weightItemId of requiredWeightItemIds) {
+        const weight = items[String(weightItemId)]?.weightLT
+        if (!Number.isFinite(weight) || weight < 0) errors.push(`${recipeId}/${variant.id}: missing or invalid weightLT for recipe material ${weightItemId}`)
+      }
       if (input.substitutionGroupId != null) {
         const group = substitutionGroups[input.substitutionGroupId]
         if (!group) errors.push(`${recipeId}/${variant.id}: unknown substitution group ${input.substitutionGroupId}`)
