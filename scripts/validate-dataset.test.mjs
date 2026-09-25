@@ -45,6 +45,15 @@ describe('canonical dataset validator', () => {
     expect(JSON.parse(result.stdout).substitutionGroups).toBe(1)
   })
 
+  it('rejects selectable substitution groups without verified ratios regardless of provider', () => {
+    const dataset = validDataset()
+    dataset.substitutionGroups = { 'client:1': { id: 'client:1', memberItemIds: [20, 21], source: { provider: 'BDO client', sourceId: '1', verifiedAt: '2026-09-25' } } }
+    dataset.recipes.cook.variants[0].inputs[0].substitutionGroupId = 'client:1'
+    const result = run(dataset)
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('verified substitution value map missing')
+  })
+
   it('rejects incomplete Codex Worth evidence', () => {
     const dataset = validDataset()
     dataset.substitutionGroups = { 'codex:6502': { id: 'codex:6502', memberItemIds: [20, 21], memberValueByItemId: { '20': 1 }, source: { provider: 'BDO Codex KR', sourceId: '6502', verifiedAt: '2026-09-23' } } }
