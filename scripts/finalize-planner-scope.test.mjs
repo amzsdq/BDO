@@ -1,0 +1,8 @@
+import { describe, expect, it } from 'vitest'
+import { finalizePlannerScope } from './finalize-planner-scope.mjs'
+const dataset={items:{'1':{id:1},'2':{id:2},'3':{id:3},'99':{id:99}},recipes:{'cooking:3':{id:'cooking:3',skill:'cooking',outputItemId:3,variants:[{id:'v1',inputs:[{itemId:1,count:5}]}]}},recipesByOutput:{'3':['cooking:3']},byproducts:{},metadata:{fingerprint:'stale',sources:['client']}}
+const evidence={source:'BDO Codex KR',collectedAt:'2026-09-23T00:00:00.000Z',groups:[{id:'codex:3001',sourceId:'3001',sourceUrl:'https://bdocodex.com/kr/materialgroup/3001/',members:[{itemId:1,value:1},{itemId:2,value:6}]}]}
+describe('finalize planner scope after pre-substitution enrichment',()=>{
+ it('applies substitution before pruning so indirect group members survive',()=>{const r=finalizePlannerScope(dataset,evidence);expect(Object.keys(r.items).sort()).toEqual(['1','2','3']);expect(r.recipes['cooking:3'].variants[0].inputs[0].substitutionGroupId).toBe('codex:3001');expect(r.metadata.fingerprint).toBeUndefined();expect(r.metadata.substitutionEvidenceApplied).toBe(true)})
+ it('does not mutate the pre-enriched input dataset',()=>{finalizePlannerScope(dataset,evidence);expect(dataset.items['99']).toBeDefined();expect(dataset.recipes['cooking:3'].variants[0].inputs[0].substitutionGroupId).toBeUndefined()})
+})
