@@ -28,6 +28,9 @@ assert(row.weightLT === 0.10, 'weight')
 assert(JSON.stringify(row.materialGroupIds) === JSON.stringify(['6503']), 'material group scope')
 assert(row.masteryRequirement?.skill === 'alchemy' && row.masteryRequirement.minimumMastery === 500, 'mastery')
 assert((() => {
+  try { parseCodexItemEvidenceHtml(html, 9999); return false } catch { return true }
+})(), 'card item id mismatch must fail closed')
+assert((() => {
   try { parseCodexItemEvidenceHtml('<html><body>missing card</body></html>', 6214); return false } catch { return true }
 })(), 'missing item card must fail closed')
 console.log('collect-codex-item-evidence fixture regression passed')

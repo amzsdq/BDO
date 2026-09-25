@@ -38,8 +38,8 @@ export function parseCodexItemEvidenceHtml(html, expectedItemId) {
   const nameKo = nameMatch ? decodeText(nameMatch[2]) : ''
   if (!nameKo) throw new Error(`item ${expectedItemId}: Korean card-header item name missing`)
 
-  const canonicalIds = [...card.matchAll(/href=["'][^"']*\/kr\/item\/(\d+)\/?["']/gi)].map((match) => Number(match[1]))
-  if (canonicalIds.length && !canonicalIds.includes(Number(expectedItemId))) throw new Error(`item ${expectedItemId}: canonical item id mismatch`)
+  const cardItemId = Number(decodeText(card).match(/\bID:\s*(\d+)\b/i)?.[1])
+  if (!Number.isSafeInteger(cardItemId) || cardItemId !== Number(expectedItemId)) throw new Error(`item ${expectedItemId}: card item id mismatch`)
 
   const materialGroupIds = [...new Set([...card.matchAll(/href=["'][^"']*\/kr\/materialgroup\/(\d+)\/?["']/gi)].map((match) => String(Number(match[1]))))].sort((a, b) => Number(a) - Number(b))
 
