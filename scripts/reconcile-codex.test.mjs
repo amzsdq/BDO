@@ -76,6 +76,25 @@ describe('Codex reconciliation', () => {
     expect(report.status).toBe('ZERO_UNEXPLAINED_DIFF')
     expect(report.codexLiveRecipeIds).toEqual([999, 1001])
   })
+  it('binds a variant signature to its explicit sourceRecipeId instead of any same-output Codex route', () => {
+    const bound = structuredClone(dataset)
+    bound.recipes.r.variants[0].sourceRecipeId = 999
+    const manifest = { recipes: [
+      { recipeId: 999, skill: 'cooking', outputItemId: 10, titleKo: '결과', ingredients: [{ itemId: 20, count: 3 }] },
+      { recipeId: 1001, skill: 'cooking', outputItemId: 10, titleKo: '결과', ingredients: [{ itemId: 20, count: 2 }] },
+    ] }
+    const { exitCode, report } = run(bound, manifest)
+    expect(exitCode).toBe(2)
+    expect(report.unresolved).toEqual(expect.arrayContaining([
+      expect.objectContaining({ kind: 'CLIENT_VARIANT_ONLY', variantId: 'v1', sourceRecipeId: 999, clientSignature: '#20:2', codexSignatures: ['#20:3'] }),
+    ]))
+  })
+  it('accepts an explicit sourceRecipeId when that exact source route signature matches', () => {
+    const bound = structuredClone(dataset)
+    bound.recipes.r.variants[0].sourceRecipeId = 999
+    const { exitCode, report } = run(bound, matchingManifest)
+    expect(exitCode).toBe(0); expect(report.status).toBe('ZERO_UNEXPLAINED_DIFF')
+  })
   it('keeps every client recipe sharing an output instead of overwriting the earlier recipe', () => {
     const withTwoRecipes = structuredClone(dataset)
     withTwoRecipes.recipes.r2 = { id: 'r2', skill: 'cooking', outputItemId: 10, variants: [{ id: 'v1', inputs: [{ itemId: 20, count: 3 }] }] }

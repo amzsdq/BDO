@@ -41,7 +41,7 @@ for (const recipe of Object.values(dataset.recipes || {})) {
   const output = dataset.items[String(recipe.outputItemId)]
   const skill = normalizedSkill(recipe.skill)
   const key = reconciliationKey(skill, Number(recipe.outputItemId), output?.nameKo)
-  const variants = (recipe.variants || []).map((variant) => ({ recipeId: recipe.id, variantId: variant.id, signature: signatureFromDataset(dataset, recipe, variant) }))
+  const variants = (recipe.variants || []).map((variant) => ({ recipeId: recipe.id, variantId: variant.id, sourceRecipeId: Number.isSafeInteger(Number(variant.sourceRecipeId)) && Number(variant.sourceRecipeId) > 0 ? Number(variant.sourceRecipeId) : undefined, signature: signatureFromDataset(dataset, recipe, variant) }))
   const group = clientByKey.get(key) || { output, recipes: [], variants: [], signatures: new Set() }
   group.recipes.push(recipe)
   group.variants.push(...variants)
@@ -74,7 +74,18 @@ for (const [key, client] of clientByKey) {
     if (sig && !client.signatures.has(sig)) diffs.push({ key: `SIGNATURE:${entry.recipeId}:${key}`, kind: 'SIGNATURE_MISMATCH', codexRecipeId: entry.recipeId, output: entry.titleKo, codexSignature: sig, clientSignatures: [...client.signatures] })
   }
   for (const variant of client.variants) {
-    if (variant.signature && !codexSignatures.has(variant.signature)) diffs.push({ key: `CLIENT_VARIANT_ONLY:${variant.recipeId}:${variant.variantId}:${key}`, kind: 'CLIENT_VARIANT_ONLY', recipeId: variant.recipeId, variantId: variant.variantId, output: client.output?.nameKo, clientSignature: variant.signature, codexSignatures: [...codexSignatures] })
+    const sourceEntries = variant.sourceRecipeId == null ? codexEntries : codexEntries.filter((entry) => Number(entry.recipeId) === variant.sourceRecipeId)
+    const sourceSignatures = new Set(sourceEntries.map(signatureFromCodex).filter(Boolean))
+    if (variant.signature && !sourceSignatures.has(variant.signature)) diffs.push({
+      key: `CLIENT_VARIANT_ONLY:${variant.recipeId}:${variant.variantId}:${key}`,
+      kind: 'CLIENT_VARIANT_ONLY',
+      recipeId: variant.recipeId,
+      variantId: variant.variantId,
+      ...(variant.sourceRecipeId == null ? {} : { sourceRecipeId: variant.sourceRecipeId }),
+      output: client.output?.nameKo,
+      clientSignature: variant.signature,
+      codexSignatures: [...sourceSignatures],
+    })
   }
 }
 for (const [key, entries] of codexByKey) if (!clientByKey.has(key)) for (const entry of entries) diffs.push({ key: `CODEX_ONLY:${entry.recipeId}:${key}`, kind: 'CODEX_ONLY', codexRecipeId: entry.recipeId, output: entry.titleKo })
