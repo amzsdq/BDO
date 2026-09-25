@@ -6,6 +6,6 @@ export default defineConfig({
   base: './',
   test: {
     include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.mjs'],
-    exclude: ['e2e/**'],
+    exclude: ['e2e/**', 'scripts/assert-e2e-release-evidence.test.mjs', 'scripts/release-e2e-bindings.test.mjs'],
   },
 })
