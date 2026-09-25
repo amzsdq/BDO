@@ -35,6 +35,24 @@ describe('Codex substitution evidence collector', () => {
     expect(result.groups[0].members).toHaveLength(3)
   })
 
+  it('deduplicates and sorts requested group ids deterministically', async () => {
+    const fetchImpl = vi.fn(async (url) => ({ ok: true, status: 200, statusText: 'OK', url, text: async () => html }))
+    const result = await collectCodexSubstitutionGroups(['3', '1', '3', '2'], fetchImpl, '2026-09-23T00:00:00.000Z', { concurrency: 2 })
+    expect(result.groups.map((group) => group.sourceId)).toEqual(['1', '2', '3'])
+    expect(fetchImpl).toHaveBeenCalledTimes(3)
+  })
+
+  it('retries transient server errors and does not retry terminal 404', async () => {
+    const retryFetch = vi.fn()
+      .mockResolvedValueOnce({ ok: false, status: 503, statusText: 'Unavailable' })
+      .mockResolvedValueOnce({ ok: true, status: 200, statusText: 'OK', url: '', text: async () => html })
+    await collectCodexSubstitutionGroups(['1'], retryFetch, '2026-09-23T00:00:00.000Z', { retries: 1 })
+    expect(retryFetch).toHaveBeenCalledTimes(2)
+    const terminalFetch = vi.fn(async () => ({ ok: false, status: 404, statusText: 'Not Found' }))
+    await expect(collectCodexSubstitutionGroups(['1'], terminalFetch, '2026-09-23T00:00:00.000Z', { retries: 3 })).rejects.toThrow(/404/)
+    expect(terminalFetch).toHaveBeenCalledTimes(1)
+  })
+
   it('rejects non-numeric group ids before network access', async () => {
     const fetchImpl = vi.fn()
     await expect(collectCodexSubstitutionGroups(['../bad'], fetchImpl)).rejects.toThrow(/invalid material group id/)
