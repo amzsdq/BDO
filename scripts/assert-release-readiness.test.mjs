@@ -33,5 +33,6 @@ describe('assert-release-readiness CLI contract', () => {
     expect(source).toContain('evidence.sourceRevision !== dataset.metadata?.sourceRevision')
     expect(source).toContain('mastery source revision does not match dataset snapshot')
     expect(source).toContain('dataset client fingerprint is missing')
+    expect(source).toContain('evidence.clientFingerprint !== dataset.metadata.clientFingerprint')
   })
 })
