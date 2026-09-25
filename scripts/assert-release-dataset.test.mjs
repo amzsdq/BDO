@@ -34,7 +34,7 @@ function completeCatalog() {
     ],
   }
 }
-function setup(catalog = completeCatalog()) {
+function setup(catalog = completeCatalog(), expectPromotion = true) {
   const dir = mkdtempSync(join(tmpdir(), 'bdo-release-gate-'))
   const datasetFile = join(dir, 'dataset.json'), reportFile = join(dir, 'report.json'), catalogFile = join(dir, 'catalog.json')
   mkdirSync(join(dir, '..', 'icons'), { recursive: true })
@@ -44,8 +44,8 @@ function setup(catalog = completeCatalog()) {
   writeFileSync(reportFile, JSON.stringify({ status: 'ZERO_UNEXPLAINED_DIFF', unresolved: [], clientRecipeGroups: 2, clientRecipes: 2, codexLivePages: 2, codexLiveRecipeIds: [101, 201], datasetFingerprint: reconciliationDatasetFingerprint(source) }))
   writeFileSync(catalogFile, JSON.stringify(catalog))
   const promoted = spawnSync(process.execPath, ['scripts/promote-release-dataset.mjs', datasetFile, reportFile, catalogFile], { cwd: process.cwd(), encoding: 'utf8' })
-  expect(promoted.status).toBe(0)
-  return { datasetFile, reportFile, catalogFile }
+  if (expectPromotion) expect(promoted.status).toBe(0)
+  return { datasetFile, reportFile, catalogFile, promoted }
 }
 function gate(datasetFile, reportFile, catalogFile) { return spawnSync(process.execPath, ['scripts/assert-release-dataset.mjs', datasetFile, reportFile, catalogFile], { cwd: process.cwd(), encoding: 'utf8' }) }
 
@@ -98,10 +98,9 @@ describe('final release gate', () => {
       completenessMode: 'unpaginated-full-array+rendered-id-crosscheck',
       acquisition: 'playwright-network-capture',
     }
-    const files = setup(catalog)
-    const result = gate(files.datasetFile, files.reportFile, files.catalogFile)
-    expect(result.status).toBe(1)
-    expect(result.stderr).toContain('auditable completeness evidence')
+    const files = setup(catalog, false)
+    expect(files.promoted.status).toBe(1)
+    expect(files.promoted.stderr).toContain('auditable completeness evidence')
   })
   it('rejects reconciliation evidence that omitted a client recipe', () => {
     const { datasetFile, reportFile, catalogFile } = setup(); const report = JSON.parse(readFileSync(reportFile, 'utf8')); report.clientRecipes = 1; writeFileSync(reportFile, JSON.stringify(report)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('client recipe count')
