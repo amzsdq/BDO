@@ -27,6 +27,9 @@ describe('reviewed retired crafting route evidence', () => {
     expect(result.unresolvedCount).toBe(0)
     expect(result.recipes[1]).toMatchObject({ recipeId: 342, skill: 'alchemy', status: 'unavailable', liveState: 'retired-reviewed' })
     expect(result.retiredCraftingOutputItemIds).toEqual([5303, 45334])
+    const unidentified = structuredClone(details)
+    unidentified.recipes[1].skill = 'unknown'
+    expect(() => applyRetiredRouteStateToDetails(unidentified, evidence)).toThrow(/skill identity was not established/)
   })
 
   it('prunes direct recipes and byproduct references and final gate rejects unpruned data', () => {
