@@ -227,6 +227,9 @@ export async function collectCodexRecipeDetails(catalogManifest, { fetchImpl = f
     unresolvedCount: unresolved.length,
     catalogRouteCount: expected.length,
     supplementalRouteCount: present.filter((row) => !row.catalogListed).length,
+    supplementalDiscovery: probeGaps
+      ? { method: 'catalog-gap-probe', probedGapCount: probeRoutes.length, complete: unresolved.length === 0 }
+      : { method: 'none', probedGapCount: 0, complete: false },
     recipes: present,
   }
 }
