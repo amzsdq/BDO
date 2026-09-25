@@ -20,7 +20,7 @@ describe('reviewed retired crafting route evidence', () => {
   it('turns observed supplemental historical routes into reviewed unavailable evidence', () => {
     const details = { schemaVersion: 2, exactCoverage: true, unresolvedCount: 1, complete: false, supplementalDiscovery: { method: 'catalog-gap-probe', complete: false, probedMinRecipeId: 1, probedMaxRecipeId: 651, boundedByCatalogHighWater: true }, recipes: [
       { recipeId: 1, skill: 'cooking', catalogListed: true, status: 'single-base' },
-      { recipeId: 342, skill: 'alchemy', catalogListed: false, discovery: 'catalog-gap-probe', sourceUrl: 'https://bdocodex.com/kr/recipe/342/', status: 'unresolved' },
+      { recipeId: 342, skill: 'alchemy', catalogListed: false, discovery: 'catalog-gap-probe', sourceUrl: 'https://bdocodex.com/kr/recipe/342/', status: 'unresolved', ingredients: [{ itemId: 100, count: 2 }, { itemId: 200, count: 1 }] },
     ] }
     const result = applyRetiredRouteStateToDetails(details, evidence)
     expect(result.complete).toBe(true)
@@ -28,6 +28,7 @@ describe('reviewed retired crafting route evidence', () => {
     expect(result.supplementalDiscovery.complete).toBe(true)
     expect(result.recipes[1]).toMatchObject({ recipeId: 342, skill: 'alchemy', status: 'unavailable', liveState: 'retired-reviewed' })
     expect(result.retiredCraftingOutputItemIds).toEqual([5303, 45334])
+    expect(result.retiredCraftingSignatures).toEqual([{ recipeId: 342, skill: 'alchemy', signature: 'alchemy|100:2|200:1' }])
     const unidentified = structuredClone(details)
     unidentified.recipes[1].skill = 'unknown'
     expect(() => applyRetiredRouteStateToDetails(unidentified, evidence)).toThrow(/skill identity was not established/)
@@ -38,7 +39,8 @@ describe('reviewed retired crafting route evidence', () => {
       metadata: { fingerprint: 'stale', counts: { cooking: 1, alchemy: 2 } },
       recipes: {
         'alchemy:5303': { id: 'alchemy:5303', skill: 'alchemy', outputItemId: 5303, variants: [] },
-        'alchemy:9000': { id: 'alchemy:9000', skill: 'alchemy', outputItemId: 9000, variants: [] },
+        'alchemy:9000': { id: 'alchemy:9000', skill: 'alchemy', outputItemId: 9000, variants: [{ id: 'live', inputs: [{ itemId: 999, count: 1 }] }] },
+        'alchemy:42297': { id: 'alchemy:42297', skill: 'alchemy', outputItemId: 42297, variants: [{ id: 'stale-parallel', inputs: [{ itemId: 200, count: 1 }, { itemId: 100, count: 2 }] }, { id: 'other-live-shape', inputs: [{ itemId: 888, count: 1 }] }] },
         'cooking:8000': { id: 'cooking:8000', skill: 'cooking', outputItemId: 8000, variants: [] },
       },
       recipesByOutput: { '5303': ['alchemy:5303'], '9000': ['alchemy:9000'], '8000': ['cooking:8000'] },
@@ -47,12 +49,13 @@ describe('reviewed retired crafting route evidence', () => {
         '7777': { outputItemId: 7777, producedWhileCraftingItemIds: [5303, 9000] },
       },
     }
-    const details = { routeStateEvidence: evidence, retiredCraftingOutputItemIds: [5303, 45334] }
+    const details = { routeStateEvidence: evidence, retiredCraftingOutputItemIds: [5303, 45334], retiredCraftingSignatures: [{ recipeId: 342, skill: 'alchemy', signature: 'alchemy|100:2|200:1' }] }
     expect(() => assertNoRetiredCraftingRoutes(dataset, details)).toThrow(/retired crafting routes/)
     expect(() => assertNoRetiredCraftingRoutes(dataset, { ...details, retiredCraftingOutputItemIds: [5303] })).toThrow(/do not match reviewed route-state evidence/)
-    const result = pruneRetiredCraftingRoutes(dataset, evidence)
+    const result = pruneRetiredCraftingRoutes(dataset, details)
     expect(result.recipes['alchemy:5303']).toBeUndefined()
     expect(result.recipesByOutput['5303']).toBeUndefined()
+    expect(result.recipes['alchemy:42297'].variants.map((v) => v.id)).toEqual(['other-live-shape'])
     expect(result.byproducts['45334']).toBeUndefined()
     expect(result.byproducts['7777'].producedWhileCraftingItemIds).toEqual([9000])
     expect(result.metadata.fingerprint).toBeUndefined()
