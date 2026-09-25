@@ -14,6 +14,16 @@ function outputRows(value, field) {
 }
 function codexRecipeId(value) { const match = String(value ?? '').trim().match(/^https:\/\/(?:www\.)?bdocodex\.com\/kr\/recipe\/(\d+)\/?$/i); return match ? Number(match[1]) : null }
 
+function skillRequirement(entry) {
+  const skill = String(entry?.skillRequirement?.skill ?? '').trim().toLowerCase()
+  const level = String(entry?.skillRequirement?.level ?? '').trim()
+  const minimumMastery = Number(entry?.skillRequirement?.minimumMastery)
+  if (!skill && !level && !Number.isFinite(minimumMastery)) return undefined
+  if (skill !== 'cooking' && skill !== 'alchemy') fail('skillRequirement.skill must be cooking or alchemy')
+  if (entry.skillRequirement.minimumMastery != null && (!Number.isSafeInteger(minimumMastery) || minimumMastery < 0)) fail('skillRequirement.minimumMastery must be a non-negative integer')
+  return { skill, ...(level ? { level } : {}), ...(entry.skillRequirement.minimumMastery == null ? {} : { minimumMastery }) }
+}
+
 export function applyYieldEvidence(dataset, evidence) {
   if (!dataset?.recipes || !dataset?.metadata) fail('dataset recipes/metadata required')
   if (!evidence || !Array.isArray(evidence.entries) || !evidence.entries.length) fail('yield evidence entries required')
@@ -31,6 +41,7 @@ export function applyYieldEvidence(dataset, evidence) {
     const sourceRecipeId = Number(entry.sourceRecipeId)
     if (!Number.isSafeInteger(sourceRecipeId) || sourceRecipeId <= 0 || codexRecipeId(sourceUrl) !== sourceRecipeId) fail(`${recipeId}: sourceUrl/sourceRecipeId must identify the same BDO Codex KR recipe`)
     const outputStatus = String(entry.outputStatus ?? '').trim()
+    const requirement = skillRequirement(entry)
     const classified = Boolean(outputStatus)
     if (classified && !variantId) fail(`${recipeId}: classified output evidence requires variantId`)
     const allowed = new Set(['single-base', 'random-only', 'multiple-base', 'no-output', 'unavailable', 'unresolved'])
@@ -51,7 +62,7 @@ export function applyYieldEvidence(dataset, evidence) {
         if (variant.id !== variantId) return variant
         matched = true
         const outputEvidence = classified ? { status: outputStatus, sourceUrl, ...(baseOutputs ? { baseOutputs } : {}), ...(randomOutputs ? { randomOutputs } : {}) } : variant.outputEvidence
-        return { ...variant, sourceRecipeId, ...(needsYield ? { yield: { min, ...(expected == null ? {} : { expected }), max, provenance: sourceUrl } } : { yield: undefined }), ...(outputEvidence ? { outputEvidence } : {}) }
+        return { ...variant, sourceRecipeId, ...(needsYield ? { yield: { min, ...(expected == null ? {} : { expected }), max, provenance: sourceUrl } } : { yield: undefined }), ...(outputEvidence ? { outputEvidence } : {}), ...(requirement ? { skillRequirement: requirement } : {}) }
       })
       if (!matched) fail(`${recipeId}: unknown variantId ${variantId}`)
       recipes[recipeId] = { ...recipe, variants }
