@@ -43,6 +43,7 @@ export function applyYieldEvidence(dataset, evidence) {
     if (!Number.isSafeInteger(sourceRecipeId) || sourceRecipeId <= 0 || codexRecipeId(sourceUrl) !== sourceRecipeId) fail(`${recipeId}: sourceUrl/sourceRecipeId must identify the same BDO Codex KR recipe`)
     const outputStatus = String(entry.outputStatus ?? '').trim()
     const requirement = skillRequirement(entry)
+    if (requirement && requirement.skill !== String(recipe.skill).toLowerCase()) fail(`${recipeId}: skillRequirement.skill must match recipe skill`)
     const classified = Boolean(outputStatus)
     if (classified && !variantId) fail(`${recipeId}: classified output evidence requires variantId`)
     const allowed = new Set(['single-base', 'random-only', 'multiple-base', 'no-output', 'unavailable', 'unresolved'])

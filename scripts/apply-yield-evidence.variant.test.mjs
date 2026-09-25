@@ -20,6 +20,12 @@ describe('variant yield evidence', () => {
     expect(applyYieldEvidence(base, { entries: [{ ...evidence, baseOutputs: [{ itemId: 1, min: 1, max: 4 }] }] }).recipes.r.variants[0].yield?.max).toBe(4)
   })
 
+  it('rejects mastery evidence for the wrong life skill', () => {
+    expect(() => applyYieldEvidence(base, { entries: [
+      { recipeId: 'r', variantId: 'a', min: 1, max: 1, sourceRecipeId: 169, sourceUrl: 'https://bdocodex.com/kr/recipe/169/', skillRequirement: { skill: 'alchemy', minimumMastery: 500 } },
+    ] })).toThrow(/must match recipe skill/)
+  })
+
   it('applies random-only classification without inventing a yield', () => {
     const result = applyYieldEvidence(base, { entries: [
       { recipeId: 'r', variantId: 'a', outputStatus: 'random-only', sourceRecipeId: 346, sourceUrl: 'https://bdocodex.com/kr/recipe/346/', randomOutputs: [{ itemId: 1, min: 1, max: 1 }] },
