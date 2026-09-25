@@ -1,0 +1,10 @@
+{
+  "schemaVersion": 1,
+  "status": "retired",
+  "skill": "alchemy",
+  "recipeIds": [342, 343, 344, 345, 346],
+  "evidenceUrl": "https://www.kr.playblackdesert.com/ko-kr/News/Detail?countryType=ko-kr&groupContentNo=16141",
+  "effectiveDate": "2026-09-02",
+  "reviewedAt": "2026-09-26T06:15:00+09:00",
+  "reason": "Official KR update removed the related spirit-stone crafting recipes and retired chain items; current KR Codex catalog excludes these recipe IDs."
+}
