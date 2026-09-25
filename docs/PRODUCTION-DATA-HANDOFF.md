@@ -10,9 +10,9 @@ Preserve these files from one extraction run together:
 - `recipes.json`
 - `mastery.json`
 - `asset_redirects.json` plus `icons/` (the extractor's shared WebP assets; `urn::item:<id>` redirects identify which shared asset belongs to each item ID)
-- extraction provenance: exact extractor tag/commit, extraction timestamp, client/game fingerprint when available, and region/client identity
+- extraction provenance: exact extractor tag/commit, extraction timestamp, client/game fingerprint (required), and region/client identity
 
-Do not mix `items.json`, `recipes.json`, `mastery.json`, or icons from different client snapshots.
+Do not mix `items.json`, `recipes.json`, `mastery.json`, or icons from different client snapshots. `clientFingerprint` is mandatory for structural import, mastery evidence, promotion, and the final release gate; a snapshot without it is not production-ready.
 
 ## Recommended extraction
 
