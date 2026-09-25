@@ -125,4 +125,27 @@ describe('canonical dataset validator', () => {
     expect(withResult.status).toBe(0)
     expect(JSON.parse(without.stdout).structuralHash).not.toBe(JSON.parse(withResult.stdout).structuralHash)
   })
+  it('requires finite non-negative weight for every recipe material and every selectable substitute', () => {
+    const direct = validDataset()
+    delete direct.items['20'].weightLT
+    let result = run(direct)
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('missing or invalid weightLT for recipe material 20')
+
+    const substituted = validDataset()
+    substituted.substitutionGroups = { 'codex:6502': { id: 'codex:6502', memberItemIds: [20, 21], memberValueByItemId: { '20': 1, '21': 2 }, source: { provider: 'BDO Codex KR', sourceId: '6502', verifiedAt: '2026-09-23' } } }
+    substituted.recipes.cook.variants[0].inputs[0].substitutionGroupId = 'codex:6502'
+    delete substituted.items['21'].weightLT
+    result = run(substituted)
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('missing or invalid weightLT for recipe material 21')
+  })
+
+  it('accepts verified zero-LT recipe materials', () => {
+    const dataset = validDataset()
+    dataset.items['20'].weightLT = 0
+    const result = run(dataset)
+    expect(result.status).toBe(0)
+  })
+
 })

@@ -5,7 +5,7 @@ export default defineConfig({
   plugins: [react()],
   base: './',
   test: {
-    include: ['src/**/*.test.{ts,tsx}'],
+    include: ['src/**/*.test.{ts,tsx}', 'scripts/**/*.test.mjs'],
     exclude: ['e2e/**'],
   },
 })
