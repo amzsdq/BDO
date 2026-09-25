@@ -17,11 +17,12 @@ function codexRecipeId(value) { const match = String(value ?? '').trim().match(/
 function skillRequirement(entry) {
   const skill = String(entry?.skillRequirement?.skill ?? '').trim().toLowerCase()
   const level = String(entry?.skillRequirement?.level ?? '').trim()
-  const minimumMastery = Number(entry?.skillRequirement?.minimumMastery)
-  if (!skill && !level && !Number.isFinite(minimumMastery)) return undefined
+  const rawMastery = entry?.skillRequirement?.minimumMastery
+  const minimumMastery = rawMastery == null ? undefined : Number(rawMastery)
+  if (!skill && !level && minimumMastery == null) return undefined
   if (skill !== 'cooking' && skill !== 'alchemy') fail('skillRequirement.skill must be cooking or alchemy')
-  if (entry.skillRequirement.minimumMastery != null && (!Number.isSafeInteger(minimumMastery) || minimumMastery < 0)) fail('skillRequirement.minimumMastery must be a non-negative integer')
-  return { skill, ...(level ? { level } : {}), ...(entry.skillRequirement.minimumMastery == null ? {} : { minimumMastery }) }
+  if (rawMastery != null && (!Number.isSafeInteger(minimumMastery) || minimumMastery < 0)) fail('skillRequirement.minimumMastery must be a non-negative integer')
+  return { skill, ...(level ? { level } : {}), ...(rawMastery == null ? {} : { minimumMastery }) }
 }
 
 export function applyYieldEvidence(dataset, evidence) {
