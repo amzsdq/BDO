@@ -18,6 +18,6 @@ describe('applyYieldEvidence', () => {
     expect(() => applyYieldEvidence(dataset, { entries: [evidence.entries[0], evidence.entries[0]] })).toThrow(/duplicate/)
     expect(() => applyYieldEvidence(dataset, { entries: [{ ...evidence.entries[0], min: 5, max: 4 }] })).toThrow(/min exceeds max/)
     expect(() => applyYieldEvidence(dataset, { entries: [{ ...evidence.entries[0], expected: 9 }] })).toThrow(/between min and max/)
-    expect(() => applyYieldEvidence(dataset, { entries: [{ ...evidence.entries[0], sourceUrl: 'https://example.com', sourceRecipeId: 594 }] })).toThrow(/https URL/)
+    expect(() => applyYieldEvidence(dataset, { entries: [{ ...evidence.entries[0], sourceUrl: 'https://example.com', sourceRecipeId: 594 }] })).toThrow(/same BDO Codex KR recipe/)
   })
 })
