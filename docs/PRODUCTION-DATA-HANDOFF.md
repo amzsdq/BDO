@@ -1,81 +1,56 @@
 # Production data handoff
 
-The remaining completeness work cannot be satisfied by synthetic fixtures. The canonical structural snapshot must come from a legally installed, current Black Desert client using the reviewed `iDevelopThings/bdo-data-extractor` contract (v0.1.9 or newer), or an equivalently provenance-preserving extraction.
+Production completeness requires a current, legally installed KR Black Desert client snapshot plus independently captured KR web evidence. Synthetic fixtures are regression inputs only.
 
-## Required local-client bundle
+## Same-snapshot client bundle
 
-Preserve these files from one extraction run together:
+Keep these together from one extraction:
+- `items.json`, `recipes.json`, `mastery.json`
+- `asset_redirects.json` and decoded `icons/`
+- exact extractor commit, extraction timestamp, mandatory `clientFingerprint`, and KR client identity
 
-- `items.json`
-- `recipes.json`
-- `mastery.json`
-- `asset_redirects.json` plus `icons/` (the extractor's shared WebP assets; `urn::item:<id>` redirects identify which shared asset belongs to each item ID)
-- extraction provenance: exact extractor tag/commit, extraction timestamp, client/game fingerprint (required), and region/client identity
+Do not mix snapshots. The reviewed extractor revision is pinned in `scripts/bootstrap-production-data.ps1`; a source checkout without running it against the installed client is not production evidence.
 
-Do not mix `items.json`, `recipes.json`, `mastery.json`, or icons from different client snapshots. `clientFingerprint` is mandatory for structural import, mastery evidence, promotion, and the final release gate; a snapshot without it is not production-ready.
+## Evidence-first processing order
 
-## Recommended extraction
+1. Extract client data/icons and provenance.
+2. Broad-import all Cooking/Alchemy routes with `data:import:broad` into `client-broad.json`. Do not scope-prune yet.
+3. Capture independently complete KR Codex Cooking/Alchemy catalogs.
+4. Capture schema-v2 details with bounded catalog-gap discovery and reviewed route-state evidence. Current reviewed evidence retires historical spirit-stone crafting routes 342–346 per the official KR PC 2026-09-02 update; stale Codex detail pages must not restore them.
+5. Prune reviewed retired crafting outputs from the broad client graph before random-alias normalization or source binding.
+6. Collect initial exact item evidence from the complete detail artifact, discover material-group IDs, and collect group evidence.
+7. Normalize markerless random-output aliases, bind exact Codex detail evidence, then apply reviewed yield evidence. Random-only/unavailable routes are not forced into a positive base-yield contract.
+8. Apply substitution evidence and finalize planner scope without re-importing the client graph.
+9. Collect a second exact item-evidence pass for the final scoped item set, then apply Korean names/weights/mastery enrichment.
+10. Install canonical WebP icons and verify `icon-manifest.json` bytes, per-file SHA-256, exact item set, and deterministic set hash.
+11. Validate, reconcile against the exact catalog/details artifacts, prepare same-snapshot mastery evidence, and promote only at `ZERO_UNEXPLAINED_DIFF`.
+12. Run production E2E-01..09 against the exact promoted dataset and release commit, then run the final production release gate.
 
-Preferred Windows path:
+The exact Codex detail artifact bytes are SHA-256 bound through reconciliation and promoted metadata into the final release gate. Reviewed retired-route evidence is embedded in that detail artifact; a final dataset that still contains one of its retired crafting outputs must be rejected.
 
-```powershell
-powershell -ExecutionPolicy Bypass -File scripts/bootstrap-production-data.ps1
-```
-
-The bootstrap attempts to find common Pearl Abyss / Steam installs (including Steam libraryfolders), installs the reviewed extractor revision, runs `build` and `icons`, hashes same-snapshot `items.json` / `recipes.json` / `mastery.json`, fingerprints the installed client, imports the planner-scoped structural dataset, and creates mastery cross-check evidence. If automatic discovery fails, provide `-GameDir '<installed Black Desert directory>'`.
-
-Manual equivalent:
-
-```text
-bdo-data-extractor build --game <BDO_GAME_DIR> --out <OUT_DIR>
-bdo-data-extractor icons --game <BDO_GAME_DIR> --out <OUT_DIR>
-```
-
-Record the exact extractor revision used. A source checkout alone is not production data evidence; the extractor must run against the installed client.
-
-The companion `bdo-viewer` remains an alternative acquisition path because it runs the extractor locally and stores its generated dataset under the OS cache directory. If that route is used, still record the bundled extractor revision and keep all artifacts from the same extraction snapshot.
-
-## Planner-side processing order
-
-1. Import the scoped Cooking/Alchemy structural graph with an explicit source revision. The structural importer intentionally starts recipe yields as `unknown-server-yield` 1/1 placeholders; these are not release evidence.
-2. Apply BDO Codex KR Korean-name evidence for every planner-scoped item.
-3. Apply reviewed yield evidence for every Cooking/Alchemy recipe. Each entry must provide positive min/max, optional expected within those bounds, and HTTPS provenance. Promotion and release fail closed if any recipe remains uncovered.
-4. Install the exact item-id icon assets referenced by the imported dataset.
-5. Collect complete KR Codex Cooking and Alchemy catalog evidence. Prefer `npm run data:codex:browser -- --out <codex-catalog.json>`, which opens the real catalog pages, captures their live skill-scoped XHR transport, and paginates until the unique recipe-id set equals the server-reported total. The scheduled `production-data-evidence` workflow performs the same capture in GitHub Actions.
-6. Reconcile the imported client graph against the complete Codex catalog until the report is `ZERO_UNEXPLAINED_DIFF` with no unexplained recipe-id/count gap.
-7. Prepare mastery evidence from the matching `mastery.json` using the same extraction provenance.
-8. Promote the dataset only after the data gates pass.
-9. Run real browser E2E-01..09 against that exact promoted dataset/release commit on every declared browser, desktop+narrow, and keyboard-only primary controls. Preserve content-hashed evidence for each scenario and create `release-e2e-evidence.json` per `docs/RELEASE-E2E-EVIDENCE.md`.
-10. Run the final six-artifact production release gate. It revalidates the data/mastery gates and binds the E2E manifest to the exact release HEAD and exact production artifacts.
-
-## Standard commands
+## Core commands
 
 ```text
-npm run data:import -- --items <items.json> --recipes <recipes.json> --out <client-dataset.json> --source-revision <extractor-tag-or-sha> --client-fingerprint <client-fingerprint>
-node scripts/apply-korean-name-evidence.mjs <client-dataset.json> <korean-name-evidence.json> public/data/dataset.json
-npm run data:yields -- public/data/dataset.json <yield-evidence.json> public/data/dataset.json
-npm run data:icons -- public/data/dataset.json <extractor-data> public/icons
-npm run data:validate -- public/data/dataset.json
+npm run data:import:broad -- --items <items.json> --recipes <recipes.json> --out <client-broad.json> --source-revision <exact-extractor-sha> --client-fingerprint <sha256:...>
 npm run data:codex:browser -- --out <codex-catalog.json>
-npm run data:reconcile -- --dataset public/data/dataset.json --codex <codex-manifest.json> --out <reconciliation-report.json>
-npm run data:mastery-evidence -- --mastery <mastery.json> --out <mastery-evidence.json> --source-revision <extractor-tag-or-sha> --client-fingerprint <client-fingerprint> --extracted-at <iso-timestamp>
-npm run data:promote -- public/data/dataset.json <reconciliation-report.json> <codex-catalog.json>
-# Run production E2E-01..09 now and preserve release-e2e-evidence.json.
-npm run e2e:release-evidence -- <release-e2e-evidence.json>
-npm run data:release-gate -- public/data/dataset.json <reconciliation-report.json> <codex-catalog.json> <mastery-evidence.json> <mastery.json> <release-e2e-evidence.json>
+npm run data:codex:details:reviewed -- --catalog <codex-catalog.json> --route-state-evidence data/evidence/retired-crafting-routes.kr.json --out <codex-details.json>
+npm run data:retired:prune -- <client-broad.json> data/evidence/retired-crafting-routes.kr.json <client-live.json>
+npm run data:codex:items -- --details <codex-details.json> --out <initial-item-evidence.json>
+npm run data:codex:normalize-random -- <client-live.json> <codex-details.json> <normalized.json>
+npm run data:codex:bind -- <normalized.json> <codex-details.json> <bound.json>
+npm run data:yields -- <bound.json> <yield-evidence.json> <yielded.json>
+npm run data:scope:finalize -- <yielded.json> <scoped.json> <substitution-evidence.json>
+npm run data:codex:items -- --dataset <scoped.json> --out <final-item-evidence.json>
+npm run data:names-ko -- <scoped.json> <final-item-evidence.json> public/data/dataset.json
+npm run data:icons -- public/data/dataset.json <extractor-data> public/icons
+npm run data:icons:verify -- public/data/dataset.json public/icons/icon-manifest.json public/icons
+npm run data:validate -- public/data/dataset.json
 ```
+
+Use the current README/package scripts for the exact reconcile/promote/release-gate argument list; those gates require the exact Codex catalog and detail artifacts in addition to mastery and E2E evidence.
 
 ## Fail-closed rules
 
-Do not declare production completeness when any of the following is true:
+Do not declare production completeness if the extractor/client fingerprint is missing, artifacts are mixed across snapshots, reviewed retired routes survive in the dataset, bounded supplemental discovery is incomplete, exact item/name/yield/substitution evidence is incomplete, icon bytes/manifest fail verification, reconciliation is not `ZERO_UNEXPLAINED_DIFF`, mastery evidence is not same-snapshot, or any required production E2E/release binding is absent.
 
-- the extraction revision is unrecorded;
-- artifacts come from mixed client snapshots;
-- Korean-name evidence does not cover every planner-scoped item;
-- reviewed bounded yield evidence does not cover every Cooking/Alchemy recipe;
-- any canonical local icon is missing;
-- Codex catalog completeness is not independently demonstrated;
-- reconciliation has an unexplained diff;
-- mastery evidence is not bound to the exact `mastery.json` bytes;
-- any E2E-01..09 scenario lacks content-hashed evidence on every declared browser, desktop+narrow, or keyboard-only primary controls;
-- the E2E manifest is not bound to the exact release commit and exact production data/mastery/reconciliation artifacts.
+The Windows bootstrap is currently expected to produce the broad `client-broad.json` entry point. If its checked-in implementation still emits scoped `client-dataset.json`, treat that as an operational blocker rather than silently following the stale path.
