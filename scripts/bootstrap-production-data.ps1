@@ -129,7 +129,7 @@ Write-Host "[5/6] Importing Cooking/Alchemy graph into planner schema"
 $Dataset = Join-Path $ResolvedOutDir "client-dataset.json"
 Push-Location $RepoRoot
 try {
-  & node scripts/import-scoped-bdo-extractor.mjs --items $Items --recipes $Recipes --out $Dataset --source-revision $SourceRevision
+  & node scripts/import-scoped-bdo-extractor.mjs --items $Items --recipes $Recipes --out $Dataset --source-revision $SourceRevision --client-fingerprint $ClientFingerprint
   if ($LASTEXITCODE -ne 0) { throw "planner structural import failed" }
 
   Write-Host "[6/6] Building mastery cross-check evidence"
