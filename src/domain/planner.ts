@@ -25,6 +25,7 @@ function nonNegativeFinite(value: unknown, label: string): number {
 
 function yieldFor(recipe: Recipe, policy: YieldPolicy, variant?: RecipeVariant): number {
   const value = variant?.yield ?? recipe.yield
+  if (!value) throw new Error(`recipe ${recipe.id} variant ${variant?.id ?? '<legacy>'} lacks deterministic yield evidence`)
   if (policy === 'minimum') return positive(value.min, 'recipe yield.min')
   if (policy === 'maximum') return positive(value.max, 'recipe yield.max')
   return positive(value.expected ?? value.min, 'recipe yield.expected')

@@ -49,7 +49,7 @@ export interface Recipe {
   skill: LifeSkill
   outputItemId: ItemId
   skillLevel?: string
-  yield: RecipeYield
+  yield?: RecipeYield
   variants: RecipeVariant[]
   sourceUrl?: string
 }
