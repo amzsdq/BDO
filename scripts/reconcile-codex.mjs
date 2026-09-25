@@ -49,7 +49,9 @@ for (const recipe of Object.values(dataset.recipes || {})) {
   clientByKey.set(key, group)
   clientRecipeCount += 1
 }
-const codexLive = (manifest.recipes || []).filter((entry) => entry.available !== false && entry.status !== 'unavailable')
+const codexAccounted = (manifest.recipes || []).filter((entry) => entry.status !== 'unresolved')
+const codexAccountedRecipeIds = liveRecipeIds(codexAccounted)
+const codexLive = codexAccounted.filter((entry) => entry.available !== false && entry.status !== 'unavailable')
 const codexLiveRecipeIds = liveRecipeIds(codexLive)
 const codexByKey = new Map()
 for (const entry of codexLive) {
@@ -96,6 +98,8 @@ const report = {
   datasetFingerprint: reconciliationDatasetFingerprint(dataset),
   clientRecipeGroups: clientByKey.size,
   clientRecipes: clientRecipeCount,
+  codexAccountedPages: codexAccounted.length,
+  codexAccountedRecipeIds,
   codexLivePages: codexLive.length,
   codexLiveRecipeIds,
   codexDisabledPages: (manifest.recipes || []).length - codexLive.length,
