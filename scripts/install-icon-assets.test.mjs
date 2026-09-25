@@ -39,7 +39,7 @@ describe('canonical icon asset installer', () => {
     const { source, out, dataset } = fixtureDir()
     mkdirSync(join(source, 'nested'))
     writeFileSync(join(source, 'nested', 'shared-100.webp'), 'icon-100')
-    writeFileSync(join(source, 'asset_redirects.json'), JSON.stringify({ 'urn::item:100': 'icons\\\\nested\\\\shared-100.webp' }))
+    writeFileSync(join(source, 'asset_redirects.json'), JSON.stringify({ 'urn::item:100': 'icons\\nested\\shared-100.webp' }))
     writeFileSync(dataset, JSON.stringify({ items: { '100': { id: 100, iconPath: 'icons/100.webp' } } }))
     execFileSync(process.execPath, [resolve('scripts/install-icon-assets.mjs'), dataset, source, out])
     expect(readFileSync(join(out, '100.webp'), 'utf8')).toBe('icon-100')
