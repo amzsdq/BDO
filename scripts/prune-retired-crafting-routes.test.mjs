@@ -49,6 +49,7 @@ describe('reviewed retired crafting route evidence', () => {
     }
     const details = { routeStateEvidence: evidence, retiredCraftingOutputItemIds: [5303, 45334] }
     expect(() => assertNoRetiredCraftingRoutes(dataset, details)).toThrow(/retired crafting routes/)
+    expect(() => assertNoRetiredCraftingRoutes(dataset, { ...details, retiredCraftingOutputItemIds: [5303] })).toThrow(/do not match reviewed route-state evidence/)
     const result = pruneRetiredCraftingRoutes(dataset, evidence)
     expect(result.recipes['alchemy:5303']).toBeUndefined()
     expect(result.recipesByOutput['5303']).toBeUndefined()
