@@ -29,6 +29,16 @@ describe('Codex detail binder', () => {
     expect(bindCodexDetailEvidence(randomDataset, randomDetails, exactId).entries[0].skillRequirement).toMatchObject({ skill: 'alchemy', minimumMastery: 500 })
   })
 
+  it('binds a globally unique no-output route by exact skill and ingredient signature', () => {
+    const noOutputDataset = { recipes: { hidden: { id: 'hidden', skill: 'alchemy', outputItemId: 70000, variants: [{ id: 'v', inputs: [{ itemId: 4481, count: 10 }, { itemId: 4917, count: 3 }] }] } } }
+    const noOutput = { schemaVersion: 2, complete: true, unresolvedCount: 0, recipes: [
+      { skill: 'alchemy', recipeId: 343, sourceUrl: 'https://bdocodex.com/kr/recipe/343/', status: 'no-output', ingredients: [{ itemId: 4917, count: 3 }, { itemId: 4481, count: 10 }], baseOutputs: [], randomOutputs: [] },
+    ] }
+    expect(bindCodexDetailEvidence(noOutputDataset, noOutput).entries[0]).toMatchObject({ sourceRecipeId: 343, outputStatus: 'no-output' })
+    const ambiguousNoOutput = { ...noOutput, recipes: [...noOutput.recipes, { ...noOutput.recipes[0], recipeId: 342, sourceUrl: 'https://bdocodex.com/kr/recipe/342/' }] }
+    expect(() => bindCodexDetailEvidence(noOutputDataset, ambiguousNoOutput)).toThrow(/expected exactly one/)
+  })
+
   it('fails closed on ambiguous source signatures', () => {
     const ambiguous = { ...details, recipes: [...details.recipes, { ...details.recipes[0], recipeId: 999 }] }
     expect(() => bindCodexDetailEvidence(dataset, ambiguous)).toThrow(/expected exactly one/)
