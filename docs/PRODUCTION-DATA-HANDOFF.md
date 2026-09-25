@@ -9,7 +9,7 @@ Preserve these files from one extraction run together:
 - `items.json`
 - `recipes.json`
 - `mastery.json`
-- `icons/` (the extractor's item-id WebP assets)
+- `asset_redirects.json` plus `icons/` (the extractor's shared WebP assets; `urn::item:<id>` redirects identify which shared asset belongs to each item ID)
 - extraction provenance: exact extractor tag/commit, extraction timestamp, client/game fingerprint when available, and region/client identity
 
 Do not mix `items.json`, `recipes.json`, `mastery.json`, or icons from different client snapshots.
@@ -51,10 +51,10 @@ The companion `bdo-viewer` remains an alternative acquisition path because it ru
 ## Standard commands
 
 ```text
-npm run data:import -- --items <items.json> --recipes <recipes.json> --out <client-dataset.json> --source-revision <extractor-tag-or-sha>
+npm run data:import -- --items <items.json> --recipes <recipes.json> --out <client-dataset.json> --source-revision <extractor-tag-or-sha> --client-fingerprint <client-fingerprint>
 node scripts/apply-korean-name-evidence.mjs <client-dataset.json> <korean-name-evidence.json> public/data/dataset.json
 npm run data:yields -- public/data/dataset.json <yield-evidence.json> public/data/dataset.json
-npm run data:icons -- public/data/dataset.json <extractor-data>/icons public/icons
+npm run data:icons -- public/data/dataset.json <extractor-data> public/icons
 npm run data:validate -- public/data/dataset.json
 npm run data:codex:browser -- --out <codex-catalog.json>
 npm run data:reconcile -- --dataset public/data/dataset.json --codex <codex-manifest.json> --out <reconciliation-report.json>
