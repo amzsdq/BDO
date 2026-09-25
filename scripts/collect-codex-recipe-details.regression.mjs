@@ -45,6 +45,12 @@ assert(parseCodexRecipeDetailHtml(calculatorCompleteNoOutput, 343, 'alchemy').st
 const calculatorWithNumericComment = calculatorCompleteNoOutput.replace('댓글을 남기려면 로그인', '정렬 기준: 평가 <div>사용자 댓글: 99 x 라고 적음</div> 댓글을 남기려면 로그인')
 assert(parseCodexRecipeDetailHtml(calculatorWithNumericComment, 343, 'alchemy').status === 'no-output', 'calculator cross-check must stop before user comments containing quantity-like text')
 
+const calculatorAnonymousOutput = `<html><body><div class="card item_info"><a href="/kr/recipe/221/"><span class="item_title">가고일 다리살 조림</span></a> 요리 스킬 레벨: 숙련 Lv. 1<table>
+<tr><th>재료</th></tr><tr><td><a href="/kr/item/9001/">이국의 곡주</a> x2</td></tr><tr><td><a href="/kr/item/9002/">양파</a> x3</td></tr><tr><td><a href="/kr/item/9003/">마늘</a> x3</td></tr><tr><td><a href="/kr/item/9004/">식초</a> x2</td></tr>
+<tr><th>기본 제품:</th></tr><tr><th>랜덤 제품:</th></tr></table></div>
+<section>기술 계산기 <div>1 x <input></div><div>2 x 이국의 곡주</div><div>3 x 양파</div><div>3 x 마늘</div><div>2 x 식초</div></section><div>댓글을 남기려면 로그인</div></body></html>`
+assert(parseCodexRecipeDetailHtml(calculatorAnonymousOutput, 221, 'cooking').status === 'no-output', 'anonymous calculator output quantity before the first exact ingredient must not be counted as an ingredient row')
+
 
 const nestedDiv = `<div class="card item_info"><div class="card-header"><a href="/kr/recipe/24/"><span class="item_title">중첩 행 테스트</span></a> 요리 스킬 레벨: 초급 Lv. 1</div>
 <div class="row section">재료</div><div class="row item"><div><a href="/kr/item/100/">재료 X</a></div><span>x2</span></div>

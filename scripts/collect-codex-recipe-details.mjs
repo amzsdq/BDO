@@ -136,8 +136,14 @@ export function parseCodexRecipeDetailHtml(html, expectedRecipeId, expectedSkill
       const calculatorTail = sourceText.slice(calculatorStart)
       const stop = calculatorTail.search(/(?:정렬\s*기준|Sort\s*by|댓글을\s*남기려면|Login\s+to\s+comment|Leave\s+a\s+comment)/i)
       const calculatorText = stop >= 0 ? calculatorTail.slice(0, stop) : calculatorTail
-      const quantifiedIngredientRows = [...calculatorText.matchAll(/(?:^|\s)([0-9]+(?:\.[0-9]+)?)\s*x(?=\s|$)/gi)].length
-      if (quantifiedIngredientRows > ingredients.length) throw new Error(`recipe ${expectedRecipeId}: skill calculator exposes ${quantifiedIngredientRows} quantified ingredient rows but only ${ingredients.length} exact ingredient identities were parsed`)
+      const quantities = [...calculatorText.matchAll(/(?:^|\s)([0-9]+(?:\.[0-9]+)?)\s*x(?=\s|$)/gi)]
+      const firstIngredientNameIndex = Math.min(...ingredients.map((row) => row.name ? calculatorText.indexOf(row.name) : -1).filter((index) => index >= 0))
+      if (Number.isFinite(firstIngredientNameIndex)) {
+        const startsBeforeFirstIngredient = quantities.filter((match) => match.index < firstIngredientNameIndex)
+        const ingredientStart = startsBeforeFirstIngredient.at(-1)?.index ?? firstIngredientNameIndex
+        const quantifiedIngredientRows = quantities.filter((match) => match.index >= ingredientStart).length
+        if (quantifiedIngredientRows > ingredients.length) throw new Error(`recipe ${expectedRecipeId}: skill calculator exposes ${quantifiedIngredientRows} quantified ingredient rows but only ${ingredients.length} exact ingredient identities were parsed`)
+      }
     }
   }
 
