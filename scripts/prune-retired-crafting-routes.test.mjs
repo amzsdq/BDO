@@ -6,7 +6,7 @@ const evidence = {
   schemaVersion: 1,
   scope: 'kr-pc-crafting-route-live-state',
   reviewedAt: '2026-09-26',
-  source: { url: 'https://www.kr.playblackdesert.com/ko-KR/News/Detail?groupContentNo=14655', effectiveDate: '2026-09-02' },
+  source: { url: 'https://www.kr.playblackdesert.com/ko-KR/News/Detail?groupContentNo=16141', effectiveDate: '2026-09-02' },
   routes: [{ recipeId: 342, skill: 'alchemy', status: 'retired' }],
   retiredCraftingOutputItemIds: [5303, 45334],
 }
