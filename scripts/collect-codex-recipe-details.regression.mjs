@@ -26,6 +26,15 @@ const noOutput = `<div class="card item_info"><a href="/kr/recipe/343/"><span cl
 </table></div>`
 assert(parseCodexRecipeDetailHtml(noOutput, 343, 'alchemy').status === 'no-output', 'no-output classification')
 
+
+const nestedDiv = `<div class="card item_info"><div class="card-header"><a href="/kr/recipe/24/"><span class="item_title">중첩 행 테스트</span></a> 초급 Lv. 1</div>
+<div class="row section">재료</div><div class="row item"><div><a href="/kr/item/100/">재료 X</a></div><span>x2</span></div>
+<div class="row section">기본 제품:</div><div class="row item"><div><a href="/kr/item/200/">결과 Y</a></div><span>x1~3</span></div>
+<div class="row section">랜덤 제품:</div></div>`
+const nested = parseCodexRecipeDetailHtml(nestedDiv, 24, 'cooking')
+assert(nested.ingredients[0].itemId === 100 && nested.ingredients[0].count === 2, 'nested div ingredient row')
+assert(nested.status === 'single-base' && nested.yield.max === 3, 'nested div output row')
+
 const unavailable = parseCodexRecipeDetailHtml('<html><body><h1>페이지를 찾을 수 없습니다</h1></body></html>', 999999, 'alchemy')
 assert(unavailable.status === 'unavailable', 'explicit unavailable page classification')
 
