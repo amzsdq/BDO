@@ -9,7 +9,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "check": "npm test && npm run test:release-evidence && npm run build && npm run e2e:harness",
-    "test:release-evidence": "node scripts/collect-codex-item-evidence.regression.mjs && node scripts/collect-codex-recipe-details.regression.mjs && node scripts/assert-e2e-release-evidence.test.mjs && node scripts/release-e2e-bindings.test.mjs",
+    "test:release-evidence": "node scripts/bootstrap-production-data.regression.mjs && node scripts/collect-codex-item-evidence.regression.mjs && node scripts/collect-codex-recipe-details.regression.mjs && node scripts/assert-e2e-release-evidence.test.mjs && node scripts/release-e2e-bindings.test.mjs",
     "e2e:release-evidence": "node scripts/assert-e2e-release-evidence.mjs",
     "e2e:harness": "node scripts/assert-e2e-harness.mjs",
     "e2e": "playwright test",
