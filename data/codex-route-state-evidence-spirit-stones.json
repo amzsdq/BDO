@@ -1,0 +1,9 @@
+{
+  "schemaVersion": 1,
+  "source": "official-kr-update-2026-09-02",
+  "evidenceUrl": "https://www.kr.playblackdesert.com/ko-kr/News/Detail?countryType=ko-kr&groupContentNo=16141",
+  "routes": [
+    { "recipeId": 345, "skill": "alchemy", "status": "retired", "outputItemId": 45334 },
+    { "recipeId": 346, "skill": "alchemy", "status": "retired", "outputItemId": 45340 }
+  ]
+}
