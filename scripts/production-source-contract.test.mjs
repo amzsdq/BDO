@@ -11,3 +11,4 @@ describe('production source contract', () => {
     expect(() => assertClientFingerprint('5a0c1234')).toThrow(/64hex/)
   })
 })
+
