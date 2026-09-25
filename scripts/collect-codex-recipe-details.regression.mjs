@@ -77,6 +77,7 @@ const gapArtifact = await collectCodexRecipeDetails(gapCatalog, { fetchImpl: gap
 assert(gapArtifact.complete && gapArtifact.exactCoverage, 'catalog-listed subset remains exact under supplemental discovery')
 assert(gapArtifact.catalogRouteCount === 2 && gapArtifact.supplementalRouteCount === 1, 'gap route is supplemental, not catalog coverage')
 assert(gapArtifact.supplementalDiscovery.method === 'catalog-gap-probe' && gapArtifact.supplementalDiscovery.complete && gapArtifact.supplementalDiscovery.probedGapCount === 1, 'supplemental discovery coverage is explicit')
+assert(gapArtifact.supplementalDiscovery.probedMinRecipeId === 1 && gapArtifact.supplementalDiscovery.probedMaxRecipeId === 3 && gapArtifact.supplementalDiscovery.boundedByCatalogHighWater === true, 'supplemental completeness is explicitly bounded by catalog high-water')
 const supplemental = gapArtifact.recipes.find((row) => row.recipeId === 2)
 assert(supplemental && supplemental.catalogListed === false && supplemental.discovery === 'catalog-gap-probe', 'supplemental route preserves discovery provenance')
 assert(gapArtifact.recipes.filter((row) => row.catalogListed).length === 2, 'catalog accounting excludes supplemental route')
