@@ -104,11 +104,13 @@ export function buildPlan(dataset: RecipeDataset, targets: readonly PlanTarget[]
         if (shouldCraft && nested) {
           if (!requestedNestedId && recipeIds.length > 1) warnings.push(`중간재 item ${inputItemId}에 제작법 ${recipeIds.length}개가 있습니다. 현재 ${nested.id}을 사용 중입니다.`)
           const incrementalMissing = addMaterial(inputItemId, total, depth + 1, depth === 0, true)
-          const nestedVariantId = options.variantIdByRecipeId?.[nested.id]
-          const nestedVariant = selectVariant(nested, nestedVariantId)
-          if (nestedVariant.outputEvidence && nestedVariant.outputEvidence.status !== 'single-base') throw new Error(`recipe ${nested.id} variant ${nestedVariant.id} cannot deterministically plan an intermediate output from ${nestedVariant.outputEvidence.status} evidence`)
-          const nestedAttempts = Math.ceil(incrementalMissing / yieldFor(nested, 'minimum', nestedVariant))
-          expandRecipe(nested, nestedAttempts, depth + 1, nestedVariantId)
+          if (incrementalMissing > 0) {
+            const nestedVariantId = options.variantIdByRecipeId?.[nested.id]
+            const nestedVariant = selectVariant(nested, nestedVariantId)
+            if (nestedVariant.outputEvidence && nestedVariant.outputEvidence.status !== 'single-base') throw new Error(`recipe ${nested.id} variant ${nestedVariant.id} cannot deterministically plan an intermediate output from ${nestedVariant.outputEvidence.status} evidence`)
+            const nestedAttempts = Math.ceil(incrementalMissing / yieldFor(nested, 'minimum', nestedVariant))
+            expandRecipe(nested, nestedAttempts, depth + 1, nestedVariantId)
+          }
         } else addMaterial(inputItemId, total, depth + 1, depth === 0, false)
       }
     } finally {
