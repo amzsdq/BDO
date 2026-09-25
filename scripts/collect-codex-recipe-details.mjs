@@ -229,7 +229,7 @@ export async function collectCodexRecipeDetails(catalogManifest, { fetchImpl = f
     catalogRouteCount: expected.length,
     supplementalRouteCount: present.filter((row) => !row.catalogListed).length,
     supplementalDiscovery: probeGaps
-      ? { method: 'catalog-gap-probe', probedGapCount: probeRoutes.length, complete: unresolved.length === 0 }
+      ? { method: 'catalog-gap-probe', probedGapCount: probeRoutes.length, probedMinRecipeId: 1, probedMaxRecipeId: Math.max(0, ...catalogRoutes.map((row) => row.recipeId)), boundedByCatalogHighWater: true, complete: unresolved.length === 0 }
       : { method: 'none', probedGapCount: 0, complete: false },
     recipes: present,
   }
