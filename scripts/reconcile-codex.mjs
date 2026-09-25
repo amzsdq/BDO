@@ -50,10 +50,14 @@ for (const recipe of Object.values(dataset.recipes || {})) {
   clientByKey.set(key, group)
   clientRecipeCount += 1
 }
-const codexAccounted = (manifest.recipes || []).filter((entry) => entry.status !== 'unresolved')
+const codexResolved = (manifest.recipes || []).filter((entry) => entry.status !== 'unresolved')
+const codexAccounted = codexResolved.filter((entry) => entry.catalogListed !== false)
+const codexSupplemental = codexResolved.filter((entry) => entry.catalogListed === false)
 const codexAccountedRecipeIds = liveRecipeIds(codexAccounted)
 const codexAccountedRoutes = routeKeys(codexAccounted)
-const codexLive = codexAccounted.filter((entry) => entry.available !== false && entry.status !== 'unavailable')
+const codexSupplementalRecipeIds = liveRecipeIds(codexSupplemental)
+const codexSupplementalRoutes = routeKeys(codexSupplemental)
+const codexLive = codexResolved.filter((entry) => entry.available !== false && entry.status !== 'unavailable')
 const codexLiveRecipeIds = liveRecipeIds(codexLive)
 const codexLiveRoutes = routeKeys(codexLive)
 const codexByKey = new Map()
@@ -104,6 +108,9 @@ const report = {
   codexAccountedPages: codexAccounted.length,
   codexAccountedRecipeIds,
   codexAccountedRoutes,
+  codexSupplementalPages: codexSupplemental.length,
+  codexSupplementalRecipeIds,
+  codexSupplementalRoutes,
   codexLivePages: codexLive.length,
   codexLiveRecipeIds,
   codexLiveRoutes,

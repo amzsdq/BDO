@@ -106,6 +106,18 @@ describe('Codex reconciliation', () => {
       expect.objectContaining({ kind: 'CLIENT_VARIANT_ONLY', recipeId: 'r2', clientSignature: '#20:3' }),
     ]))
   })
+  it('keeps supplemental live routes in reconciliation but out of catalog accounting', () => {
+    const manifest = { schemaVersion: 2, complete: true, unresolvedCount: 0, recipes: [
+      { ...matchingManifest.recipes[0], catalogListed: true },
+      { ...matchingManifest.recipes[0], recipeId: 1001, catalogListed: false, discovery: 'catalog-gap-probe' },
+    ] }
+    const { exitCode, report } = run(dataset, manifest)
+    expect(exitCode).toBe(0)
+    expect(report.codexAccountedRecipeIds).toEqual([999])
+    expect(report.codexSupplementalRecipeIds).toEqual([1001])
+    expect(report.codexLiveRecipeIds).toEqual([999, 1001])
+    expect(report.codexSupplementalPages).toBe(1)
+  })
   it('keeps unavailable Codex recipes out of live completeness diffs and id evidence', () => {
     const { exitCode, report } = run(dataset, { recipes: [...matchingManifest.recipes, { recipeId: 1000, skill: 'alchemy', outputItemId: 77, titleKo: '퇴역', available: false, ingredients: [] }] })
     expect(exitCode).toBe(0); expect(report.status).toBe('ZERO_UNEXPLAINED_DIFF'); expect(report.codexDisabledPages).toBe(1); expect(report.codexLiveRecipeIds).toEqual([999]); expect(report.codexAccountedRecipeIds).toEqual([999, 1000])
