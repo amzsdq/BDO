@@ -66,7 +66,7 @@ function rowsAfterLabel(card, labels) {
   for (const row of rows) {
     const text = decodeText(row)
     const isTarget = labels.some((label) => text.includes(label))
-    const isAnySection = /(?:재료|Ingredients|기본 제품|Base product|랜덤 제품|Random product)/i.test(text)
+    const isAnySection = /(?:재료|Ingredients|기본 제품|Base product|랜덤 제품|추가\s*\(무작위\)\s*제품|Random product|Additional\s*\(random\)\s*products?)/i.test(text)
     if (isTarget) { active = true; const parsed = itemRow(row); if (parsed) found.push(parsed); continue }
     if (active && isAnySection) break
     if (active) { const parsed = itemRow(row); if (parsed) found.push(parsed) }
