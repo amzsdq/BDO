@@ -8,7 +8,7 @@ import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.m
 function fixture() {
   return {
     metadata: { generatedAt: '2026-09-23T00:00:00Z', supportedRegion: 'KR', sources: ['client', 'codex'], sourceRevision: 'client-sha-abc123', counts: { cooking: 1, alchemy: 1 } },
-    items: { '10': { id: 10, nameKo: '요리', iconPath: 'icons/10.webp', iconUrl: 'https://example.invalid/10.png' }, '11': { id: 11, nameKo: '연금', iconPath: 'icons/11.webp', iconUrl: 'https://example.invalid/11.png' }, '20': { id: 20, nameKo: '재료', iconPath: 'icons/20.webp', iconUrl: 'https://example.invalid/20.png' } },
+    items: { '10': { id: 10, nameKo: '요리', iconPath: 'icons/10.webp', iconUrl: 'https://example.invalid/10.png' }, '11': { id: 11, nameKo: '연금', iconPath: 'icons/11.webp', iconUrl: 'https://example.invalid/11.png' }, '20': { id: 20, nameKo: '재료', weightLT: 0.2, iconPath: 'icons/20.webp', iconUrl: 'https://example.invalid/20.png' } },
     recipes: {
       cook: { id: 'cook', skill: 'cooking', outputItemId: 10, yield: { min: 1, max: 1 }, variants: [{ id: 'v1', inputs: [{ itemId: 20, count: 1 }] }] },
       alch: { id: 'alch', skill: 'alchemy', outputItemId: 11, yield: { min: 1, max: 1 }, variants: [{ id: 'v1', inputs: [{ itemId: 20, count: 1 }] }] },
