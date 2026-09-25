@@ -17,7 +17,7 @@ describe('applyYieldEvidence', () => {
     const result = applyYieldEvidence(dataset, { entries: [{ ...evidence.entries[0], variantId: 'v1', sourceRecipeId: 169, sourceUrl: 'https://bdocodex.com/kr/recipe/169/', min: 1, max: 4 }] })
     expect(result.recipes['cooking:1'].yield).toEqual(dataset.recipes['cooking:1'].yield)
     expect(result.recipes['cooking:1'].variants[0].sourceRecipeId).toBe(169)
-    expect(result.recipes['cooking:1'].variants[0].yield).toEqual({ min: 1, max: 4, provenance: 'https://bdocodex.com/kr/recipe/169/' })
+    expect(result.recipes['cooking:1'].variants[0].yield).toEqual({ min: 1, expected: 2.5, max: 4, provenance: 'https://bdocodex.com/kr/recipe/169/' })
     expect(() => applyYieldEvidence(dataset, { entries: [{ ...evidence.entries[0], variantId: 'missing' }] })).toThrow(/unknown variantId/)
   })
 
