@@ -45,7 +45,7 @@ const disabled = `<div class="card item_info"><a href="/kr/recipe/340/"><span cl
 const disabledParsed = parseCodexRecipeDetailHtml(disabled, 340, 'alchemy')
 assert(disabledParsed.status === 'unavailable' && disabledParsed.baseOutputs.length === 0 && disabledParsed.randomOutputs.length === 0, 'scoped disabled marker must override stale output rows')
 
-const harmlessNotFound = single.replace('요리 스킬 레벨:', '<!-- not found --> 요리 스킬 레벨:')
+const harmlessNotFound = single.replace('요리 스킬 레벨:', '<span>not found</span> 요리 스킬 레벨:')
 assert(parseCodexRecipeDetailHtml(harmlessNotFound, 169, 'cooking').status === 'single-base', 'generic not found text outside a missing-page marker must not disable a valid card')
 
 let mismatch = false
