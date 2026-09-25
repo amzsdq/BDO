@@ -53,7 +53,8 @@ for (const [recipeId, recipe] of Object.entries(recipes)) {
   if (!['cooking', 'alchemy'].includes(recipe.skill)) errors.push(`${recipeId}: invalid skill`)
   if (!items[String(recipe.outputItemId)]) errors.push(`${recipeId}: missing output item ${recipe.outputItemId}`)
   if (!Array.isArray(recipe.variants) || !recipe.variants.length) errors.push(`${recipeId}: no variants`)
-  const requiresLegacyYield = (recipe.variants || []).some((variant) => !variant.outputEvidence)\n  if (requiresLegacyYield && (!recipe.yield || !Number.isFinite(recipe.yield.min) || !Number.isFinite(recipe.yield.max) || recipe.yield.min <= 0 || recipe.yield.max < recipe.yield.min)) errors.push(`${recipeId}: invalid yield range`)
+  const requiresLegacyYield = (recipe.variants || []).some((variant) => !variant.outputEvidence)
+  if (requiresLegacyYield && (!recipe.yield || !Number.isFinite(recipe.yield.min) || !Number.isFinite(recipe.yield.max) || recipe.yield.min <= 0 || recipe.yield.max < recipe.yield.min)) errors.push(`${recipeId}: invalid yield range`)
   if (recipe.yield?.expected != null && (!Number.isFinite(recipe.yield.expected) || recipe.yield.expected < recipe.yield.min || recipe.yield.expected > recipe.yield.max)) errors.push(`${recipeId}: expected yield outside min/max`)
   for (const variant of recipe.variants || []) {
     const variantKey = `${recipeId}:${variant.id}`
