@@ -1,6 +1,6 @@
 # Random-only recipe planning semantics
 
-A live Codex page can have ingredients and a random output while its base-output section is empty. Recipe 346 is a current example: the page lists ingredients, an empty base-product section, and item 45340 only under random output.
+A Codex detail page can have ingredients and a random output while its base-output section is empty. This DOM shape is `random-only`; it is not, by itself, evidence that the route is currently live. Historical recipe 346 still exhibits this shape (ingredients, empty base-product section, item 45340 under random output) even though reviewed KR route-state evidence retires recipes 342-346.
 
 Such a page must remain in completeness evidence, but it cannot be represented as a guaranteed positive base yield. In particular, the importer placeholder `min=1,max=1` must never become release evidence for this route.
 
