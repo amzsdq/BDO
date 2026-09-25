@@ -25,5 +25,6 @@ describe('scoped canonical extractor import', () => {
     expect(dataset.metadata.scopedItemCount).toBe(3)
     expect(dataset.metadata.fingerprint).toBeUndefined()
     expect(dataset.metadata.clientFingerprint).toBe('sha256:' + 'b'.repeat(64))
+    execFileSync(process.execPath, [resolve('scripts/validate-dataset.mjs'), outPath])
   })
 })
