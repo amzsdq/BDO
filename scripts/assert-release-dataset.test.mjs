@@ -35,7 +35,7 @@ function completeCatalog() {
     ],
   }
 }
-const CODEX_DETAILS = JSON.stringify({ schemaVersion: 2, source: 'BDO Codex KR', complete: true, unresolvedCount: 0, recipes: [], routeStateEvidence: { schemaVersion: 1, scope: 'kr-pc-crafting-route-live-state', reviewedAt: '2026-09-26', source: { url: 'https://www.kr.playblackdesert.com/ko-KR/News/Detail?groupContentNo=14655', effectiveDate: '2026-09-02' }, routes: [{ recipeId: 99999, skill: 'alchemy', status: 'retired' }], retiredCraftingOutputItemIds: [99999] }, retiredCraftingOutputItemIds: [99999] })
+const CODEX_DETAILS = JSON.stringify({ schemaVersion: 2, source: 'BDO Codex KR', complete: true, unresolvedCount: 0, recipes: [], routeStateEvidence: { schemaVersion: 1, scope: 'kr-pc-crafting-route-live-state', reviewedAt: '2026-09-26', source: { url: 'https://www.kr.playblackdesert.com/ko-KR/News/Detail?groupContentNo=16141', effectiveDate: '2026-09-02' }, routes: [{ recipeId: 99999, skill: 'alchemy', status: 'retired' }], retiredCraftingOutputItemIds: [99999] }, retiredCraftingOutputItemIds: [99999] })
 const CODEX_DETAILS_SHA256 = crypto.createHash('sha256').update(CODEX_DETAILS).digest('hex')
 function setup(catalog = completeCatalog(), expectPromotion = true) {
   const dir = mkdtempSync(join(tmpdir(), 'bdo-release-gate-'))
