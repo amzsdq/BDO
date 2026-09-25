@@ -38,6 +38,9 @@ describe('release dataset promotion', () => {
   it('blocks promotion when client fingerprint is missing', () => {
     const dataset = fixture(); delete dataset.metadata.clientFingerprint; const attempt = run(dataset, reportFor(dataset)); expect(attempt.result.status).toBe(1); expect(attempt.result.stderr).toContain('clientFingerprint')
   })
+  it('blocks promotion when client fingerprint is not a canonical sha256 identity', () => {
+    const dataset = fixture(); dataset.metadata.clientFingerprint = 'not-a-client-hash'; const attempt = run(dataset, reportFor(dataset)); expect(attempt.result.status).toBe(1); expect(attempt.result.stderr).toContain('clientFingerprint')
+  })
   it('preserves the exact client fingerprint through promotion', () => {
     const dataset = fixture(); const { result, promoted } = run(dataset, reportFor(dataset)); expect(result.status).toBe(0); expect(promoted.metadata.clientFingerprint).toBe(dataset.metadata.clientFingerprint)
   })
