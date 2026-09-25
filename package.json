@@ -31,7 +31,9 @@
     "data:codex:normalize-random": "node scripts/normalize-codex-random-output-aliases.mjs",
     "data:icons:verify": "node scripts/assert-icon-manifest.mjs",
     "data:scope:finalize": "node scripts/finalize-planner-scope.mjs",
-    "data:import:broad": "node scripts/import-bdo-extractor.mjs"
+    "data:import:broad": "node scripts/import-bdo-extractor.mjs",
+    "data:codex:details:reviewed": "node scripts/collect-reviewed-codex-recipe-details.mjs",
+    "data:retired:prune": "node scripts/prune-retired-crafting-routes.mjs"
   },
   "dependencies": {
     "react": "^19.1.1",
