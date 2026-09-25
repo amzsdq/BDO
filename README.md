@@ -64,14 +64,21 @@ npm run data:mastery-evidence -- --mastery <mastery.json> --out <mastery-evidenc
 이후 release gate:
 
 ```bash
-npm run data:icons -- public/data/dataset.json <extractor-data> public/icons
-npm run data:validate -- public/data/dataset.json
 npm run data:codex:browser -- --out <codex-catalog.json>
 npm run data:codex:details -- --catalog <codex-catalog.json> --out <codex-details.json> --probe-gaps true
-npm run data:codex:items -- --details <codex-details.json> --out <codex-item-evidence.json> --concurrency 6 --retries 2
-npm run data:codex:bind -- public/data/dataset.json <codex-details.json> <bound-yield-evidence.json> <codex-item-evidence.json>
-npm run data:yields -- public/data/dataset.json <bound-yield-evidence.json> public/data/dataset.json
-npm run data:reconcile -- --dataset public/data/dataset.json --codex <codex-manifest.json> --out <reconciliation-report.json>
+npm run data:codex:items -- --details <codex-details.json> --out <codex-initial-item-evidence.json> --concurrency 6 --retries 2
+node scripts/codex-material-group-ids.mjs <codex-initial-item-evidence.json>
+npm run data:codex:groups -- --groups <discovered-group-ids> --out <codex-substitutions.json>
+npm run data:codex:normalize-random -- <client-broad.json> <codex-details.json> <client-normalized.json>
+npm run data:codex:bind -- <client-normalized.json> <codex-details.json> <bound-yield-evidence.json> <codex-initial-item-evidence.json>
+npm run data:yields -- <client-normalized.json> <bound-yield-evidence.json> <client-enriched.json>
+npm run data:scope:finalize -- <client-enriched.json> <client-scoped.json> <codex-substitutions.json>
+npm run data:codex:items -- --dataset <client-scoped.json> --out <codex-final-item-evidence.json> --concurrency 6 --retries 2
+node scripts/apply-korean-name-evidence.mjs <client-scoped.json> <codex-final-item-evidence.json> public/data/dataset.json
+npm run data:icons -- public/data/dataset.json <extractor-data> public/icons
+npm run data:icons:verify -- public/data/dataset.json public/icons/icon-manifest.json public/icons
+npm run data:validate -- public/data/dataset.json
+npm run data:reconcile -- --dataset public/data/dataset.json --codex <codex-details.json> --out <reconciliation-report.json>
 npm run data:promote -- public/data/dataset.json <reconciliation-report.json> <codex-catalog.json>
 npm run data:release-gate -- public/data/dataset.json <reconciliation-report.json> <codex-catalog.json> <mastery-evidence.json> <mastery.json> <release-e2e-evidence.json>
 ```
