@@ -31,6 +31,7 @@ export interface IngredientSubstitutionGroup {
 export type RecipeOutputStatus = 'single-base' | 'random-only' | 'multiple-base' | 'no-output' | 'unavailable' | 'unresolved'
 export interface RecipeVariantOutputEvidence {
   status: RecipeOutputStatus
+  sourceUrl?: string
   baseOutputs?: Array<{ itemId: ItemId; min: number; max: number }>
   randomOutputs?: Array<{ itemId: ItemId; min: number; max: number }>
 }
