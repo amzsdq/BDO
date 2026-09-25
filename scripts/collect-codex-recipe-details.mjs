@@ -107,6 +107,9 @@ export function parseCodexRecipeDetailHtml(html, expectedRecipeId, expectedSkill
   const titleMatch = card.match(/<([a-z][\w:-]*)\b(?=[^>]*class=["'][^"']*(?:\bitem_title\b|\bcard-title\b)[^"']*["'])[^>]*>([\s\S]*?)<\/\1>/i)
   const titleKo = titleMatch ? decodeText(titleMatch[2]) : undefined
   const cardText = decodeText(card)
+  const pageSkillToken = cardText.match(/(?:요리|연금|Cooking|Alchemy)\s*(?:스킬\s*레벨|Skill\s*level)/i)?.[0] || ''
+  const pageSkill = /(?:연금|Alchemy)/i.test(pageSkillToken) ? 'alchemy' : /(?:요리|Cooking)/i.test(pageSkillToken) ? 'cooking' : undefined
+  if (!pageSkill || pageSkill !== expectedSkill) throw new Error(`recipe ${expectedRecipeId}: page skill identity missing or mismatched`)
   const skillText = cardText.match(/(?:초급|견습|숙련|전문|장인|명장|도인)\s*Lv\.?\s*\d+/i)?.[0]
 
   const ingredients = uniqueRows(rowsAfterLabel(card, ['재료', 'Ingredients'])).map(({ itemId, name, min, max }) => {
