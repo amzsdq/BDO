@@ -80,9 +80,9 @@ Write-Host "[3/6] Extracting canonical item icons"
 & $Extractor icons --game $ResolvedGameDir --out $ResolvedOutDir
 if ($LASTEXITCODE -ne 0) { throw "bdo-data-extractor icons failed" }
 
-$Items = Join-Path $ResolvedOutDir "data\items.json"
-$Recipes = Join-Path $ResolvedOutDir "data\recipes.json"
-$Mastery = Join-Path $ResolvedOutDir "data\mastery.json"
+$Items = Join-Path $ResolvedOutDir "items.json"
+$Recipes = Join-Path $ResolvedOutDir "recipes.json"
+$Mastery = Join-Path $ResolvedOutDir "mastery.json"
 foreach ($required in @($Items, $Recipes, $Mastery)) {
   if (-not (Test-Path $required)) { throw "Expected extractor output missing: $required" }
 }
