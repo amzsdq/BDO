@@ -32,4 +32,12 @@ describe('buildPlanFromSession', () => {
     expect(result.plan).toBeUndefined()
     expect(result.errors.join(' ')).toMatch(/missing-recipe/)
   })
+  it('forwards Alchemy mastery from the saved profile', () => {
+    const d = structuredClone(sampleDataset)
+    d.recipes['sample-cooking'].skill = 'alchemy'
+    d.recipes['sample-cooking'].variants[0].skillRequirement = { skill: 'alchemy', minimumMastery: 500 }
+    const q = { ...base, targets: [{ recipeId: 'sample-cooking', variantId: 'default', mode: 'servings' as const, amount: 2 }] }
+    expect(buildPlanFromSession(d, q, {}, { alchemyMastery: 500 }).errors).toEqual([])
+  })
+
 })
