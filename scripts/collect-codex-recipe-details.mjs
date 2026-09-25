@@ -204,8 +204,7 @@ export async function collectCodexRecipeDetails(catalogManifest, { fetchImpl = f
           }
           if (!parsed) throw new Error(`gap probe ${route.recipeId}: no cooking/alchemy recipe identity: ${attempts.map((error) => error.message).join(' | ')}`)
         }
-        if (!route.catalogListed && parsed.status === 'unavailable') results[index] = null
-        else results[index] = { ...parsed, catalogListed: route.catalogListed, discovery: route.discovery, sourceUrl: response.url || sourceUrl }
+        results[index] = { ...parsed, catalogListed: route.catalogListed, discovery: route.discovery, sourceUrl: response.url || sourceUrl }
       } catch (error) {
         if (!route.catalogListed && error?.status === 404) results[index] = null
         else results[index] = { recipeId: route.recipeId, skill: route.skill || 'unknown', catalogListed: route.catalogListed, discovery: route.discovery, status: 'unresolved', ingredients: [], baseOutputs: [], randomOutputs: [], sourceUrl, error: String(error?.message || error) }
