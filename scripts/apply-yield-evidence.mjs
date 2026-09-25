@@ -47,7 +47,7 @@ export function applyYieldEvidence(dataset, evidence) {
         if (variant.id !== variantId) return variant
         matched = true
         const outputEvidence = classified ? { status: outputStatus, sourceUrl, ...(baseOutputs ? { baseOutputs } : {}), ...(randomOutputs ? { randomOutputs } : {}) } : variant.outputEvidence
-        return { ...variant, sourceRecipeId, ...(needsYield ? { yield: { min, ...(expected == null ? {} : { expected }), max, provenance: sourceUrl } } : {}), ...(outputEvidence ? { outputEvidence } : {}) }
+        return { ...variant, sourceRecipeId, ...(needsYield ? { yield: { min, ...(expected == null ? {} : { expected }), max, provenance: sourceUrl } } : { yield: undefined }), ...(outputEvidence ? { outputEvidence } : {}) }
       })
       if (!matched) fail(`${recipeId}: unknown variantId ${variantId}`)
       recipes[recipeId] = { ...recipe, variants }
