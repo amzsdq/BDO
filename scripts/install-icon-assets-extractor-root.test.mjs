@@ -18,6 +18,20 @@ describe('extractor-root icon contract', () => {
     expect(readFileSync(join(out, '100.webp'), 'utf8')).toBe('decoded-icon')
   })
 
+
+  it('accepts the legacy icons-directory argument while resolving the parent redirect map', () => {
+    const root = mkdtempSync(join(tmpdir(), 'bdo-extractor-icons-arg-'))
+    const icons = join(root, 'icons')
+    const out = join(root, 'planner-icons')
+    const dataset = join(root, 'dataset.json')
+    mkdirSync(icons)
+    writeFileSync(join(icons, 'shared.webp'), 'decoded-icon')
+    writeFileSync(join(root, 'asset_redirects.json'), JSON.stringify({ 'urn::item:100': 'icons/shared.webp' }))
+    writeFileSync(dataset, JSON.stringify({ items: { '100': { id: 100, iconPath: 'icons/100.webp' } } }))
+    execFileSync(process.execPath, [resolve('scripts/install-icon-assets.mjs'), dataset, icons, out])
+    expect(readFileSync(join(out, '100.webp'), 'utf8')).toBe('decoded-icon')
+  })
+
   it('materializes shared extractor assets under each canonical planner item id', () => {
     const root = mkdtempSync(join(tmpdir(), 'bdo-extractor-shared-'))
     const icons = join(root, 'icons')
