@@ -92,11 +92,9 @@ function classify(baseOutputs, randomOutputs, available) {
 export function parseCodexRecipeDetailHtml(html, expectedRecipeId, expectedSkill) {
   const sourceText = decodeText(html)
   const unavailable = /(?:페이지를 찾을 수 없습니다|존재하지 않는 페이지|not found|recipe unavailable)/i.test(sourceText)
+  if (unavailable) return { recipeId: Number(expectedRecipeId), skill: expectedSkill, status: 'unavailable', ingredients: [], baseOutputs: [], randomOutputs: [] }
   const card = balancedDivByClass(html, ['card', 'item_info'])
-  if (!card) {
-    if (unavailable) return { recipeId: Number(expectedRecipeId), skill: expectedSkill, status: 'unavailable', ingredients: [], baseOutputs: [], randomOutputs: [] }
-    throw new Error(`recipe ${expectedRecipeId}: item_info card missing`)
-  }
+  if (!card) throw new Error(`recipe ${expectedRecipeId}: item_info card missing`)
 
   const hrefIds = [...card.matchAll(/href=["'][^"']*\/kr\/recipe\/(\d+)\/?["']/gi)].map((m) => Number(m[1]))
   if (hrefIds.length && !hrefIds.includes(Number(expectedRecipeId))) throw new Error(`recipe ${expectedRecipeId}: card recipe id mismatch`)

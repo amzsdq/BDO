@@ -26,6 +26,9 @@ const noOutput = `<div class="card item_info"><a href="/kr/recipe/343/"><span cl
 </table></div>`
 assert(parseCodexRecipeDetailHtml(noOutput, 343, 'alchemy').status === 'no-output', 'no-output classification')
 
+const unavailable = parseCodexRecipeDetailHtml('<html><body><h1>페이지를 찾을 수 없습니다</h1></body></html>', 999999, 'alchemy')
+assert(unavailable.status === 'unavailable', 'explicit unavailable page classification')
+
 let mismatch = false
 try { parseCodexRecipeDetailHtml(single.replace('/recipe/169/', '/recipe/637/'), 169, 'cooking') } catch { mismatch = true }
 assert(mismatch, 'recipe id mismatch must fail closed')
