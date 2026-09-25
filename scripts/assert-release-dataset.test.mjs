@@ -109,6 +109,9 @@ describe('final release gate', () => {
   it('rejects unrecorded source provenance even with a recomputed dataset fingerprint', () => {
     const { datasetFile, reportFile, catalogFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); dataset.metadata.sourceRevision = 'unrecorded'; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('sourceRevision')
   })
+  it('rejects missing client fingerprint even with a recomputed dataset fingerprint', () => {
+    const { datasetFile, reportFile, catalogFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); delete dataset.metadata.clientFingerprint; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('clientFingerprint')
+  })
   it('rejects structural corruption even when fingerprint is recomputed', () => {
     const { datasetFile, reportFile, catalogFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); dataset.recipesByOutput['10'] = ['alch']; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('structural validation failed')
   })
