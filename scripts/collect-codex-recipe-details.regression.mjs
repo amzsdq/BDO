@@ -33,6 +33,11 @@ let partialRejected = false
 try { parseCodexRecipeDetailHtml(partialNoOutput, 344, 'alchemy') } catch (error) { partialRejected = /quantified row without an exact item identity/.test(error.message) }
 assert(partialRejected, 'partial ingredient rows must fail closed instead of producing an incomplete no-output signature')
 
+const calculatorPartial = noOutput + `<section>기술 계산기 양: 10 x <a href="/kr/item/4481/">재료 A</a> 4 x <input> 4 x <input> 댓글을 남기려면 로그인</section>`
+let calculatorPartialRejected = false
+try { parseCodexRecipeDetailHtml(calculatorPartial, 343, 'alchemy') } catch (error) { calculatorPartialRejected = /craft calculator exposes 3 ingredient quantities but only 1 exact ingredient identities/.test(error.message) }
+assert(calculatorPartialRejected, 'no-output calculator rows without matching exact ingredient identities must fail closed')
+
 
 const nestedDiv = `<div class="card item_info"><div class="card-header"><a href="/kr/recipe/24/"><span class="item_title">중첩 행 테스트</span></a> 요리 스킬 레벨: 초급 Lv. 1</div>
 <div class="row section">재료</div><div class="row item"><div><a href="/kr/item/100/">재료 X</a></div><span>x2</span></div>

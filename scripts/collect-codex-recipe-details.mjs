@@ -128,6 +128,11 @@ export function parseCodexRecipeDetailHtml(html, expectedRecipeId, expectedSkill
   const baseOutputs = uniqueRows(rowsAfterLabel(card, ['기본 제품', 'Base product']))
   const randomOutputs = uniqueRows(rowsAfterLabel(card, ['랜덤 제품', '추가 (무작위) 제품', 'Random product', 'Additional (random) products']))
   const status = classify(baseOutputs, randomOutputs, true)
+  if (status === 'no-output') {
+    const calculator = sourceText.match(/기술\s*계산기([\s\S]*?)(?:댓글을\s*남기려면|ID\s+표제\s+양\s+기회\s+정황|$)/i)?.[1] || ''
+    const calculatorQuantityRows = [...calculator.matchAll(/(?:^|\s)\d+(?:\.\d+)?\s*x(?=\s|$)/gi)].length
+    if (calculatorQuantityRows > ingredients.length) throw new Error(`recipe ${expectedRecipeId}: craft calculator exposes ${calculatorQuantityRows} ingredient quantities but only ${ingredients.length} exact ingredient identities`)
+  }
   if (!STATUSES.has(status)) throw new Error(`recipe ${expectedRecipeId}: invalid output status`)
   if (!ingredients.length) throw new Error(`recipe ${expectedRecipeId}: no exact ingredients parsed`)
 
