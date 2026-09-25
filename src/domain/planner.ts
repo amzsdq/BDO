@@ -106,6 +106,7 @@ export function buildPlan(dataset: RecipeDataset, targets: readonly PlanTarget[]
           const incrementalMissing = addMaterial(inputItemId, total, depth + 1, depth === 0, true)
           const nestedVariantId = options.variantIdByRecipeId?.[nested.id]
           const nestedVariant = selectVariant(nested, nestedVariantId)
+          if (nestedVariant.outputEvidence && nestedVariant.outputEvidence.status !== 'single-base') throw new Error(`recipe ${nested.id} variant ${nestedVariant.id} cannot deterministically plan an intermediate output from ${nestedVariant.outputEvidence.status} evidence`)
           const nestedAttempts = Math.ceil(incrementalMissing / yieldFor(nested, 'minimum', nestedVariant))
           expandRecipe(nested, nestedAttempts, depth + 1, nestedVariantId)
         } else addMaterial(inputItemId, total, depth + 1, depth === 0, false)

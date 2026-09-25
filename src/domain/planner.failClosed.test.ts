@@ -25,6 +25,14 @@ describe('planner fail-closed boundaries', () => {
     expect(() => buildPlan(dataset, [{ recipeId: 'root', mode: 'attempts', amount: 1 }], { craftIntermediateItemIds: new Set([1]) })).toThrow('cyclic craft dependency detected at item 1')
   })
 
+  it('does not fall back to recipe-level yield for a random-only crafted intermediate', () => {
+    const dataset = baseDataset()
+    dataset.items['3'] = { id: 3, nameKo: '원재료' }
+    dataset.recipes.child = { id: 'child', skill: 'alchemy', outputItemId: 2, yield: { min: 1, max: 1 }, variants: [{ id: 'v1', inputs: [{ itemId: 3, count: 1 }], outputEvidence: { status: 'random-only', sourceUrl: 'https://bdocodex.com/kr/recipe/346/', randomOutputs: [{ itemId: 2, min: 1, max: 1 }] } }] }
+    dataset.recipesByOutput['2'] = ['child']
+    expect(() => buildPlan(dataset, [{ recipeId: 'root', mode: 'attempts', amount: 1 }], { craftIntermediateItemIds: new Set([2]) })).toThrow('cannot deterministically plan an intermediate output from random-only evidence')
+  })
+
   it('rejects a two-recipe craft cycle instead of returning incomplete shortages', () => {
     const dataset = baseDataset()
     dataset.recipes.root.variants[0].inputs = [{ itemId: 2, count: 1 }]
