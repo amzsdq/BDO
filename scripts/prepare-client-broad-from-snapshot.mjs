@@ -11,7 +11,7 @@ if (!snapshotDir || process.argv.length > 4) throw new Error('usage: node script
 const root = path.resolve(snapshotDir)
 const provenancePath = path.join(root, 'provenance.json')
 if (!fs.existsSync(provenancePath)) throw new Error(`snapshot provenance missing: ${provenancePath}`)
-const provenance = JSON.parse(fs.readFileSync(provenancePath, 'utf8'))
+const provenance = JSON.parse(fs.readFileSync(provenancePath, 'utf8').replace(/^\\uFEFF/, ''))
 if (provenance?.schemaVersion !== 1 || provenance?.supportedRegion !== 'KR') throw new Error('KR same-snapshot provenance is required')
 const revision = String(provenance.extractorRevision || '').trim()
 const clientFingerprint = String(provenance.clientFingerprint || '').trim()
