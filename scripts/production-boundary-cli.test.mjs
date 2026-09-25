@@ -23,7 +23,7 @@ function run(script, args) {
 describe('strict production boundary CLIs', () => {
   it('final release rejects unverified Korean names before delegating to legacy gates', () => {
     const dataset = unverifiedDatasetFile()
-    const result = run('scripts/assert-production-release.mjs', [dataset, 'missing-reconciliation.json', 'missing-catalog.json', 'missing-mastery-evidence.json', 'missing-mastery.json'])
+    const result = run('scripts/assert-production-release.mjs', [dataset, 'missing-reconciliation.json', 'missing-catalog.json', 'missing-mastery-evidence.json', 'missing-mastery.json', 'missing-e2e-release-evidence.json'])
     expect(result.status).toBe(1)
     expect(result.stderr).toContain('Korean names are not verified')
   })
