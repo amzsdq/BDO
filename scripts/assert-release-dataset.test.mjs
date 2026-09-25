@@ -35,22 +35,24 @@ function completeCatalog() {
     ],
   }
 }
+const CODEX_DETAILS = JSON.stringify({ schemaVersion: 2, source: 'BDO Codex KR', complete: true, unresolvedCount: 0, recipes: [] })
+const CODEX_DETAILS_SHA256 = crypto.createHash('sha256').update(CODEX_DETAILS).digest('hex')
 function setup(catalog = completeCatalog(), expectPromotion = true) {
   const dir = mkdtempSync(join(tmpdir(), 'bdo-release-gate-'))
-  const datasetFile = join(dir, 'dataset.json'), reportFile = join(dir, 'report.json'), catalogFile = join(dir, 'catalog.json')
+  const datasetFile = join(dir, 'dataset.json'), reportFile = join(dir, 'report.json'), catalogFile = join(dir, 'catalog.json'), detailsFile = join(dir, 'details.json')
   writeVerifiedIconFixture(join(dir, '..', 'icons'), [10, 11, 20])
   const source = fixture()
   writeFileSync(datasetFile, JSON.stringify(source))
-  writeFileSync(reportFile, JSON.stringify({ status: 'ZERO_UNEXPLAINED_DIFF', unresolved: [], clientRecipeGroups: 2, clientRecipes: 2, codexAccountedPages: 2, codexAccountedRecipeIds: [101, 201], codexAccountedRoutes: ['alchemy:201', 'cooking:101'], codexLivePages: 2, codexLiveRecipeIds: [101, 201], datasetFingerprint: reconciliationDatasetFingerprint(source) }))
-  writeFileSync(catalogFile, JSON.stringify(catalog))
-  const promoted = spawnSync(process.execPath, ['scripts/promote-release-dataset.mjs', datasetFile, reportFile, catalogFile], { cwd: process.cwd(), encoding: 'utf8' })
+  writeFileSync(reportFile, JSON.stringify({ codexManifestSha256: CODEX_DETAILS_SHA256, status: 'ZERO_UNEXPLAINED_DIFF', unresolved: [], clientRecipeGroups: 2, clientRecipes: 2, codexAccountedPages: 2, codexAccountedRecipeIds: [101, 201], codexAccountedRoutes: ['alchemy:201', 'cooking:101'], codexLivePages: 2, codexLiveRecipeIds: [101, 201], datasetFingerprint: reconciliationDatasetFingerprint(source) }))
+  writeFileSync(catalogFile, JSON.stringify(catalog)); writeFileSync(detailsFile, CODEX_DETAILS)
+  const promoted = spawnSync(process.execPath, ['scripts/promote-release-dataset.mjs', datasetFile, reportFile, catalogFile, detailsFile], { cwd: process.cwd(), encoding: 'utf8' })
   if (expectPromotion) expect(promoted.status).toBe(0)
-  return { datasetFile, reportFile, catalogFile, promoted }
+  return { datasetFile, reportFile, catalogFile, detailsFile, promoted }
 }
-function gate(datasetFile, reportFile, catalogFile) { return spawnSync(process.execPath, ['scripts/assert-release-dataset.mjs', datasetFile, reportFile, catalogFile], { cwd: process.cwd(), encoding: 'utf8' }) }
+function gate(datasetFile, reportFile, catalogFile, detailsFile) { return spawnSync(process.execPath, ['scripts/assert-release-dataset.mjs', datasetFile, reportFile, catalogFile, detailsFile], { cwd: process.cwd(), encoding: 'utf8' }) }
 
 describe('final release gate', () => {
-  it('accepts a promoted structurally valid dataset with independently complete Codex catalogs', () => { const files = setup(); expect(gate(files.datasetFile, files.reportFile, files.catalogFile).status).toBe(0) })
+  it('accepts a promoted structurally valid dataset with independently complete Codex catalogs', () => { const files = setup(); expect(gate(files.datasetFile, files.reportFile, files.catalogFile, files.detailsFile).status).toBe(0) })
   it('accepts browser-captured POST scope evidence when server totals match the full id set', () => {
     const catalog = completeCatalog()
     for (const entry of catalog.catalogs) {
@@ -63,7 +65,7 @@ describe('final release gate', () => {
       entry.endpointEvidence.acquisition = 'playwright-network-capture'
     }
     const files = setup(catalog)
-    expect(gate(files.datasetFile, files.reportFile, files.catalogFile).status).toBe(0)
+    expect(gate(files.datasetFile, files.reportFile, files.catalogFile, files.detailsFile).status).toBe(0)
   })
   it('accepts an unpaginated captured full-array only when browser rendering cross-checks the same complete id count', () => {
     const catalog = completeCatalog()
@@ -84,7 +86,7 @@ describe('final release gate', () => {
       }
     }
     const files = setup(catalog)
-    expect(gate(files.datasetFile, files.reportFile, files.catalogFile).status).toBe(0)
+    expect(gate(files.datasetFile, files.reportFile, files.catalogFile, files.detailsFile).status).toBe(0)
   })
   it('rejects unpaginated full-array evidence when the rendered id cross-check is incomplete', () => {
     const catalog = completeCatalog()
@@ -102,46 +104,49 @@ describe('final release gate', () => {
     expect(files.promoted.status).toBe(1)
     expect(files.promoted.stderr).toContain('auditable completeness evidence')
   })
+  it('rejects a changed Codex detail manifest after promotion', () => {
+    const { datasetFile, reportFile, catalogFile, detailsFile } = setup(); writeFileSync(detailsFile, CODEX_DETAILS + '\n'); const result = gate(datasetFile, reportFile, catalogFile, detailsFile); expect(result.status).toBe(1); expect(result.stderr).toContain('manifest hash')
+  })
   it('rejects reconciliation evidence that omitted a client recipe', () => {
-    const { datasetFile, reportFile, catalogFile } = setup(); const report = JSON.parse(readFileSync(reportFile, 'utf8')); report.clientRecipes = 1; writeFileSync(reportFile, JSON.stringify(report)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('client recipe count')
+    const { datasetFile, reportFile, catalogFile, detailsFile } = setup(); const report = JSON.parse(readFileSync(reportFile, 'utf8')); report.clientRecipes = 1; writeFileSync(reportFile, JSON.stringify(report)); const result = gate(datasetFile, reportFile, catalogFile, detailsFile); expect(result.status).toBe(1); expect(result.stderr).toContain('client recipe count')
   })
   it('rejects unrecorded source provenance even with a recomputed dataset fingerprint', () => {
-    const { datasetFile, reportFile, catalogFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); dataset.metadata.sourceRevision = 'unrecorded'; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('sourceRevision')
+    const { datasetFile, reportFile, catalogFile, detailsFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); dataset.metadata.sourceRevision = 'unrecorded'; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile, catalogFile, detailsFile); expect(result.status).toBe(1); expect(result.stderr).toContain('sourceRevision')
   })
   it('rejects missing client fingerprint even with a recomputed dataset fingerprint', () => {
-    const { datasetFile, reportFile, catalogFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); delete dataset.metadata.clientFingerprint; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('clientFingerprint')
+    const { datasetFile, reportFile, catalogFile, detailsFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); delete dataset.metadata.clientFingerprint; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile, catalogFile, detailsFile); expect(result.status).toBe(1); expect(result.stderr).toContain('clientFingerprint')
   })
   it('rejects structural corruption even when fingerprint is recomputed', () => {
-    const { datasetFile, reportFile, catalogFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); dataset.recipesByOutput['10'] = ['alch']; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('structural validation failed')
+    const { datasetFile, reportFile, catalogFile, detailsFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); dataset.recipesByOutput['10'] = ['alch']; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile, catalogFile, detailsFile); expect(result.status).toBe(1); expect(result.stderr).toContain('structural validation failed')
   })
   it('rejects remote-only icon metadata even when a remote fallback URL exists', () => {
-    const { datasetFile, reportFile, catalogFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); delete dataset.items['20'].iconPath; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('lack canonical local icon paths')
+    const { datasetFile, reportFile, catalogFile, detailsFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); delete dataset.items['20'].iconPath; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile, catalogFile, detailsFile); expect(result.status).toBe(1); expect(result.stderr).toContain('lack canonical local icon paths')
   })
   it('rejects a canonical local icon path when the installed asset is missing', () => {
-    const { datasetFile, reportFile, catalogFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); dataset.items['20'].iconPath = 'icons/999.webp'; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toMatch(/canonical local icon paths|canonical local icon assets are missing/)
+    const { datasetFile, reportFile, catalogFile, detailsFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); dataset.items['20'].iconPath = 'icons/999.webp'; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile, catalogFile, detailsFile); expect(result.status).toBe(1); expect(result.stderr).toMatch(/canonical local icon paths|canonical local icon assets are missing/)
   })
   it('rejects a non-canonical local icon path even when it resolves to an existing repository file', () => {
-    const { datasetFile, reportFile, catalogFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); dataset.items['20'].iconPath = '../../package.json'; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('lack canonical local icon paths')
+    const { datasetFile, reportFile, catalogFile, detailsFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); dataset.items['20'].iconPath = '../../package.json'; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile, catalogFile, detailsFile); expect(result.status).toBe(1); expect(result.stderr).toContain('lack canonical local icon paths')
   })
   it('rejects ZERO_UNEXPLAINED_DIFF evidence generated for different dataset content', () => {
-    const { datasetFile, reportFile, catalogFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); dataset.items['20'].nameKo = '변경된 재료'; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('reconciliation report belongs to different dataset content')
+    const { datasetFile, reportFile, catalogFile, detailsFile } = setup(); const dataset = JSON.parse(readFileSync(datasetFile, 'utf8')); dataset.items['20'].nameKo = '변경된 재료'; delete dataset.metadata.fingerprint; dataset.metadata.fingerprint = fingerprint(dataset); writeFileSync(datasetFile, JSON.stringify(dataset)); const result = gate(datasetFile, reportFile, catalogFile, detailsFile); expect(result.status).toBe(1); expect(result.stderr).toContain('reconciliation report belongs to different dataset content')
   })
   it('rejects an incomplete Codex catalog even when reconciliation claims zero unexplained diff', () => {
-    const { datasetFile, reportFile, catalogFile } = setup(); const catalog = completeCatalog(); catalog.complete = false; catalog.catalogs[0].complete = false; writeFileSync(catalogFile, JSON.stringify(catalog)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('Codex catalog completeness is not independently proven')
+    const { datasetFile, reportFile, catalogFile, detailsFile } = setup(); const catalog = completeCatalog(); catalog.complete = false; catalog.catalogs[0].complete = false; writeFileSync(catalogFile, JSON.stringify(catalog)); const result = gate(datasetFile, reportFile, catalogFile, detailsFile); expect(result.status).toBe(1); expect(result.stderr).toContain('Codex catalog completeness is not independently proven')
   })
   it('rejects catalog evidence when collectedAt is missing or invalid', () => {
-    for (const collectedAt of [undefined, '', 'not-a-date']) { const { datasetFile, reportFile, catalogFile } = setup(); const catalog = completeCatalog(); catalog.collectedAt = collectedAt; writeFileSync(catalogFile, JSON.stringify(catalog)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('collectedAt timestamp') }
+    for (const collectedAt of [undefined, '', 'not-a-date']) { const { datasetFile, reportFile, catalogFile, detailsFile } = setup(); const catalog = completeCatalog(); catalog.collectedAt = collectedAt; writeFileSync(catalogFile, JSON.stringify(catalog)); const result = gate(datasetFile, reportFile, catalogFile, detailsFile); expect(result.status).toBe(1); expect(result.stderr).toContain('collectedAt timestamp') }
   })
   it('rejects a different Codex artifact after promotion even when recipe ids and counts still match', () => {
-    const { datasetFile, reportFile, catalogFile } = setup(); const catalog = completeCatalog(); catalog.discoveredEndpointCandidates = ['https://example.invalid/semantically-irrelevant']; writeFileSync(catalogFile, JSON.stringify(catalog)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('artifact does not match promoted evidence')
+    const { datasetFile, reportFile, catalogFile, detailsFile } = setup(); const catalog = completeCatalog(); catalog.discoveredEndpointCandidates = ['https://example.invalid/semantically-irrelevant']; writeFileSync(catalogFile, JSON.stringify(catalog)); const result = gate(datasetFile, reportFile, catalogFile, detailsFile); expect(result.status).toBe(1); expect(result.stderr).toContain('artifact does not match promoted evidence')
   })
   it('rejects catalog evidence whose endpoint scope does not match the declared skill', () => {
-    const { datasetFile, reportFile, catalogFile } = setup(); const catalog = completeCatalog(); catalog.catalogs[0].endpointFinalUrl = 'https://bdocodex.com/query.php?a=recipes&type=alchemy&l=kr'; writeFileSync(catalogFile, JSON.stringify(catalog)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toMatch(/artifact does not match promoted evidence|endpoint scope is invalid/)
+    const { datasetFile, reportFile, catalogFile, detailsFile } = setup(); const catalog = completeCatalog(); catalog.catalogs[0].endpointFinalUrl = 'https://bdocodex.com/query.php?a=recipes&type=alchemy&l=kr'; writeFileSync(catalogFile, JSON.stringify(catalog)); const result = gate(datasetFile, reportFile, catalogFile, detailsFile); expect(result.status).toBe(1); expect(result.stderr).toMatch(/artifact does not match promoted evidence|endpoint scope is invalid/)
   })
   it('rejects reconciliation performed against fewer Codex pages than the complete catalog', () => {
-    const { datasetFile, reportFile, catalogFile } = setup(); const report = JSON.parse(readFileSync(reportFile, 'utf8')); report.codexAccountedPages = 1; writeFileSync(reportFile, JSON.stringify(report)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('does not match independently complete catalog count')
+    const { datasetFile, reportFile, catalogFile, detailsFile } = setup(); const report = JSON.parse(readFileSync(reportFile, 'utf8')); report.codexAccountedPages = 1; writeFileSync(reportFile, JSON.stringify(report)); const result = gate(datasetFile, reportFile, catalogFile, detailsFile); expect(result.status).toBe(1); expect(result.stderr).toContain('does not match independently complete catalog count')
   })
   it('rejects a same-sized reconciliation built from different Codex recipe ids', () => {
-    const { datasetFile, reportFile, catalogFile } = setup(); const report = JSON.parse(readFileSync(reportFile, 'utf8')); report.codexAccountedRoutes = ['alchemy:201', 'cooking:102']; writeFileSync(reportFile, JSON.stringify(report)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('route set does not match')
+    const { datasetFile, reportFile, catalogFile, detailsFile } = setup(); const report = JSON.parse(readFileSync(reportFile, 'utf8')); report.codexAccountedRoutes = ['alchemy:201', 'cooking:102']; writeFileSync(reportFile, JSON.stringify(report)); const result = gate(datasetFile, reportFile, catalogFile, detailsFile); expect(result.status).toBe(1); expect(result.stderr).toContain('route set does not match')
   })
 })
