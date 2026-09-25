@@ -8,13 +8,15 @@ import type { CharacterProfileState } from './storage'
 export interface ActivePlanView extends BuiltActivePlan { batch?: BatchCapacity }
 
 function resolveBatchVariant(dataset: RecipeDataset, variant: RecipeVariant, inventory: Readonly<Record<string, number>>, options: Partial<ActivePlanOptions>): RecipeVariant {
+  const countByItemId = new Map<number, number>()
+  for (const input of variant.inputs) {
+    const selectedItemId = input.substitutionGroupId ? options.selectedSubstitutionItemIdByGroupId?.[input.substitutionGroupId] : undefined
+    const resolved = resolveIngredientChoice(input, dataset.substitutionGroups ?? {}, { selectedItemId, ownedByItemId: inventory })
+    countByItemId.set(resolved.itemId, (countByItemId.get(resolved.itemId) ?? 0) + resolved.count)
+  }
   return {
     ...variant,
-    inputs: variant.inputs.map((input) => {
-      const selectedItemId = input.substitutionGroupId ? options.selectedSubstitutionItemIdByGroupId?.[input.substitutionGroupId] : undefined
-      const resolved = resolveIngredientChoice(input, dataset.substitutionGroups ?? {}, { selectedItemId, ownedByItemId: inventory })
-      return { itemId: resolved.itemId, count: resolved.count }
-    }),
+    inputs: [...countByItemId.entries()].map(([itemId, count]) => ({ itemId, count })),
   }
 }
 
