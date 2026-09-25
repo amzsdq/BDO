@@ -39,7 +39,7 @@ The companion `bdo-viewer` remains an alternative acquisition path because it ru
 
 1. Import the scoped Cooking/Alchemy structural graph with an explicit source revision. The structural importer intentionally starts recipe yields as `unknown-server-yield` 1/1 placeholders; these are not release evidence.
 2. Apply BDO Codex KR Korean-name evidence for every planner-scoped item.
-3. Collect schema-v2 Codex recipe details for the complete skill-scoped catalog and bind every selectable planner variant to exactly one source route. `single-base` routes require exact base-output identity and bounded yield; `random-only` and `no-output` remain explicit non-deterministic classifications. Ambiguous, unresolved, multiple-base, unavailable, or uncovered selectable routes fail closed.
+3. Apply reviewed yield evidence for every Cooking/Alchemy recipe. Each entry must provide positive min/max, optional expected within those bounds, and HTTPS provenance. Promotion and release fail closed if any recipe remains uncovered.
 4. Install the exact item-id icon assets referenced by the imported dataset.
 5. Collect complete KR Codex Cooking and Alchemy catalog evidence. Prefer `npm run data:codex:browser -- --out <codex-catalog.json>`, which opens the real catalog pages, captures their live skill-scoped XHR transport, and paginates until the unique recipe-id set equals the server-reported total. The scheduled `production-data-evidence` workflow performs the same capture in GitHub Actions.
 6. Reconcile the imported client graph against the complete Codex catalog until the report is `ZERO_UNEXPLAINED_DIFF` with no unexplained recipe-id/count gap.
@@ -53,10 +53,7 @@ The companion `bdo-viewer` remains an alternative acquisition path because it ru
 ```text
 npm run data:import -- --items <items.json> --recipes <recipes.json> --out <client-dataset.json> --source-revision <extractor-tag-or-sha> --client-fingerprint <client-fingerprint>
 node scripts/apply-korean-name-evidence.mjs <client-dataset.json> <korean-name-evidence.json> public/data/dataset.json
-npm run data:codex:details -- --catalog <codex-catalog.json> --out <codex-details.json>
-npm run data:codex:items -- --items <exact-scoped-item-ids> --out <codex-item-evidence.json>
-npm run data:codex:bind -- public/data/dataset.json <codex-details.json> <bound-yield-evidence.json> <codex-item-evidence.json>
-npm run data:yields -- public/data/dataset.json <bound-yield-evidence.json> public/data/dataset.json
+npm run data:yields -- public/data/dataset.json <yield-evidence.json> public/data/dataset.json
 npm run data:icons -- public/data/dataset.json <extractor-data> public/icons
 npm run data:validate -- public/data/dataset.json
 npm run data:codex:browser -- --out <codex-catalog.json>
@@ -75,7 +72,7 @@ Do not declare production completeness when any of the following is true:
 - the extraction revision is unrecorded;
 - artifacts come from mixed client snapshots;
 - Korean-name evidence does not cover every planner-scoped item;
-- every selectable Cooking/Alchemy variant lacks exact source binding and explicit output classification, or a deterministic single-base route lacks bounded yield evidence;
+- reviewed bounded yield evidence does not cover every Cooking/Alchemy recipe;
 - any canonical local icon is missing;
 - Codex catalog completeness is not independently demonstrated;
 - reconciliation has an unexplained diff;
