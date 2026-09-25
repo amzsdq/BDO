@@ -115,20 +115,24 @@ if (process.argv[1] && process.argv[1].endsWith('collect-codex-item-evidence.mjs
     const flag = argv[i], value = argv[i + 1]
     if (!value || value.startsWith('--')) throw new Error(`missing value for ${flag || 'argument'}`)
     if (flag === '--items') args.items = value
-    else if (flag === '--details') args.details = value\n    else if (flag === '--dataset') args.dataset = value
+    else if (flag === '--details') args.details = value
+    else if (flag === '--dataset') args.dataset = value
     else if (flag === '--out') args.out = value
     else if (flag === '--concurrency') args.concurrency = Number(value)
     else if (flag === '--timeout-ms') args.timeoutMs = Number(value)
     else if (flag === '--retries') args.retries = Number(value)
     else throw new Error(`unknown argument: ${flag}`)
   }
-  const scopeCount = [args.items, args.details, args.dataset].filter(Boolean).length\n  if (scopeCount !== 1 || !args.out) throw new Error('usage: node scripts/collect-codex-item-evidence.mjs (--items 6214,9203 | --details data/codex-details.json | --dataset data/dataset.json) --out data/codex-items.json [--concurrency 6] [--timeout-ms 20000] [--retries 2]')
+  const scopeCount = [args.items, args.details, args.dataset].filter(Boolean).length
+  if (scopeCount !== 1 || !args.out) throw new Error('usage: node scripts/collect-codex-item-evidence.mjs (--items 6214,9203 | --details data/codex-details.json | --dataset data/dataset.json) --out data/codex-items.json [--concurrency 6] [--timeout-ms 20000] [--retries 2]')
   if (!Number.isSafeInteger(args.concurrency) || args.concurrency < 1 || args.concurrency > 16) throw new Error('--concurrency must be 1..16')
   if (!Number.isFinite(args.timeoutMs) || args.timeoutMs < 1000) throw new Error('--timeout-ms must be >=1000')
   if (!Number.isSafeInteger(args.retries) || args.retries < 0 || args.retries > 5) throw new Error('--retries must be 0..5')
   const ids = args.details
     ? exactItemIdsFromRecipeDetails(JSON.parse(fs.readFileSync(args.details, 'utf8')))
-    : args.items.split(',').map((value) => value.trim()).filter(Boolean)
+    : args.dataset
+      ? exactItemIdsFromDataset(JSON.parse(fs.readFileSync(args.dataset, 'utf8')))
+      : args.items.split(',').map((value) => value.trim()).filter(Boolean)
   if (!ids.length) throw new Error('item acquisition scope must contain at least one item id')
   const result = await collectCodexItemEvidence(ids, fetch, new Date().toISOString(), args)
   fs.writeFileSync(args.out, `${JSON.stringify(result, null, 2)}\n`)
