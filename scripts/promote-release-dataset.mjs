@@ -25,9 +25,9 @@ function verifiedCatalog(catalogFile, reconciliation) {
   }
   const pages = ['cooking', 'alchemy'].reduce((sum, skill) => sum + bySkill.get(skill).recipeCount, 0)
   if (reconciliation.codexAccountedPages !== pages) fail(`reconciliation accounted Codex page count ${reconciliation.codexAccountedPages ?? 'missing'} does not match independently complete catalog count ${pages}`)
-  const catalogIds = sortedIds(['cooking', 'alchemy'].flatMap((skill) => bySkill.get(skill).recipeIds))
-  const reconciliationIds = sortedIds(Array.isArray(reconciliation.codexAccountedRecipeIds) ? reconciliation.codexAccountedRecipeIds : [])
-  if (JSON.stringify(reconciliationIds) !== JSON.stringify(catalogIds)) fail('reconciliation accounted Codex recipe-id set does not match independently complete catalog')
+  const catalogRoutes = ['cooking', 'alchemy'].flatMap((skill) => bySkill.get(skill).recipeIds.map((id) => `${skill}:${Number(id)}`)).sort()
+  const reconciliationRoutes = Array.isArray(reconciliation.codexAccountedRoutes) ? [...reconciliation.codexAccountedRoutes].sort() : []
+  if (JSON.stringify(reconciliationRoutes) !== JSON.stringify(catalogRoutes)) fail('reconciliation accounted Codex route set does not match independently complete catalog')
   return { pages, collectedAt: catalog.collectedAt, sha256: sha256(catalogBytes) }
 }
 

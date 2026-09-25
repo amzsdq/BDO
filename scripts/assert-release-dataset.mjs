@@ -64,7 +64,7 @@ for (const skill of ['cooking', 'alchemy']) {
 }
 const completeCatalogPages = ['cooking', 'alchemy'].reduce((sum, skill) => sum + catalogBySkill.get(skill).recipeCount, 0)
 if (reconciliation.codexAccountedPages !== completeCatalogPages) fail(`reconciliation accounted Codex page count ${reconciliation.codexAccountedPages ?? 'missing'} does not match independently complete catalog count ${completeCatalogPages}`)
-const completeCatalogIds = sortedIds(['cooking', 'alchemy'].flatMap((skill) => catalogBySkill.get(skill).recipeIds))
-const reconciliationIds = sortedIds(Array.isArray(reconciliation.codexAccountedRecipeIds) ? reconciliation.codexAccountedRecipeIds : [])
-if (JSON.stringify(reconciliationIds) !== JSON.stringify(completeCatalogIds)) fail('reconciliation accounted Codex recipe-id set does not match independently complete catalog')
+const completeCatalogRoutes = ['cooking', 'alchemy'].flatMap((skill) => catalogBySkill.get(skill).recipeIds.map((id) => `${skill}:${Number(id)}`)).sort()
+const reconciliationRoutes = Array.isArray(reconciliation.codexAccountedRoutes) ? [...reconciliation.codexAccountedRoutes].sort() : []
+if (JSON.stringify(reconciliationRoutes) !== JSON.stringify(completeCatalogRoutes)) fail('reconciliation accounted Codex route set does not match independently complete catalog')
 console.log(JSON.stringify({ ok: true, status: metadata.status, counts: actualCounts, items: Object.keys(items).length, fingerprint: metadata.fingerprint, reconciliation: reconciliation.status, codexCatalogPages: completeCatalogPages, codexCatalogSha256: actualCatalogSha256 }))

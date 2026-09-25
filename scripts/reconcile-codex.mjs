@@ -25,6 +25,7 @@ function itemIdentity(itemId, name) { const id = Number(itemId); return Number.i
 function signatureFromDataset(dataset, recipe, variant) { return variant.inputs.map((input) => { const item = dataset.items[String(input.itemId)]; return `${itemIdentity(input.itemId, item?.nameKo)}:${Number(input.count)}` }).sort().join('|') }
 function signatureFromCodex(entry) { return (entry.ingredients || []).map((input) => `${itemIdentity(input.itemId, input.name)}:${Number(input.count)}`).sort().join('|') }
 function liveRecipeIds(entries) { return [...new Set(entries.map((entry) => Number(entry.recipeId)).filter((id) => Number.isSafeInteger(id) && id > 0))].sort((a, b) => a - b) }
+function routeKeys(entries) { return [...new Set(entries.map((entry) => `${normalizedSkill(entry.skill)}:${Number(entry.recipeId)}`).filter((key) => /^(?:cooking|alchemy):[1-9][0-9]*$/.test(key)))].sort() }
 
 const opt = args(process.argv.slice(2))
 if (!opt.dataset || !opt.codex) fail('usage: --dataset <dataset.json> --codex <codex-manifest.json> [--review <review.json>] [--out <report.json>]')
@@ -51,8 +52,10 @@ for (const recipe of Object.values(dataset.recipes || {})) {
 }
 const codexAccounted = (manifest.recipes || []).filter((entry) => entry.status !== 'unresolved')
 const codexAccountedRecipeIds = liveRecipeIds(codexAccounted)
+const codexAccountedRoutes = routeKeys(codexAccounted)
 const codexLive = codexAccounted.filter((entry) => entry.available !== false && entry.status !== 'unavailable')
 const codexLiveRecipeIds = liveRecipeIds(codexLive)
+const codexLiveRoutes = routeKeys(codexLive)
 const codexByKey = new Map()
 for (const entry of codexLive) {
   const skill = normalizedSkill(entry.skill)
@@ -100,8 +103,10 @@ const report = {
   clientRecipes: clientRecipeCount,
   codexAccountedPages: codexAccounted.length,
   codexAccountedRecipeIds,
+  codexAccountedRoutes,
   codexLivePages: codexLive.length,
   codexLiveRecipeIds,
+  codexLiveRoutes,
   codexDisabledPages: (manifest.recipes || []).length - codexLive.length,
   diffs,
   acceptedDiffKeys: [...accepted].sort(),
