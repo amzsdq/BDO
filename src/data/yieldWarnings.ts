@@ -5,7 +5,13 @@ export function appendYieldProvenanceWarnings(
   targets: readonly PlanTarget[],
   plan: PlanResult,
 ): PlanResult {
-  const unknownOutputTargets = targets.filter((target) => target.mode === 'output' && dataset.recipes[target.recipeId]?.yield.provenance === 'unknown-server-yield')
+  const unknownOutputTargets = targets.filter((target) => {
+    if (target.mode !== 'output') return false
+    const recipe = dataset.recipes[target.recipeId]
+    if (!recipe) return false
+    const variant = target.variantId ? recipe.variants.find((entry) => entry.id === target.variantId) : recipe.variants[0]
+    return (variant?.yield ?? recipe.yield).provenance === 'unknown-server-yield'
+  })
   if (!unknownOutputTargets.length) return plan
   return {
     ...plan,
