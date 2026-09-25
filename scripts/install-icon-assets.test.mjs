@@ -34,6 +34,26 @@ describe('canonical icon asset installer', () => {
     expect(existsSync(join(out, '999.webp'))).toBe(false)
   })
 
+
+  it('fails closed when redirect evidence is missing for a required item', () => {
+    const { source, out, dataset } = fixtureDir()
+    writeFileSync(join(source, 'shared-100.webp'), 'icon-100')
+    writeFileSync(join(source, 'asset_redirects.json'), JSON.stringify({}))
+    writeFileSync(dataset, JSON.stringify({ items: { '100': { id: 100, iconPath: 'icons/100.webp' } } }))
+    const result = spawnSync(process.execPath, [resolve('scripts/install-icon-assets.mjs'), dataset, source, out], { encoding: 'utf8' })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('extractor redirect output')
+  })
+
+  it('rejects redirect traversal outside the extractor icon root', () => {
+    const { source, out, dataset } = fixtureDir()
+    writeFileSync(join(source, 'asset_redirects.json'), JSON.stringify({ 'urn::item:100': '../escape.webp' }))
+    writeFileSync(dataset, JSON.stringify({ items: { '100': { id: 100, iconPath: 'icons/100.webp' } } }))
+    const result = spawnSync(process.execPath, [resolve('scripts/install-icon-assets.mjs'), dataset, source, out], { encoding: 'utf8' })
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('unsafe extractor icon redirect')
+  })
+
   it.each([
     { id: 300, iconUrl: 'https://example.invalid/300.webp' },
     { id: 300, iconPath: 'icons/301.webp' },
