@@ -5,6 +5,7 @@ import { mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.mjs'
+import { writeVerifiedIconFixture } from './test-icon-fixture.mjs'
 
 function fingerprint(value) { return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex') }
 function fixture() {
@@ -37,8 +38,7 @@ function completeCatalog() {
 function setup(catalog = completeCatalog(), expectPromotion = true) {
   const dir = mkdtempSync(join(tmpdir(), 'bdo-release-gate-'))
   const datasetFile = join(dir, 'dataset.json'), reportFile = join(dir, 'report.json'), catalogFile = join(dir, 'catalog.json')
-  mkdirSync(join(dir, '..', 'icons'), { recursive: true })
-  for (const id of [10, 11, 20]) writeFileSync(join(dir, '..', 'icons', `${id}.webp`), 'fixture')
+  writeVerifiedIconFixture(join(dir, '..', 'icons'), [10, 11, 20])
   const source = fixture()
   writeFileSync(datasetFile, JSON.stringify(source))
   writeFileSync(reportFile, JSON.stringify({ status: 'ZERO_UNEXPLAINED_DIFF', unresolved: [], clientRecipeGroups: 2, clientRecipes: 2, codexAccountedPages: 2, codexAccountedRecipeIds: [101, 201], codexAccountedRoutes: ['alchemy:201', 'cooking:101'], codexLivePages: 2, codexLiveRecipeIds: [101, 201], datasetFingerprint: reconciliationDatasetFingerprint(source) }))

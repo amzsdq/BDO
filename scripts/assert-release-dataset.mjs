@@ -4,6 +4,7 @@ import crypto from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.mjs'
 import { validateCatalogEntryEvidence } from './catalog-release-evidence.mjs'
+import { assertIconManifest } from './assert-icon-manifest.mjs'
 
 function fail(message) { console.error(`release blocked: ${message}`); process.exit(1) }
 function fingerprint(value) { return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex') }
@@ -38,6 +39,9 @@ if (missingCanonicalIconPaths.length) fail(`${missingCanonicalIconPaths.length} 
 const localIconRoot = path.resolve(path.dirname(file), '..')
 const missingLocalIcons = Object.values(items).filter((item) => !fs.existsSync(path.resolve(localIconRoot, item.iconPath)))
 if (missingLocalIcons.length) fail(`${missingLocalIcons.length} canonical local icon assets are missing; first ids: ${missingLocalIcons.slice(0, 20).map((item) => item.id).join(', ')}`)
+const iconRoot = path.join(localIconRoot, 'icons'), iconManifestFile = path.join(iconRoot, 'icon-manifest.json')
+if (!fs.existsSync(iconManifestFile)) fail('icon-manifest.json is required for production release')
+try { assertIconManifest(dataset, JSON.parse(fs.readFileSync(iconManifestFile, 'utf8')), iconRoot) } catch (error) { fail(error instanceof Error ? error.message : String(error)) }
 const placeholderKoreanNames = Object.values(items).filter((item) => /^아이템 #\d+$/.test(String(item.nameKo || '')))
 if (placeholderKoreanNames.length) fail(`${placeholderKoreanNames.length} items still have placeholder Korean names`)
 if (!fs.existsSync(reconciliationFile)) fail('ZERO_UNEXPLAINED_DIFF reconciliation report is required')
