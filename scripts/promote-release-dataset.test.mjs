@@ -66,9 +66,9 @@ describe('release dataset promotion', () => {
     const dataset = fixture(); const evidence = catalog(); evidence.catalogs[0].endpointUsed = 'https://bdocodex.com/query.php?a=recipes&type=alchemy&l=kr'; const result = run(dataset, reportFor(dataset), evidence); expect(result.result.status).toBe(1); expect(result.result.stderr).toContain('endpoint scope is invalid')
   })
   it('blocks promotion when reconciliation covers fewer pages than the complete catalog', () => {
-    const dataset = fixture(); const result = run(dataset, reportFor(dataset, { codexLivePages: 1 })); expect(result.result.status).toBe(1); expect(result.result.stderr).toContain('does not match independently complete catalog count')
+    const dataset = fixture(); const result = run(dataset, reportFor(dataset, { codexAccountedPages: 1 })); expect(result.result.status).toBe(1); expect(result.result.stderr).toContain('does not match independently complete catalog count')
   })
   it('blocks a same-sized reconciliation built from different Codex recipe ids', () => {
-    const dataset = fixture(); const result = run(dataset, reportFor(dataset, { codexLiveRecipeIds: [102, 201] })); expect(result.result.status).toBe(1); expect(result.result.stderr).toContain('recipe-id set does not match')
+    const dataset = fixture(); const result = run(dataset, reportFor(dataset, { codexAccountedRecipeIds: [102, 201] })); expect(result.result.status).toBe(1); expect(result.result.stderr).toContain('recipe-id set does not match')
   })
 })
