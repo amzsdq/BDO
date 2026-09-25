@@ -23,6 +23,13 @@ describe('assertYieldReleaseEvidence', () => {
     expect(() => assertYieldReleaseEvidence(unresolved)).toThrow(/r:v/)
   })
 
+  it('blocks selectable routes whose output semantics are unavailable or multiple-base', () => {
+    for (const status of ['unavailable', 'multiple-base']) {
+      const route = { metadata: { yieldEvidenceApplied: true, yieldEvidenceCount: 1 }, recipes: { r: { id: 'r', variants: [{ id: 'v', sourceRecipeId: 700, outputEvidence: { status, sourceUrl: 'https://bdocodex.com/kr/recipe/700/', baseOutputs: status === 'multiple-base' ? [{ itemId: 1, min: 1, max: 1 }, { itemId: 2, min: 1, max: 1 }] : [] } }] } } }
+      expect(() => assertYieldReleaseEvidence(route)).toThrow(/r:v/)
+    }
+  })
+
   it('accepts explicit no-output source accounting without inventing output', () => {
     const noOutput = { metadata: { yieldEvidenceApplied: true, yieldEvidenceCount: 1 }, recipes: { r: { id: 'r', variants: [{ id: 'v', sourceRecipeId: 343, outputEvidence: { status: 'no-output', sourceUrl: 'https://bdocodex.com/kr/recipe/343/' } }] } } }
     expect(assertYieldReleaseEvidence(noOutput)).toBe(true)

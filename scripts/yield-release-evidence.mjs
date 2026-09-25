@@ -17,7 +17,7 @@ export function assertYieldReleaseEvidence(dataset) {
     const sourceUrl = variant?.outputEvidence?.sourceUrl ?? variant?.yield?.provenance ?? recipe?.yield?.provenance
     const provenanceRecipeId = codexRecipeIdFromUrl(sourceUrl)
     if (status && status !== 'single-base') {
-      if (status === 'unresolved') return true
+      if (status === 'unresolved' || status === 'multiple-base' || status === 'unavailable') return true
       if (!Number.isSafeInteger(sourceRecipeId) || sourceRecipeId <= 0 || provenanceRecipeId !== sourceRecipeId) return true
       if (status === 'random-only') return !(variant.outputEvidence?.randomOutputs ?? []).length || (variant.outputEvidence?.baseOutputs ?? []).length > 0
       if (status === 'no-output') return (variant.outputEvidence?.baseOutputs ?? []).length > 0 || (variant.outputEvidence?.randomOutputs ?? []).length > 0
