@@ -7,8 +7,8 @@ The unified item-evidence collector must preserve these row-level facts:
 - item 9203: 치즈 그라탱, 0.10 LT, material group 6503.
 - item 9282: 쫀득한 치즈 그라탱, 0.10 LT, material group 6503.
 - item 9601: 발레노스 정식, 0.10 LT, material group 6523.
-- item 45334: 예리한 파괴의 정령석, 0.05 LT, Alchemy mastery minimum 500.
-- item 45340: 예리한 수호의 정령석, 0.05 LT, Alchemy mastery minimum 500. Recipe 346 binds its random-only output to this exact item ID; never substitute same-name item 45341.
+- item 45334: 예리한 파괴의 정령석, 0.05 LT, Alchemy mastery minimum 500. This Codex item page is historical evidence only; the official KR PC 2026-09-02 update retired the associated spirit-stone crafting route.
+- item 45340: 예리한 수호의 정령석, 0.05 LT, Alchemy mastery minimum 500. The Codex recipe 346 page historically names this exact random output, but the official KR PC 2026-09-02 update retired the associated crafting route; never restore it as live or substitute same-name item 45341.
 
 Parser invariants:
 - scope extraction to the balanced `div.card.item_info`; nested divs must not truncate the card.
