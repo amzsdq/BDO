@@ -9,20 +9,22 @@ describe('scoped canonical extractor import', () => {
     const dir = mkdtempSync(join(tmpdir(), 'bdo-scoped-import-'))
     const itemsPath = join(dir, 'items.json'), recipesPath = join(dir, 'recipes.json'), outPath = join(dir, 'dataset.json')
     writeFileSync(itemsPath, JSON.stringify([
-      { id: 100, name: 'Cook', icon: 'a.dds' }, { id: 101, name: 'Alchemy', icon: 'b.dds' },
-      { id: 200, name: 'Shared ingredient', icon: 'c.dds' },
+      { id: 100, name: 'Cook', icon: 'a.dds', weight: 0.1 }, { id: 101, name: 'Alchemy', icon: 'b.dds', weight: 0.1 },
+      { id: 200, name: 'Shared ingredient', icon: 'c.dds', weight: 0.2 },
       { id: 999999, name: 'Unrelated ghost' },
     ]))
     writeFileSync(recipesPath, JSON.stringify([
       { output: 100, type: 'COOK', inputs: [{ item: 200, count: 1 }] },
       { output: 101, type: 'ALCHEMY', inputs: [{ item: 200, count: 2 }] },
     ]))
-    execFileSync(process.execPath, [resolve('scripts/import-scoped-bdo-extractor.mjs'), '--items', itemsPath, '--recipes', recipesPath, '--out', outPath, '--source-revision', 'test'])
+    execFileSync(process.execPath, [resolve('scripts/import-scoped-bdo-extractor.mjs'), '--items', itemsPath, '--recipes', recipesPath, '--out', outPath, '--source-revision', '5bf11bd7bc60dcbb6126be34bf3d76633abdd8b2', '--client-fingerprint', 'sha256:' + 'b'.repeat(64)])
     const dataset = JSON.parse(readFileSync(outPath, 'utf8'))
     expect(Object.keys(dataset.items)).toEqual(['100', '101', '200'])
     expect(dataset.metadata.itemScope).toBe('planner-referenced-cooking-alchemy-v2')
     expect(dataset.metadata.importedItemCount).toBe(4)
     expect(dataset.metadata.scopedItemCount).toBe(3)
     expect(dataset.metadata.fingerprint).toBeUndefined()
+    expect(dataset.metadata.clientFingerprint).toBe('sha256:' + 'b'.repeat(64))
+    execFileSync(process.execPath, [resolve('scripts/validate-dataset.mjs'), outPath])
   })
 })
