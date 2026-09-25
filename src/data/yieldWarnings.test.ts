@@ -23,4 +23,12 @@ describe('yield provenance warnings', () => {
     const unknown = appendYieldProvenanceWarnings(dataset, [{ recipeId: 'root', mode: 'output', amount: 10, variantId: 'unknown' }], emptyPlan)
     expect(unknown.warnings).toHaveLength(1)
   })
+
+  it('warns that random-only attempts do not guarantee output quantity', () => {
+    const randomDataset = structuredClone(dataset)
+    randomDataset.recipes.root.variants[0].outputEvidence = { status: 'random-only', randomOutputs: [{ itemId: 1, min: 1, max: 1 }] }
+    const result = appendYieldProvenanceWarnings(randomDataset, [{ recipeId: 'root', mode: 'attempts', amount: 10, variantId: 'verified' }], emptyPlan)
+    expect(result.warnings).toHaveLength(1)
+    expect(result.warnings[0]).toContain('획득 수량은 보장되지 않습니다')
+  })
 })
