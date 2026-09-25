@@ -70,7 +70,7 @@ const cookingPage = (id) => single.replaceAll('/recipe/169/', `/recipe/${id}/`)
 const gapCatalog = { complete: true, catalogs: [{ skill: 'cooking', complete: true, recipeIds: [1, 3] }] }
 const gapFetch = async (url) => {
   const id = Number(url.match(/\/recipe\/(\d+)\//)[1])
-  if (id === 2) return { ok: true, status: 200, statusText: 'OK', url, text: async () => disabled }
+  if (id === 2) return { ok: true, status: 200, statusText: 'OK', url, text: async () => disabled.replaceAll('/recipe/340/', '/recipe/2/') }
   if (id === 1 || id === 3) return { ok: true, status: 200, statusText: 'OK', url, text: async () => cookingPage(id) }
   return { ok: false, status: 404, statusText: 'Not Found', url, text: async () => '' }
 }
