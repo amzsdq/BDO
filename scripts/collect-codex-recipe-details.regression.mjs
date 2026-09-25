@@ -33,6 +33,16 @@ let partialRejected = false
 try { parseCodexRecipeDetailHtml(partialNoOutput, 344, 'alchemy') } catch (error) { partialRejected = /quantified row without an exact item identity/.test(error.message) }
 assert(partialRejected, 'partial ingredient rows must fail closed instead of producing an incomplete no-output signature')
 
+const calculatorPartialNoOutput = `<html><body><div class="card item_info"><a href="/kr/recipe/344/"><span class="item_title">부분 게시 연금식</span></a> 연금 스킬 레벨: 숙련 Lv. 1<table>
+<tr><th>재료</th></tr><tr><td><a href="/kr/item/4917/">평온의 오일</a> x10</td></tr><tr><th>기본 제품:</th></tr><tr><th>랜덤 제품:</th></tr></table></div>
+<section>기술 계산기 <div>10 x 평온의 오일</div><div>4 x <input></div><div>4 x <input></div></section><div>댓글을 남기려면 로그인</div></body></html>`
+let calculatorPartialRejected = false
+try { parseCodexRecipeDetailHtml(calculatorPartialNoOutput, 344, 'alchemy') } catch (error) { calculatorPartialRejected = /skill calculator exposes 3 quantified ingredient rows but only 1 exact ingredient identities/.test(error.message) }
+assert(calculatorPartialRejected, 'no-output calculator quantities must expose partial ingredient evidence outside item_info card')
+
+const calculatorCompleteNoOutput = noOutput.replace('</div>', '</div><section>기술 계산기 <div>10 x 재료 A</div></section><div>댓글을 남기려면 로그인</div>')
+assert(parseCodexRecipeDetailHtml(calculatorCompleteNoOutput, 343, 'alchemy').status === 'no-output', 'matching calculator quantity count preserves complete no-output evidence')
+
 
 const nestedDiv = `<div class="card item_info"><div class="card-header"><a href="/kr/recipe/24/"><span class="item_title">중첩 행 테스트</span></a> 요리 스킬 레벨: 초급 Lv. 1</div>
 <div class="row section">재료</div><div class="row item"><div><a href="/kr/item/100/">재료 X</a></div><span>x2</span></div>
