@@ -112,11 +112,11 @@ describe('canonical dataset validator', () => {
 
   it('rejects malformed random-only output evidence', () => {
     const dataset = validDataset()
-    dataset.recipes.alch.variants[0].outputEvidence = { status: 'random-only', baseOutputs: [{ itemId: 11, min: 1, max: 1 }] }
+    dataset.recipes.alch.variants[0].outputEvidence = { status: 'random-only', baseOutputs: [{ itemId: 999, min: 2, max: 1 }] }
     const result = run(dataset)
     expect(result.status).toBe(1)
     expect(result.stderr).toContain('random-only output evidence requires random outputs')
-    expect(result.stderr).toContain('random-only output evidence cannot contain base outputs')
+    expect(result.stderr).toContain('random-only output evidence cannot contain base outputs')\n    expect(result.stderr).toContain('unknown base output item 999')\n    expect(result.stderr).toContain('invalid base output range for 999')
   })
 
   it('accepts a byproduct whose output and craftable parent items are known', () => {
