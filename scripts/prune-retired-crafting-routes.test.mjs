@@ -41,7 +41,7 @@ describe('reviewed retired crafting route evidence', () => {
         'alchemy:5303': { id: 'alchemy:5303', skill: 'alchemy', outputItemId: 5303, variants: [] },
         'alchemy:9000': { id: 'alchemy:9000', skill: 'alchemy', outputItemId: 9000, variants: [{ id: 'live', inputs: [{ itemId: 999, count: 1 }] }] },
         'alchemy:42297': { id: 'alchemy:42297', skill: 'alchemy', outputItemId: 42297, variants: [{ id: 'stale-parallel', inputs: [{ itemId: 200, count: 1 }, { itemId: 100, count: 2 }] }, { id: 'other-live-shape', inputs: [{ itemId: 888, count: 1 }] }] },
-        'cooking:8000': { id: 'cooking:8000', skill: 'cooking', outputItemId: 8000, variants: [] },
+        'cooking:8000': { id: 'cooking:8000', skill: 'cooking', outputItemId: 8000, variants: [{ id: 'cook-live', inputs: [{ itemId: 700, count: 1 }] }] },
       },
       recipesByOutput: { '5303': ['alchemy:5303'], '9000': ['alchemy:9000'], '8000': ['cooking:8000'] },
       byproducts: {
@@ -59,7 +59,7 @@ describe('reviewed retired crafting route evidence', () => {
     expect(result.byproducts['45334']).toBeUndefined()
     expect(result.byproducts['7777'].producedWhileCraftingItemIds).toEqual([9000])
     expect(result.metadata.fingerprint).toBeUndefined()
-    expect(result.metadata.counts).toEqual({ cooking: 1, alchemy: 1 })
+    expect(result.metadata.counts).toEqual({ cooking: 1, alchemy: 2 })
     expect(assertNoRetiredCraftingRoutes(result, details)).toBe(true)
   })
 })
