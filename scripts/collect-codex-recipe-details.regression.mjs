@@ -42,6 +42,8 @@ assert(calculatorPartialRejected, 'no-output calculator quantities must expose p
 
 const calculatorCompleteNoOutput = noOutput.replace('</div>', '</div><section>기술 계산기 <div>10 x 재료 A</div></section><div>댓글을 남기려면 로그인</div>')
 assert(parseCodexRecipeDetailHtml(calculatorCompleteNoOutput, 343, 'alchemy').status === 'no-output', 'matching calculator quantity count preserves complete no-output evidence')
+const calculatorWithNumericComment = calculatorCompleteNoOutput.replace('댓글을 남기려면 로그인', '정렬 기준: 평가 <div>사용자 댓글: 99 x 라고 적음</div> 댓글을 남기려면 로그인')
+assert(parseCodexRecipeDetailHtml(calculatorWithNumericComment, 343, 'alchemy').status === 'no-output', 'calculator cross-check must stop before user comments containing quantity-like text')
 
 
 const nestedDiv = `<div class="card item_info"><div class="card-header"><a href="/kr/recipe/24/"><span class="item_title">중첩 행 테스트</span></a> 요리 스킬 레벨: 초급 Lv. 1</div>

@@ -134,7 +134,7 @@ export function parseCodexRecipeDetailHtml(html, expectedRecipeId, expectedSkill
     const calculatorStart = sourceText.search(/(?:기술\s*계산기|Skill\s*calculator)/i)
     if (calculatorStart >= 0) {
       const calculatorTail = sourceText.slice(calculatorStart)
-      const stop = calculatorTail.search(/(?:댓글을\s*남기려면|Leave\s+a\s+comment)/i)
+      const stop = calculatorTail.search(/(?:정렬\s*기준|Sort\s*by|댓글을\s*남기려면|Login\s+to\s+comment|Leave\s+a\s+comment)/i)
       const calculatorText = stop >= 0 ? calculatorTail.slice(0, stop) : calculatorTail
       const quantifiedIngredientRows = [...calculatorText.matchAll(/(?:^|\s)([0-9]+(?:\.[0-9]+)?)\s*x(?=\s|$)/gi)].length
       if (quantifiedIngredientRows > ingredients.length) throw new Error(`recipe ${expectedRecipeId}: skill calculator exposes ${quantifiedIngredientRows} quantified ingredient rows but only ${ingredients.length} exact ingredient identities were parsed`)
