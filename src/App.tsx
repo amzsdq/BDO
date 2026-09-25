@@ -49,7 +49,7 @@ export function App({ bootstrap }: { bootstrap: ReadyBootstrap }) {
     recipeId: selectedRecipe.id, variantId: selectedVariant?.id, mode, amount, skill: selectedRecipe.skill,
     yieldPolicy: mode === 'output' ? yieldPolicy : undefined,
     cookingPreparationPolicy: mode === 'durability' && selectedRecipe.skill === 'cooking' ? cookingPreparationPolicy : undefined,
-  }, inventory, profile, { craftIntermediateItemIds, intermediateRecipeIdByItemId }) : { estimatedPreparation: false }, [amount, cookingPreparationPolicy, craftIntermediateItemIds, dataset, intermediateRecipeIdByItemId, inventory, mode, profile, selectedRecipe, selectedVariant, yieldPolicy])
+  }, inventory, profile, { craftIntermediateItemIds, intermediateRecipeIdByItemId, selectedSubstitutionItemIdByGroupId: session.selectedSubstitutionItemIdByGroupId }) : { estimatedPreparation: false }, [amount, cookingPreparationPolicy, craftIntermediateItemIds, dataset, intermediateRecipeIdByItemId, inventory, mode, profile, selectedRecipe, selectedVariant, yieldPolicy])
   const sessionPlan = useMemo(() => buildPlanFromSession(dataset, session, inventory, profile), [dataset, inventory, profile, session])
   const requestedServings = activePlan.materialServings
   const batch = activePlan.batch
