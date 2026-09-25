@@ -40,7 +40,7 @@ describe('reviewed retired crafting route evidence', () => {
       recipes: {
         'alchemy:5303': { id: 'alchemy:5303', skill: 'alchemy', outputItemId: 5303, variants: [] },
         'alchemy:9000': { id: 'alchemy:9000', skill: 'alchemy', outputItemId: 9000, variants: [{ id: 'stale', inputs: [{ itemId: 4924, count: 50 }] }, { id: 'live', inputs: [{ itemId: 9999, count: 1 }] }] },
-        'cooking:8000': { id: 'cooking:8000', skill: 'cooking', outputItemId: 8000, variants: [] },
+        'cooking:8000': { id: 'cooking:8000', skill: 'cooking', outputItemId: 8000, variants: [{ id: 'live-cook', inputs: [{ itemId: 7000, count: 1 }] }] },
       },
       recipesByOutput: { '5303': ['alchemy:5303'], '9000': ['alchemy:9000'], '8000': ['cooking:8000'] },
       byproducts: {
