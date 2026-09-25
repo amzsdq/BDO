@@ -53,7 +53,11 @@ export function assertNoRetiredCraftingRoutes(dataset, details) {
   const recorded = [...new Set((details.retiredCraftingOutputItemIds || []).map(Number))].sort((a, b) => a - b)
   if (JSON.stringify(recorded) !== JSON.stringify(reviewed.retiredCraftingOutputItemIds)) throw new Error('retired crafting output ids do not match reviewed route-state evidence')
   const retired = new Set(recorded)
-  const conflicts = Object.values(dataset?.recipes || {}).filter((recipe) => retired.has(Number(recipe.outputItemId))).map((recipe) => recipe.id || recipe.outputItemId)
+  const retiredIngredients = new Set(reviewed.retiredCraftingIngredientItemIds)
+  const conflicts = Object.values(dataset?.recipes || {}).filter((recipe) =>
+    retired.has(Number(recipe.outputItemId))
+    || (recipe.variants || []).some((variant) => (variant.inputs || []).some((input) => retiredIngredients.has(Number(input.itemId))))
+  ).map((recipe) => recipe.id || recipe.outputItemId)
   if (conflicts.length) throw new Error(`dataset contains retired crafting routes: ${conflicts.join(', ')}`)
   return true
 }
