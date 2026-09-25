@@ -33,6 +33,12 @@ describe('planner', () => {
     expect(attemptsForTarget(dataset.recipes.variantYield, { recipeId: 'variantYield', mode: 'output', amount: 100, variantId: '637', yieldPolicy: 'maximum' })).toBe(100)
   })
 
+  it('fails closed for random-only output targets while allowing attempts mode', () => {
+    const randomOnly = { ...dataset.recipes.variantYield, variants: [{ ...dataset.recipes.variantYield.variants[0], outputEvidence: { status: 'random-only' as const, randomOutputs: [{ itemId: 1, min: 1, max: 1 }] } }] }
+    expect(() => attemptsForTarget(randomOnly, { recipeId: 'variantYield', mode: 'output', amount: 10, variantId: '169' })).toThrow(/random-only/)
+    expect(attemptsForTarget(randomOnly, { recipeId: 'variantYield', mode: 'attempts', amount: 10, variantId: '169' })).toBe(10)
+  })
+
   it('recursively expands selected craftable intermediates', () => {
     const plan = buildPlan(dataset, [{ recipeId: 'meal', mode: 'attempts', amount: 2 }], { craftIntermediateItemIds: new Set([2]) })
     expect(plan.crafts).toEqual([expect.objectContaining({ recipeId: 'meal', attempts: 2 }), expect.objectContaining({ recipeId: 'intermediate', attempts: 4 })])
