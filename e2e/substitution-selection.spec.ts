@@ -25,7 +25,7 @@ test('explicit substitution selection updates the persisted preparation plan', a
   await page.route('**/data/dataset.json', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(fixture) }))
   await page.goto('/')
 
-  await page.locator('.profile-card summary').click()
+  await page.getByText('캐릭터 설정 · 무게/숙련도', { exact: true }).click()
   await page.getByLabel('최대 무게 (LT)').fill('1000')
 
   const substitution = page.locator('.substitution-controls select')
