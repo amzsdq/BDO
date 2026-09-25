@@ -12,4 +12,12 @@ describe('variant yield evidence', () => {
     expect(result.metadata.yieldEvidenceCount).toBe(2)
     expect(result.recipes.r.variants.map((v) => v.sourceRecipeId)).toEqual([169, 637])
   })
+
+  it('applies random-only classification without inventing a yield', () => {
+    const result = applyYieldEvidence(base, { entries: [
+      { recipeId: 'r', variantId: 'a', outputStatus: 'random-only', sourceRecipeId: 346, sourceUrl: 'https://bdocodex.com/kr/recipe/346/', randomOutputs: [{ itemId: 1, min: 1, max: 1 }] },
+    ] })
+    expect(result.recipes.r.variants[0].yield).toBeUndefined()
+    expect(result.recipes.r.variants[0].outputEvidence).toEqual({ status: 'random-only', sourceUrl: 'https://bdocodex.com/kr/recipe/346/', randomOutputs: [{ itemId: 1, min: 1, max: 1 }] })
+  })
 })
