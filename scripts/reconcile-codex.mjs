@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import crypto from 'node:crypto'
 import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.mjs'
 import { validateAcceptedDiffs } from './reconciliation-review.mjs'
 
@@ -36,7 +37,8 @@ function routeKeys(entries) { return [...new Set(entries.map((entry) => `${norma
 const opt = args(process.argv.slice(2))
 if (!opt.dataset || !opt.codex) fail('usage: --dataset <dataset.json> --codex <codex-manifest.json> [--review <review.json>] [--out <report.json>]')
 const dataset = JSON.parse(fs.readFileSync(opt.dataset, 'utf8'))
-const manifest = JSON.parse(fs.readFileSync(opt.codex, 'utf8'))
+const codexBytes = fs.readFileSync(opt.codex)
+const manifest = JSON.parse(codexBytes.toString('utf8'))
 if (Number(manifest.schemaVersion) >= 2 && (manifest.complete !== true || Number(manifest.unresolvedCount || 0) > 0 || (manifest.recipes || []).some((entry) => entry.status === 'unresolved'))) {
   fail('schema-v2 Codex manifest must be complete with zero unresolved routes')
 }
@@ -108,6 +110,7 @@ const { accepted, errors: reviewErrors } = validateAcceptedDiffs(review, diffs)
 const unresolved = diffs.filter((entry) => !accepted.has(entry.key))
 const report = {
   generatedAt: new Date().toISOString(),
+  codexManifestSha256: crypto.createHash('sha256').update(codexBytes).digest('hex'),
   datasetFingerprint: reconciliationDatasetFingerprint(dataset),
   clientRecipeGroups: clientByKey.size,
   clientRecipes: clientRecipeCount,
