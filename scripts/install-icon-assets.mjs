@@ -33,6 +33,7 @@ function sourceForItem(itemId) {
   if (typeof redirect !== 'string' || !redirect.trim()) return null
   const normalized = redirect.replaceAll('\\', '/').replace(/^\.\//, '')
   if (path.isAbsolute(normalized) || normalized.split('/').includes('..')) fail(`unsafe extractor icon redirect for item ${itemId}: ${redirect}`)
+  if (!normalized.toLowerCase().endsWith('.webp')) fail(`extractor icon redirect is not a WebP asset for item ${itemId}: ${redirect}`)
   const root = dataRoot
   const source = path.resolve(root, normalized)
   if (source !== root && !source.startsWith(root + path.sep)) fail(`extractor icon redirect escapes data root for item ${itemId}: ${redirect}`)
