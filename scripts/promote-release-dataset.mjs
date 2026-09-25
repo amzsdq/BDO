@@ -31,12 +31,16 @@ function verifiedCatalog(catalogFile, reconciliation) {
   return { pages, collectedAt: catalog.collectedAt, sha256: sha256(catalogBytes) }
 }
 
-const [datasetFile, reconciliationFile, catalogFile, outFile = datasetFile] = process.argv.slice(2)
-if (!datasetFile || !reconciliationFile || !catalogFile) fail('usage: node scripts/promote-release-dataset.mjs <dataset.json> <reconciliation-report.json> <codex-catalog.json> [out.json]')
+const [datasetFile, reconciliationFile, catalogFile, codexManifestFile, outFile = datasetFile] = process.argv.slice(2)
+if (!datasetFile || !reconciliationFile || !catalogFile || !codexManifestFile) fail('usage: node scripts/promote-release-dataset.mjs <dataset.json> <reconciliation-report.json> <codex-catalog.json> <codex-details.json> [out.json]')
 if (!fs.existsSync(datasetFile)) fail(`dataset not found: ${datasetFile}`)
 if (!fs.existsSync(reconciliationFile)) fail(`reconciliation report not found: ${reconciliationFile}`)
 const dataset = JSON.parse(fs.readFileSync(datasetFile, 'utf8'))
 const reconciliation = JSON.parse(fs.readFileSync(reconciliationFile, 'utf8'))
+if (!fs.existsSync(codexManifestFile)) fail('Codex detail manifest is required')
+const codexManifestBytes = fs.readFileSync(codexManifestFile)
+const codexManifestSha256 = sha256(codexManifestBytes)
+if (!/^[0-9a-f]{64}$/.test(String(reconciliation.codexManifestSha256 || '')) || reconciliation.codexManifestSha256 !== codexManifestSha256) fail('reconciliation Codex manifest hash does not match exact detail manifest bytes')
 const items = dataset.items || {}, recipes = dataset.recipes || {}
 if (dataset.metadata?.supportedRegion !== 'KR') fail('supportedRegion must be KR')
 if (!Array.isArray(dataset.metadata?.sources) || dataset.metadata.sources.length < 2) fail('source provenance incomplete')
@@ -59,7 +63,7 @@ const missingLocalIcons = Object.values(items).filter((item) => !fs.existsSync(p
 if (missingLocalIcons.length) fail(`${missingLocalIcons.length} canonical local icon assets are missing; first ids: ${missingLocalIcons.slice(0, 20).map((item) => item.id).join(', ')}`)
 const unresolvedNames = Object.values(items).filter((item) => !String(item.nameKo || '').trim() || /^아이템 #\d+$/.test(String(item.nameKo)))
 if (unresolvedNames.length) fail(`${unresolvedNames.length} items have unresolved Korean names`)
-const promoted = { ...dataset, metadata: { ...dataset.metadata, status: 'COMPLETE_VERIFIED', counts, verifiedAt: new Date().toISOString(), reconciliationStatus: 'ZERO_UNEXPLAINED_DIFF', codexCatalogPages: codexCatalog.pages, codexCatalogCollectedAt: codexCatalog.collectedAt, codexCatalogSha256: codexCatalog.sha256 } }
+const promoted = { ...dataset, metadata: { ...dataset.metadata, status: 'COMPLETE_VERIFIED', counts, verifiedAt: new Date().toISOString(), reconciliationStatus: 'ZERO_UNEXPLAINED_DIFF', codexCatalogPages: codexCatalog.pages, codexCatalogCollectedAt: codexCatalog.collectedAt, codexCatalogSha256: codexCatalog.sha256, codexManifestSha256 } }
 delete promoted.metadata.fingerprint
 promoted.metadata.fingerprint = fingerprint(promoted)
 fs.writeFileSync(outFile, JSON.stringify(promoted, null, 2) + '\n')
