@@ -35,7 +35,11 @@ export function applyYieldEvidence(dataset, evidence) {
     if (classified && !variantId) fail(`${recipeId}: classified output evidence requires variantId`)
     const allowed = new Set(['single-base', 'random-only', 'multiple-base', 'no-output', 'unavailable', 'unresolved'])
     if (classified && !allowed.has(outputStatus)) fail(`${recipeId}: invalid outputStatus ${outputStatus}`)
-    const baseOutputs = classified ? outputRows(entry.baseOutputs, `${recipeId}.baseOutputs`) : undefined\n    const randomOutputs = classified ? outputRows(entry.randomOutputs, `${recipeId}.randomOutputs`) : undefined\n    if (outputStatus === 'random-only' && (!randomOutputs?.length || baseOutputs?.length)) fail(`${recipeId}: random-only evidence requires random outputs and no base outputs`)\n    if (outputStatus === 'no-output' && (baseOutputs?.length || randomOutputs?.length)) fail(`${recipeId}: no-output evidence cannot contain outputs`)\n    const needsYield = !classified || outputStatus === 'single-base'
+    const baseOutputs = classified ? outputRows(entry.baseOutputs, `${recipeId}.baseOutputs`) : undefined
+    const randomOutputs = classified ? outputRows(entry.randomOutputs, `${recipeId}.randomOutputs`) : undefined
+    if (outputStatus === 'random-only' && (!randomOutputs?.length || baseOutputs?.length)) fail(`${recipeId}: random-only evidence requires random outputs and no base outputs`)
+    if (outputStatus === 'no-output' && (baseOutputs?.length || randomOutputs?.length)) fail(`${recipeId}: no-output evidence cannot contain outputs`)
+    const needsYield = !classified || outputStatus === 'single-base'
     const min = needsYield ? finitePositive(entry.min, `${recipeId}.min`) : undefined
     const max = needsYield ? finitePositive(entry.max, `${recipeId}.max`) : undefined
     const expected = needsYield && entry.expected != null ? finitePositive(entry.expected, `${recipeId}.expected`) : undefined
