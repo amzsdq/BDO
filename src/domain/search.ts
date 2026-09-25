@@ -44,6 +44,20 @@ function boundedEditDistance(a: string, b: string, maxDistance: number): number 
   return previous[b.length] <= maxDistance ? previous[b.length] : null
 }
 
+function fuzzyContainsDistance(name: string, query: string, maxDistance: number): number | null {
+  let best: number | null = null
+  const minLength = Math.max(1, query.length - maxDistance)
+  const maxLength = Math.min(name.length, query.length + maxDistance)
+  for (let length = minLength; length <= maxLength; length += 1) {
+    for (let start = 0; start + length <= name.length; start += 1) {
+      const distance = boundedEditDistance(name.slice(start, start + length), query, maxDistance)
+      if (distance != null && (best == null || distance < best)) best = distance
+      if (best === 0) return 0
+    }
+  }
+  return best
+}
+
 function scoreName(name: string, query: string): number | null {
   const normalizedName = normalizeSearchText(name)
   const normalizedQuery = normalizeSearchText(query)
@@ -62,7 +76,7 @@ function scoreName(name: string, query: string): number | null {
 
   if (normalizedQuery.length >= 3) {
     const maxDistance = normalizedQuery.length >= 6 ? 2 : 1
-    const distance = boundedEditDistance(normalizedName, normalizedQuery, maxDistance)
+    const distance = fuzzyContainsDistance(normalizedName, normalizedQuery, maxDistance)
     if (distance != null) return 300 - distance * 40 - normalizedName.length
   }
 
