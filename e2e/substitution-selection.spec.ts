@@ -25,6 +25,9 @@ test('explicit substitution selection updates the persisted preparation plan', a
   await page.route('**/data/dataset.json', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(fixture) }))
   await page.goto('/')
 
+  await page.locator('.profile-card summary').click()
+  await page.getByLabel('최대 무게 (LT)').fill('1000')
+
   const substitution = page.locator('.substitution-controls select')
   await expect(substitution).toBeVisible()
   await substitution.selectOption('11')
@@ -33,6 +36,7 @@ test('explicit substitution selection updates the persisted preparation plan', a
   await expect(row).toBeVisible()
   await expect(row.locator('.quantity').first()).toContainText('200')
   await expect(page.locator('.material-row').filter({ hasText: '일반 재료' })).toHaveCount(0)
+  await expect(page.locator('.batch-summary')).toContainText('100회분 · 100.00 LT')
 
   await page.reload()
   await expect(page.locator('.substitution-controls select')).toHaveValue('11')
