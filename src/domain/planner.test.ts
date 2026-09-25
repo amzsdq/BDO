@@ -14,7 +14,7 @@ const dataset: RecipeDataset = {
       { id: 'default', inputs: [{ itemId: 2, count: 2 }, { itemId: 3, count: 1 }] },
       { id: 'alternate', inputs: [{ itemId: 2, count: 1 }, { itemId: 5, count: 2 }] },
     ] },
-    intermediate: { id: 'intermediate', skill: 'cooking', outputItemId: 2, yield: { min: 1, max: 1 }, variants: [{ id: 'default', inputs: [{ itemId: 4, count: 3 }] }] },
+    intermediate: { id: 'intermediate', skill: 'cooking', outputItemId: 2, yield: { min: 1, max: 1 }, variants: [{ id: 'default', inputs: [{ itemId: 4, count: 3 }] }, { id: 'fast', yield: { min: 2, max: 2 }, inputs: [{ itemId: 4, count: 3 }] }] },
     'intermediate-alt': { id: 'intermediate-alt', skill: 'cooking', outputItemId: 2, yield: { min: 2, max: 2 }, variants: [{ id: 'default', inputs: [{ itemId: 5, count: 1 }] }] },
     variantYield: { id: 'variantYield', skill: 'cooking', outputItemId: 1, yield: { min: 1, max: 1 }, variants: [
       { id: '169', sourceRecipeId: 169, yield: { min: 1, max: 4 }, inputs: [{ itemId: 3, count: 1 }] },
@@ -45,6 +45,12 @@ describe('planner', () => {
     const plan = buildPlan(dataset, [{ recipeId: 'meal', mode: 'attempts', amount: 2, variantId: 'alternate' }], { craftIntermediateItemIds: new Set() })
     expect(plan.materials.find((entry) => entry.itemId === 5)?.required).toBe(4)
     expect(plan.materials.find((entry) => entry.itemId === 3)).toBeUndefined()
+  })
+
+  it('uses selected variant yield for nested intermediates', () => {
+    const plan = buildPlan(dataset, [{ recipeId: 'meal', mode: 'attempts', amount: 2, variantId: 'default' }], { craftIntermediateItemIds: new Set([2]), variantIdByRecipeId: { intermediate: 'fast' } })
+    expect(plan.crafts.find((entry) => entry.recipeId === 'intermediate')?.attempts).toBe(2)
+    expect(plan.materials.find((entry) => entry.itemId === 4)?.required).toBe(6)
   })
 
   it('uses an explicitly selected intermediate recipe', () => {
