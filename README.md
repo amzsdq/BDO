@@ -32,12 +32,14 @@ npm run build
 
 ## production dataset 파이프라인
 
+자동 획득 스크립트 `scripts/bootstrap-production-data.ps1`는 현재 검토된 extractor revision이 요구하는 Go 1.26 이상과 Node/npm을 필요로 합니다. `--source-revision`에는 임의 tag나 다른 commit이 아니라 저장소의 `production-source-contract.mjs`에 명시된 reviewed exact revision만 사용할 수 있습니다. Client fingerprint는 임의 실행 파일 해시가 아니라 extractor와 동일한 `Paz/pad00000.meta` + 존재할 경우 `ads_version` byte stream의 SHA-256입니다.
+
 라이브 클라이언트 추출물 `items.json`, `recipes.json`, `mastery.json`, 그리고 `bdo-data-extractor icons`가 `<extractor-data>/asset_redirects.json`에 기록한 `urn::item:<id> -> icons/<shared-asset>.webp` redirect 및 그 redirect가 가리키는 decoded WebP 자산을 준비합니다. runtime이 실제로 읽는 dataset과 브라우저가 실제로 제공하는 icon asset을 함께 설치합니다. Codex reconciliation 전에 Cooking/Alchemy 카탈로그 전체를 독립적으로 수집하고 completeness가 증명된 `<codex-catalog.json>` artifact를 보존해야 합니다. 부분 manifest끼리 서로 일치하는 것만으로는 release gate를 통과할 수 없습니다.
 
 기본 구조 import는 extractor가 한국어를 제공하지 않으므로 의도적으로 `아이템 #<id>` placeholder를 만듭니다. 따라서 import 직후 BDO Codex KR item-id 증거를 적용하는 단계가 필수입니다. 이 단계를 생략한 dataset은 promotion이 거부됩니다.
 
 ```bash
-npm run data:import -- --items <items.json> --recipes <recipes.json> --out <client-dataset.json> --source-revision <extractor-tag-or-sha> --client-fingerprint <client-fingerprint>
+npm run data:import -- --items <items.json> --recipes <recipes.json> --out <client-dataset.json> --source-revision <reviewed-extractor-sha> --client-fingerprint <client-fingerprint>
 node scripts/apply-korean-name-evidence.mjs <client-dataset.json> <korean-name-evidence.json> public/data/dataset.json
 ```
 
@@ -54,7 +56,7 @@ node scripts/apply-substitution-evidence.mjs public/data/dataset.json <codex-sub
 숙련도 증거는 production client의 `mastery.json`에 extractor revision, client fingerprint, extraction timestamp를 결합해 보존합니다. 구조만 맞는 raw mastery 파일은 릴리스 증거가 아닙니다. Cooking/Alchemy raw columns가 검증된 semantic mapping을 거쳐 현재 runtime mastery curve와 모두 일치한 cross-check PASS artifact만 최종 gate에 사용할 수 있습니다.
 
 ```bash
-npm run data:mastery-evidence -- --mastery <mastery.json> --out <mastery-evidence.json> --source-revision <extractor-tag-or-sha> --client-fingerprint <client-fingerprint> --extracted-at <iso-timestamp>
+npm run data:mastery-evidence -- --mastery <mastery.json> --out <mastery-evidence.json> --source-revision <reviewed-extractor-sha> --client-fingerprint <client-fingerprint> --extracted-at <iso-timestamp>
 ```
 
 현재 evidence generator는 raw client mastery의 검증된 semantic channel mapping을 적용한 뒤, checked-in Cooking/Alchemy runtime curve와 deterministic cross-check를 수행합니다. 두 skill의 의미 매핑과 curve가 모두 일치할 때만 `releaseReady=true`를 출력하며, 불일치·미확인 channel·구조 오류는 fail closed 합니다. 최종 gate는 evidence에 기록된 SHA-256을 전달된 원본 `mastery.json` 바이트와 다시 계산·대조하여 다른 client snapshot의 evidence 재사용도 거부합니다.
