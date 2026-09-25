@@ -25,7 +25,7 @@ if (!redirects || typeof redirects !== 'object' || Array.isArray(redirects)) fai
 function sourceForItem(itemId) {
   const redirect = redirects[`urn::item:${itemId}`]
   if (typeof redirect !== 'string' || !redirect.trim()) return null
-  const normalized = redirect.replaceAll('\\\\', '/').replace(/^\.\//, '')
+  const normalized = redirect.replaceAll('\\', '/').replace(/^\.\//, '')
   if (path.isAbsolute(normalized) || normalized.split('/').includes('..')) fail(`unsafe extractor icon redirect for item ${itemId}: ${redirect}`)
   const relative = normalized.startsWith('icons/') ? normalized.slice('icons/'.length) : normalized
   const root = path.resolve(extractorIconsDir)
