@@ -6,7 +6,7 @@ function fixture(): RecipeDataset {
   return {
     metadata: {
       generatedAt: '2026-09-23T00:00:00Z', supportedRegion: 'KR',
-      sources: ['client', 'codex'], sourceRevision: 'client-sha-abc123', status: 'COMPLETE_VERIFIED', reconciliationStatus: 'ZERO_UNEXPLAINED_DIFF',
+      sources: ['client', 'codex'], sourceRevision: 'iDevelopThings/bdo-data-extractor@5bf11bd7bc60dcbb6126be34bf3d76633abdd8b2', clientFingerprint: `sha256:${'a'.repeat(64)}`, status: 'COMPLETE_VERIFIED', reconciliationStatus: 'ZERO_UNEXPLAINED_DIFF',
       verifiedAt: '2026-09-23T00:01:00Z', counts: { cooking: 1, alchemy: 1 },
     } as RecipeDataset['metadata'],
     items: {
@@ -37,6 +37,10 @@ describe('hasRuntimeVerifiedEvidence', () => {
   it('rejects status-only claims', async () => { const dataset = await promoteFixture(); delete (dataset.metadata as any).reconciliationStatus; expect(await hasRuntimeVerifiedEvidence(dataset)).toBe(false) })
   it('rejects missing or unrecorded canonical client revision even when the artifact fingerprint matches', async () => {
     for (const sourceRevision of [undefined, '', 'unrecorded', 'UNRECORDED']) { const dataset = fixture(); (dataset.metadata as any).sourceRevision = sourceRevision; expect(await hasRuntimeVerifiedEvidence(await withFingerprint(dataset))).toBe(false) }
+  })
+  it('rejects unreviewed extractor revisions and malformed client fingerprints', async () => {
+    const unreviewed = fixture(); (unreviewed.metadata as any).sourceRevision = 'iDevelopThings/bdo-data-extractor@0000000000000000000000000000000000000000'; expect(await hasRuntimeVerifiedEvidence(await withFingerprint(unreviewed))).toBe(false)
+    const malformed = fixture(); (malformed.metadata as any).clientFingerprint = 'sha256:abc'; expect(await hasRuntimeVerifiedEvidence(await withFingerprint(malformed))).toBe(false)
   })
   it('rejects non-canonical local icon paths even when the artifact fingerprint matches', async () => { const dataset = fixture(); dataset.items['3'].iconPath = '../../package.json'; expect(await hasRuntimeVerifiedEvidence(await withFingerprint(dataset))).toBe(false) })
   it('rejects stale recipe counts', async () => { const dataset = await promoteFixture(); (dataset.metadata as any).counts.cooking = 2; expect(await hasRuntimeVerifiedEvidence(dataset)).toBe(false) })
