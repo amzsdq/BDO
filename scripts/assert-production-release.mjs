@@ -8,15 +8,16 @@ function fail(message) { console.error(`release blocked: ${message}`); process.e
 const args = process.argv.slice(2)
 if (args.length !== 6 || args.some((value) => !value || value.startsWith('--'))) fail('usage: node scripts/assert-production-release.mjs <dataset.json> <reconciliation-report.json> <codex-catalog.json> <mastery-evidence.json> <mastery.json> <e2e-release-evidence.json>')
 const [datasetFile, reconciliationFile, catalogFile, masteryEvidenceFile, masteryFile, e2eEvidenceFile] = args
-for (const file of [datasetFile, reconciliationFile, catalogFile, masteryEvidenceFile, masteryFile, e2eEvidenceFile]) {
-  if (!fs.existsSync(file)) fail(`required release artifact not found: ${file}`)
-}
+if (!fs.existsSync(datasetFile)) fail(`required release artifact not found: ${datasetFile}`)
 let dataset
 try {
   dataset = JSON.parse(fs.readFileSync(datasetFile, 'utf8'))
   assertKoreanNameReleaseEvidence(dataset)
   assertYieldReleaseEvidence(dataset)
 } catch (error) { fail(error instanceof Error ? error.message : String(error)) }
+for (const file of [reconciliationFile, catalogFile, masteryEvidenceFile, masteryFile, e2eEvidenceFile]) {
+  if (!fs.existsSync(file)) fail(`required release artifact not found: ${file}`)
+}
 
 const readinessArgs = [datasetFile, reconciliationFile, catalogFile, masteryEvidenceFile, masteryFile]
 const existingGate = spawnSync(process.execPath, ['scripts/assert-release-readiness.mjs', ...readinessArgs], { cwd: process.cwd(), encoding: 'utf8' })

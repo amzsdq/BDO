@@ -37,7 +37,7 @@ describe('strict production boundary CLIs', () => {
 
   it('rejects extra release arguments instead of silently ignoring them', () => {
     const dataset = unverifiedDatasetFile()
-    const result = run('scripts/assert-production-release.mjs', [dataset, 'a', 'b', 'c', 'd', 'extra'])
+    const result = run('scripts/assert-production-release.mjs', [dataset, 'a', 'b', 'c', 'd', 'e', 'extra'])
     expect(result.status).toBe(1)
     expect(result.stderr).toContain('usage:')
   })

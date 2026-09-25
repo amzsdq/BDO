@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.mjs'
-import { validateResolvedCatalogEndpoint } from './codex-catalog-endpoint.mjs'
+import { validateCatalogEntryEvidence } from './catalog-release-evidence.mjs'
 
 function fail(message) { console.error(`promotion blocked: ${message}`); process.exit(1) }
 function fingerprint(value) { return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex') }
@@ -19,11 +19,8 @@ function verifiedCatalog(catalogFile, reconciliation) {
   const bySkill = new Map(catalog.catalogs.map((entry) => [String(entry.skill || '').toLowerCase(), entry]))
   for (const skill of ['cooking', 'alchemy']) {
     const entry = bySkill.get(skill)
-    if (!entry || entry.complete !== true || !Number.isSafeInteger(entry.recipeCount) || entry.recipeCount <= 0) fail(`Codex ${skill} catalog completeness is not proven`)
-    if (!entry.endpointUsed || !entry.endpointEvidence || (entry.countMatchesExpected !== true && entry.endpointEvidence.recordsReported !== entry.recipeCount)) fail(`Codex ${skill} catalog lacks independent count evidence`)
-    const configuredScope = validateResolvedCatalogEndpoint(entry.endpointUsed, skill)
-    const finalScope = validateResolvedCatalogEndpoint(entry.endpointFinalUrl || entry.endpointUsed, skill)
-    if (!configuredScope.ok || !finalScope.ok) fail(`Codex ${skill} catalog endpoint scope is invalid`)
+    const evidence = validateCatalogEntryEvidence(entry, skill)
+    if (!evidence.ok) fail(evidence.reason)
     if (!Array.isArray(entry.recipeIds) || sortedIds(entry.recipeIds).length !== entry.recipeCount) fail(`Codex ${skill} catalog recipe-id evidence is incomplete`)
   }
   const pages = ['cooking', 'alchemy'].reduce((sum, skill) => sum + bySkill.get(skill).recipeCount, 0)

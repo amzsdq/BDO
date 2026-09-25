@@ -3,8 +3,7 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.mjs'
-import { normalizeExpectedCountEvidence } from './catalog-count-evidence.mjs'
-import { validateCapturedCatalogRequest, validateResolvedCatalogEndpoint } from './codex-catalog-endpoint.mjs'
+import { validateCatalogEntryEvidence } from './catalog-release-evidence.mjs'
 
 function fail(message) { console.error(`release blocked: ${message}`); process.exit(1) }
 function fingerprint(value) { return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex') }
@@ -26,6 +25,7 @@ if (!metadata.fingerprint) fail('dataset fingerprint missing')
 if (!metadata.generatedAt) fail('generatedAt missing')
 if (!Array.isArray(metadata.sources) || metadata.sources.length < 2) fail('source provenance incomplete')
 if (!hasRecordedSourceRevision(metadata.sourceRevision)) fail('sourceRevision must identify the canonical client snapshot; unrecorded provenance cannot be released')
+if (!String(metadata.clientFingerprint || '').trim()) fail('clientFingerprint must identify the installed client snapshot')
 if (!metadata.counts || metadata.counts.cooking <= 0 || metadata.counts.alchemy <= 0) fail('Cooking/Alchemy counts missing or empty')
 const payloadWithoutHash = { ...dataset, metadata: { ...metadata } }
 delete payloadWithoutHash.metadata.fingerprint
@@ -58,24 +58,8 @@ if (metadata.codexCatalogCollectedAt !== catalog.collectedAt) fail('Codex catalo
 const catalogBySkill = new Map(catalog.catalogs.map((entry) => [String(entry.skill || '').toLowerCase(), entry]))
 for (const skill of ['cooking', 'alchemy']) {
   const entry = catalogBySkill.get(skill)
-  if (!entry || entry.complete !== true || !Number.isSafeInteger(entry.recipeCount) || entry.recipeCount <= 0) fail(`Codex ${skill} catalog completeness is not proven`)
-  if (!entry.endpointUsed || !entry.endpointEvidence) fail(`Codex ${skill} catalog lacks endpoint evidence`)
-  const configuredScope = entry.endpointRequest
-    ? validateCapturedCatalogRequest(entry.endpointUsed, entry.endpointRequest, skill)
-    : validateResolvedCatalogEndpoint(entry.endpointUsed, skill)
-  const finalScope = entry.endpointRequest
-    ? validateCapturedCatalogRequest(entry.endpointFinalUrl || entry.endpointUsed, entry.endpointRequest, skill)
-    : validateResolvedCatalogEndpoint(entry.endpointFinalUrl || entry.endpointUsed, skill)
-  if (!configuredScope.ok || !finalScope.ok) fail(`Codex ${skill} catalog endpoint scope is invalid`)
-  const endpointCountMatches = entry.endpointEvidence.recordsReported === entry.recipeCount
-  const fullArrayTransportMatches =
-    entry.endpointEvidence.completenessMode === 'unpaginated-full-array+rendered-id-crosscheck'
-    && entry.endpointEvidence.requestPaginationParametersPresent === false
-    && entry.endpointEvidence.fullArrayRows === entry.recipeCount
-    && entry.endpointEvidence.renderedRecipeIds === entry.recipeCount
-  const expectedEvidence = normalizeExpectedCountEvidence({ [skill]: entry.expectedCountEvidence }, skill)
-  const independentCountMatches = entry.countMatchesExpected === true && expectedEvidence?.valid === true && expectedEvidence.count === entry.recipeCount
-  if (!endpointCountMatches && !fullArrayTransportMatches && !independentCountMatches) fail(`Codex ${skill} catalog lacks auditable completeness evidence`)
+  const evidence = validateCatalogEntryEvidence(entry, skill)
+  if (!evidence.ok) fail(evidence.reason)
   if (!Array.isArray(entry.recipeIds) || sortedIds(entry.recipeIds).length !== entry.recipeCount) fail(`Codex ${skill} catalog recipe-id evidence is incomplete`)
 }
 const completeCatalogPages = ['cooking', 'alchemy'].reduce((sum, skill) => sum + catalogBySkill.get(skill).recipeCount, 0)
