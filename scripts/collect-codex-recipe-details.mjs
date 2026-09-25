@@ -172,12 +172,10 @@ export async function collectCodexRecipeDetails(catalogManifest, { fetchImpl = f
   const listed = new Set(catalogRoutes.map((row) => `${row.skill}:${row.recipeId}`))
   const probeRoutes = []
   if (probeGaps) {
-    for (const skill of ['cooking', 'alchemy']) {
-      const ids = catalogRoutes.filter((row) => row.skill === skill).map((row) => row.recipeId)
-      const maxId = Math.max(0, ...ids)
-      for (let recipeId = 1; recipeId <= maxId; recipeId += 1) {
-        if (!listed.has(`${skill}:${recipeId}`)) probeRoutes.push({ skill, recipeId, catalogListed: false, discovery: 'catalog-gap-probe' })
-      }
+    const listedIds = new Set(catalogRoutes.map((row) => row.recipeId))
+    const maxId = Math.max(0, ...listedIds)
+    for (let recipeId = 1; recipeId <= maxId; recipeId += 1) {
+      if (!listedIds.has(recipeId)) probeRoutes.push({ skill: null, recipeId, catalogListed: false, discovery: 'catalog-gap-probe' })
     }
   }
   const routes = [
@@ -194,16 +192,22 @@ export async function collectCodexRecipeDetails(catalogManifest, { fetchImpl = f
       const sourceUrl = `${BASE}/${route.recipeId}/`
       try {
         const response = await fetchWithRetry(sourceUrl, fetchImpl, timeoutMs, retries)
-        const parsed = parseCodexRecipeDetailHtml(await response.text(), route.recipeId, route.skill)
-        if (!route.catalogListed && parsed.status === 'unavailable') {
-          results[index] = null
+        const html = await response.text()
+        let parsed
+        if (route.catalogListed) {
+          parsed = parseCodexRecipeDetailHtml(html, route.recipeId, route.skill)
         } else {
-          results[index] = { ...parsed, catalogListed: route.catalogListed, discovery: route.discovery, sourceUrl: response.url || sourceUrl }
+          const attempts = []
+          for (const candidateSkill of ['cooking', 'alchemy']) {
+            try { parsed = parseCodexRecipeDetailHtml(html, route.recipeId, candidateSkill); break } catch (error) { attempts.push(error) }
+          }
+          if (!parsed) throw new Error(`gap probe ${route.recipeId}: no cooking/alchemy recipe identity: ${attempts.map((error) => error.message).join(' | ')}`)
         }
+        if (!route.catalogListed && parsed.status === 'unavailable') results[index] = null
+        else results[index] = { ...parsed, catalogListed: route.catalogListed, discovery: route.discovery, sourceUrl: response.url || sourceUrl }
       } catch (error) {
-        const expectedProbeAbsence = !route.catalogListed && (error?.status === 404 || /page skill identity missing or mismatched/.test(String(error?.message || '')))
-        if (expectedProbeAbsence) results[index] = null
-        else results[index] = { recipeId: route.recipeId, skill: route.skill, catalogListed: route.catalogListed, discovery: route.discovery, status: 'unresolved', ingredients: [], baseOutputs: [], randomOutputs: [], sourceUrl, error: String(error?.message || error) }
+        if (!route.catalogListed && error?.status === 404) results[index] = null
+        else results[index] = { recipeId: route.recipeId, skill: route.skill || 'unknown', catalogListed: route.catalogListed, discovery: route.discovery, status: 'unresolved', ingredients: [], baseOutputs: [], randomOutputs: [], sourceUrl, error: String(error?.message || error) }
       }
     }
   }
