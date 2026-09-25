@@ -95,8 +95,8 @@ function classify(baseOutputs, randomOutputs, available) {
 
 export function parseCodexRecipeDetailHtml(html, expectedRecipeId, expectedSkill) {
   const sourceText = decodeText(html)
-  const unavailable = /(?:페이지를 찾을 수 없습니다|존재하지 않는 페이지|not found|recipe unavailable)/i.test(sourceText)
-  if (unavailable) return { recipeId: Number(expectedRecipeId), skill: expectedSkill, status: 'unavailable', ingredients: [], baseOutputs: [], randomOutputs: [] }
+  const missingPage = /(?:페이지를 찾을 수 없습니다|존재하지 않는 페이지|recipe unavailable)/i.test(sourceText)
+  if (missingPage) return { recipeId: Number(expectedRecipeId), skill: expectedSkill, status: 'unavailable', ingredients: [], baseOutputs: [], randomOutputs: [] }
   const card = balancedDivByClass(html, ['card', 'item_info'])
   if (!card) throw new Error(`recipe ${expectedRecipeId}: item_info card missing`)
 
@@ -110,6 +110,7 @@ export function parseCodexRecipeDetailHtml(html, expectedRecipeId, expectedSkill
   const pageSkillToken = cardText.match(/(?:요리|연금|Cooking|Alchemy)\s*(?:스킬\s*레벨|Skill\s*level)/i)?.[0] || ''
   const pageSkill = /(?:연금|Alchemy)/i.test(pageSkillToken) ? 'alchemy' : /(?:요리|Cooking)/i.test(pageSkillToken) ? 'cooking' : undefined
   if (!pageSkill || pageSkill !== expectedSkill) throw new Error(`recipe ${expectedRecipeId}: page skill identity missing or mismatched`)
+  if (/이\s*레시피는\s*게임에서\s*사용할\s*수\s*없습니다\s*!?/i.test(cardText)) return { recipeId: Number(expectedRecipeId), skill: expectedSkill, ...(titleKo ? { titleKo } : {}), status: 'unavailable', ingredients: [], baseOutputs: [], randomOutputs: [] }
   const skillText = cardText.match(/(?:초급|견습|숙련|전문|장인|명장|도인)\s*Lv\.?\s*\d+/i)?.[0]
 
   const ingredients = uniqueRows(rowsAfterLabel(card, ['재료', 'Ingredients'])).map(({ itemId, name, min, max }) => {
