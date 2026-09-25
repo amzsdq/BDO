@@ -34,7 +34,7 @@ export function buildActivePlanView(
   const recipe = dataset.recipes[input.recipeId]
   const variant = recipe?.variants.find((candidate) => candidate.id === input.variantId) ?? recipe?.variants[0]
   if (!variant) return { ...built, error: `unknown recipe variant for ${input.recipeId}` }
-  const outputWeight = verifiedBaseOutputWeightRange(variant, dataset.items, built.materialServings)
+  const outputWeight = verifiedBaseOutputWeightRange(variant, dataset.items, built.materialServings, recipe.outputItemId)
   if (profile.maxWeightLT == null) return { ...built, ...(outputWeight ? { outputWeight } : {}) }
   return {
     ...built,

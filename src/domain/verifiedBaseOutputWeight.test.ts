@@ -17,5 +17,7 @@ describe('verifiedBaseOutputWeightRange', () => {
     expect(verifiedBaseOutputWeightRange(randomOnly, items, 100)).toBeUndefined()
     const single: RecipeVariant = { id: 'x', inputs: [], outputEvidence: { status: 'single-base', baseOutputs: [{ itemId: 9999, min: 1, max: 1 }] } }
     expect(verifiedBaseOutputWeightRange(single, items, 100)).toBeUndefined()
+    const wrongIdentity: RecipeVariant = { id: 'wrong', inputs: [], outputEvidence: { status: 'single-base', baseOutputs: [{ itemId: 9602, min: 1, max: 1 }] } }
+    expect(verifiedBaseOutputWeightRange(wrongIdentity, items, 100, 9601)).toBeUndefined()
   })
 })
