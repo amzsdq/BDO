@@ -2,6 +2,7 @@ import fs from 'node:fs'
 
 function fail(message) { throw new Error(message) }
 function finitePositive(value, field) { const number = Number(value); if (!Number.isFinite(number) || number <= 0) fail(`${field} must be a positive finite number`); return number }
+function codexRecipeId(value) { const match = String(value ?? '').trim().match(/^https:\/\/(?:www\.)?bdocodex\.com\/kr\/recipe\/(\d+)\/?$/i); return match ? Number(match[1]) : null }
 
 export function applyYieldEvidence(dataset, evidence) {
   if (!dataset?.recipes || !dataset?.metadata) fail('dataset recipes/metadata required')
@@ -20,8 +21,9 @@ export function applyYieldEvidence(dataset, evidence) {
     if (min > max) fail(`${recipeId}: min exceeds max`)
     if (expected != null && (expected < min || expected > max)) fail(`${recipeId}: expected must be between min and max`)
     const sourceUrl = String(entry.sourceUrl ?? '').trim()
-    if (!/^https:\/\//.test(sourceUrl)) fail(`${recipeId}: sourceUrl must be an https URL`)
-    recipes[recipeId] = { ...recipe, yield: { min, ...(expected == null ? {} : { expected }), max, provenance: sourceUrl } }
+    const sourceRecipeId = Number(entry.sourceRecipeId)
+    if (!Number.isSafeInteger(sourceRecipeId) || sourceRecipeId <= 0 || codexRecipeId(sourceUrl) !== sourceRecipeId) fail(`${recipeId}: sourceUrl/sourceRecipeId must identify the same BDO Codex KR recipe`)
+    recipes[recipeId] = { ...recipe, yield: { min, ...(expected == null ? {} : { expected }), max, provenance: sourceUrl, sourceRecipeId } }
   }
   const metadata = { ...dataset.metadata, yieldEvidenceApplied: true, yieldEvidenceCount: seen.size, yieldEvidenceSource: String(evidence.source ?? '').trim() || undefined }
   delete metadata.fingerprint
