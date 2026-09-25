@@ -43,11 +43,11 @@ export function parseCodexItemEvidenceHtml(html, expectedItemId) {
 
   const materialGroupIds = [...new Set([...card.matchAll(/href=["'][^"']*\/kr\/materialgroup\/(\d+)\/?["']/gi)].map((match) => String(Number(match[1]))))].sort((a, b) => Number(a) - Number(b))
 
-  const weightText = [...card.matchAll(/(?:무게|Weight)\s*:?\s*([^<\r\n]{0,40})/gi)].map((match) => decodeText(match[1])).find(Boolean)
-  const weightMatch = weightText?.match(/([0-9]+(?:\.[0-9]+)?)\s*LT/i)
+  const cardText = decodeText(card)
+  const weightMatch = cardText.match(/(?:무\s*게|Weight)\s*:?\s*([0-9]+(?:\.[0-9]+)?)\s*LT/i)
   const weightLT = weightMatch ? Number(weightMatch[1]) : undefined
 
-  const masteryMatch = decodeText(card).match(/(?:연금|Alchemy)\s*숙련도\s*([0-9][0-9,]*)\s*이상/i)
+  const masteryMatch = cardText.match(/(?:연금|Alchemy)\s*숙련도\s*([0-9][0-9,]*)\s*이상/i)
   const masteryRequirement = masteryMatch ? { skill: 'alchemy', minimumMastery: Number(masteryMatch[1].replace(/,/g, '')) } : undefined
 
   return { itemId: Number(expectedItemId), nameKo, ...(weightLT == null ? {} : { weightLT }), materialGroupIds, ...(masteryRequirement ? { masteryRequirement } : {}) }
