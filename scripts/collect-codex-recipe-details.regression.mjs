@@ -51,4 +51,16 @@ const fakeFetch = async (url) => {
 const artifact = await collectCodexRecipeDetails(catalog, { fetchImpl: fakeFetch, concurrency: 2, retries: 0, collectedAt: '2026-09-26T00:00:00Z' })
 assert(artifact.complete && artifact.exactCoverage && artifact.recipes.length === 2, 'exact catalog coverage')
 assert(artifact.recipes[0].skill === 'alchemy' && artifact.recipes[1].skill === 'cooking', 'deterministic sort')
+
+let terminalCalls = 0
+const terminalFetch = async () => {
+  terminalCalls += 1
+  return { ok: false, status: 404, statusText: 'Not Found', url: 'https://bdocodex.com/kr/recipe/169/', text: async () => '' }
+}
+const terminalArtifact = await collectCodexRecipeDetails(
+  { complete: true, catalogs: [{ skill: 'cooking', complete: true, recipeIds: [169] }] },
+  { fetchImpl: terminalFetch, retries: 3, collectedAt: '2026-09-26T00:00:00Z' },
+)
+assert(terminalCalls === 1, 'terminal 4xx must not retry')
+assert(!terminalArtifact.complete && terminalArtifact.unresolvedCount === 1, 'terminal 4xx remains fail-closed unresolved')
 console.log('collect-codex-recipe-details regression passed')
