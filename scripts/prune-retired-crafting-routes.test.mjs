@@ -9,6 +9,7 @@ const evidence = {
   source: { url: 'https://www.kr.playblackdesert.com/ko-KR/News/Detail?groupContentNo=16141', effectiveDate: '2026-09-02' },
   routes: [{ recipeId: 342, skill: 'alchemy', status: 'retired' }],
   retiredCraftingOutputItemIds: [5303, 45334],
+  retiredCraftingIngredientItemIds: [4924, 5305, 5306],
 }
 
 describe('reviewed retired crafting route evidence', () => {
@@ -38,7 +39,7 @@ describe('reviewed retired crafting route evidence', () => {
       metadata: { fingerprint: 'stale', counts: { cooking: 1, alchemy: 2 } },
       recipes: {
         'alchemy:5303': { id: 'alchemy:5303', skill: 'alchemy', outputItemId: 5303, variants: [] },
-        'alchemy:9000': { id: 'alchemy:9000', skill: 'alchemy', outputItemId: 9000, variants: [] },
+        'alchemy:9000': { id: 'alchemy:9000', skill: 'alchemy', outputItemId: 9000, variants: [{ id: 'stale', inputs: [{ itemId: 4924, count: 50 }] }, { id: 'live', inputs: [{ itemId: 9999, count: 1 }] }] },
         'cooking:8000': { id: 'cooking:8000', skill: 'cooking', outputItemId: 8000, variants: [] },
       },
       recipesByOutput: { '5303': ['alchemy:5303'], '9000': ['alchemy:9000'], '8000': ['cooking:8000'] },
@@ -53,6 +54,8 @@ describe('reviewed retired crafting route evidence', () => {
     const result = pruneRetiredCraftingRoutes(dataset, evidence)
     expect(result.recipes['alchemy:5303']).toBeUndefined()
     expect(result.recipesByOutput['5303']).toBeUndefined()
+    expect(result.recipes['alchemy:9000'].variants.map((variant) => variant.id)).toEqual(['live'])
+    expect(result.metadata.retiredCraftingIngredientItemIds).toEqual([4924, 5305, 5306])
     expect(result.byproducts['45334']).toBeUndefined()
     expect(result.byproducts['7777'].producedWhileCraftingItemIds).toEqual([9000])
     expect(result.metadata.fingerprint).toBeUndefined()

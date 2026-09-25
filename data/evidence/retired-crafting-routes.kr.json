@@ -52,5 +52,12 @@
     45344,
     45345
   ],
-  "rationale": "Official KR PC update removed spirit-stone crafting recipes; Codex gap pages 342-346 are retained historical detail and must not be treated as live production routes."
+  "rationale": "Official KR PC update removed spirit-stone crafting recipes and the listed spirit-stone crafting materials; Codex gap pages 342-346 are retained historical detail and must not restore routes that use deleted ingredients.",
+  "retiredCraftingIngredientItemIds": [
+    4924,
+    5303,
+    5304,
+    5305,
+    5306
+  ]
 }

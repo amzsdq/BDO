@@ -14,7 +14,9 @@ export function validateRetiredCraftingRouteEvidence(evidence, catalogRecipeIds 
   if (!routes.size) throw new Error('retired route evidence must contain routes')
   const outputs = [...new Set((evidence.retiredCraftingOutputItemIds || []).map(Number))].sort((a, b) => a - b)
   if (!outputs.length || outputs.some((id) => !Number.isSafeInteger(id) || id <= 0)) throw new Error('invalid retired crafting output item ids')
-  return { routes, retiredCraftingOutputItemIds: outputs }
+  const ingredients = [...new Set((evidence.retiredCraftingIngredientItemIds || []).map(Number))].sort((a, b) => a - b)
+  if (!ingredients.length || ingredients.some((id) => !Number.isSafeInteger(id) || id <= 0)) throw new Error('invalid retired crafting ingredient item ids')
+  return { routes, retiredCraftingOutputItemIds: outputs, retiredCraftingIngredientItemIds: ingredients }
 }
 
 export function applyRetiredRouteStateToDetails(details, evidence) {
