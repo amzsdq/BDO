@@ -31,7 +31,7 @@ test('explicit substitution selection updates the persisted preparation plan', a
 
   const row = page.locator('.material-row').filter({ hasText: '고급 재료' })
   await expect(row).toBeVisible()
-  await expect(row.locator('.quantity').first()).toContainText('2')
+  await expect(row.locator('.quantity').first()).toContainText('200')
   await expect(page.locator('.material-row').filter({ hasText: '일반 재료' })).toHaveCount(0)
 
   await page.reload()
