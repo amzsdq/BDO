@@ -5,6 +5,7 @@ import { spawnSync } from 'node:child_process'
 import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.mjs'
 import { validateCatalogEntryEvidence } from './catalog-release-evidence.mjs'
 import { assertIconManifest } from './assert-icon-manifest.mjs'
+import { assertNoRetiredCraftingRoutes } from './reviewed-retired-route-state.mjs'
 
 function fail(message) { console.error(`release blocked: ${message}`); process.exit(1) }
 function fingerprint(value) { return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex') }
@@ -50,7 +51,10 @@ if (reconciliation.status !== 'ZERO_UNEXPLAINED_DIFF' || (reconciliation.unresol
 const datasetRecipeCount = Object.keys(recipes).length
 if (!Number.isSafeInteger(reconciliation.clientRecipes) || reconciliation.clientRecipes !== datasetRecipeCount) fail(`reconciliation client recipe count ${reconciliation.clientRecipes ?? 'missing'} does not match dataset recipe count ${datasetRecipeCount}`)
 if (!fs.existsSync(codexManifestFile)) fail('exact Codex detail manifest is required')
-const codexManifestSha256 = sha256(fs.readFileSync(codexManifestFile))
+const codexManifestBytes = fs.readFileSync(codexManifestFile)
+const codexManifest = JSON.parse(codexManifestBytes.toString('utf8'))
+try { assertNoRetiredCraftingRoutes(dataset, codexManifest) } catch (error) { fail(error instanceof Error ? error.message : String(error)) }
+const codexManifestSha256 = sha256(codexManifestBytes)
 if (reconciliation.codexManifestSha256 !== codexManifestSha256) fail('reconciliation Codex manifest hash does not match exact detail manifest bytes')
 if (metadata.codexManifestSha256 !== codexManifestSha256) fail('promoted dataset Codex manifest hash does not match exact detail manifest bytes')
 const expectedReconciliationFingerprint = reconciliationDatasetFingerprint(dataset)
