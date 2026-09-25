@@ -26,5 +26,7 @@ try { assertMasteryReleaseEvidence(evidence, masteryBytes) } catch (error) { fai
 if (evidence.sourceRevision !== dataset.metadata?.sourceRevision) {
   fail(`mastery source revision does not match dataset snapshot: dataset=${dataset.metadata?.sourceRevision || 'missing'} mastery=${evidence.sourceRevision || 'missing'}`)
 }
+if (!String(dataset.metadata?.clientFingerprint || '').trim()) fail('dataset client fingerprint is missing')
+if (evidence.clientFingerprint !== dataset.metadata.clientFingerprint) fail('mastery client fingerprint does not match dataset snapshot')
 
 console.log(JSON.stringify({ ok: true, dataset: JSON.parse(datasetGate.stdout), masterySha256: evidence.masterySha256, masteryCrossCheck: 'PASS' }))
