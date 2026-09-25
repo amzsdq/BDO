@@ -67,6 +67,21 @@ async function fetchItemWithRetry(sourceUrl, fetchImpl, timeoutMs, retries) {
   throw last
 }
 
+export function exactItemIdsFromRecipeDetails(details) {
+  if (details?.schemaVersion !== 2 || details?.complete !== true || !Array.isArray(details.recipes)) throw new Error('schema-v2 complete recipe details required')
+  if (details.supplementalDiscovery?.complete !== true) throw new Error('complete supplemental discovery required before item acquisition')
+  const ids = new Set()
+  for (const recipe of details.recipes) {
+    if (recipe.status === 'unresolved') throw new Error(`unresolved recipe route: ${recipe.skill}:${recipe.recipeId}`)
+    for (const row of [...(recipe.ingredients || []), ...(recipe.baseOutputs || []), ...(recipe.randomOutputs || [])]) {
+      const itemId = Number(row.itemId)
+      if (!Number.isSafeInteger(itemId) || itemId <= 0) throw new Error(`invalid item id in recipe ${recipe.recipeId}`)
+      ids.add(itemId)
+    }
+  }
+  return [...ids].sort((a, b) => a - b)
+}
+
 export async function collectCodexItemEvidence(itemIds, fetchImpl = fetch, collectedAt = new Date().toISOString(), { concurrency = 6, timeoutMs = 20000, retries = 2 } = {}) {
   const ids = [...new Set(itemIds.map((rawId) => {
     const itemId = Number(rawId)
@@ -94,18 +109,21 @@ if (process.argv[1] && process.argv[1].endsWith('collect-codex-item-evidence.mjs
     const flag = argv[i], value = argv[i + 1]
     if (!value || value.startsWith('--')) throw new Error(`missing value for ${flag || 'argument'}`)
     if (flag === '--items') args.items = value
+    else if (flag === '--details') args.details = value
     else if (flag === '--out') args.out = value
     else if (flag === '--concurrency') args.concurrency = Number(value)
     else if (flag === '--timeout-ms') args.timeoutMs = Number(value)
     else if (flag === '--retries') args.retries = Number(value)
     else throw new Error(`unknown argument: ${flag}`)
   }
-  if (!args.items || !args.out) throw new Error('usage: node scripts/collect-codex-item-evidence.mjs --items 6214,9203 --out data/codex-items.json [--concurrency 6] [--timeout-ms 20000] [--retries 2]')
+  if ((!args.items && !args.details) || (args.items && args.details) || !args.out) throw new Error('usage: node scripts/collect-codex-item-evidence.mjs (--items 6214,9203 | --details data/codex-details.json) --out data/codex-items.json [--concurrency 6] [--timeout-ms 20000] [--retries 2]')
   if (!Number.isSafeInteger(args.concurrency) || args.concurrency < 1 || args.concurrency > 16) throw new Error('--concurrency must be 1..16')
   if (!Number.isFinite(args.timeoutMs) || args.timeoutMs < 1000) throw new Error('--timeout-ms must be >=1000')
   if (!Number.isSafeInteger(args.retries) || args.retries < 0 || args.retries > 5) throw new Error('--retries must be 0..5')
-  const ids = args.items.split(',').map((value) => value.trim()).filter(Boolean)
-  if (!ids.length) throw new Error('--items must contain at least one item id')
+  const ids = args.details
+    ? exactItemIdsFromRecipeDetails(JSON.parse(fs.readFileSync(args.details, 'utf8')))
+    : args.items.split(',').map((value) => value.trim()).filter(Boolean)
+  if (!ids.length) throw new Error('item acquisition scope must contain at least one item id')
   const result = await collectCodexItemEvidence(ids, fetch, new Date().toISOString(), args)
   fs.writeFileSync(args.out, `${JSON.stringify(result, null, 2)}\n`)
   console.log(`collected ${result.items.length} Codex item evidence rows`)

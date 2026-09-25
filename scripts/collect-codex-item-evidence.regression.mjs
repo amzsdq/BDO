@@ -1,4 +1,4 @@
-import { collectCodexItemEvidence, parseCodexItemEvidenceHtml } from './collect-codex-item-evidence.mjs'
+import { collectCodexItemEvidence, exactItemIdsFromRecipeDetails, parseCodexItemEvidenceHtml } from './collect-codex-item-evidence.mjs'
 
 function assert(condition, message) {
   if (!condition) throw new Error(message)
@@ -46,4 +46,10 @@ assert(calls.get(700) === 2 && calls.get(701) === 1, 'bounded transient retry')
 let terminalCalls = 0
 try { await collectCodexItemEvidence([702], async (url) => { terminalCalls += 1; return { ok: false, status: 404, statusText: 'missing', url } }, '2026-09-25T00:00:00Z', { retries: 3, timeoutMs: 1000 }); throw new Error('404 accepted') } catch (error) { assert(String(error.message).includes('404'), 'terminal 404 error') }
 assert(terminalCalls === 1, 'terminal 4xx must not retry')
+const detailIds = exactItemIdsFromRecipeDetails({ schemaVersion: 2, complete: true, supplementalDiscovery: { complete: true }, recipes: [
+  { recipeId: 1, skill: 'cooking', status: 'single-base', ingredients: [{ itemId: 20 }, { itemId: 10 }], baseOutputs: [{ itemId: 30 }], randomOutputs: [{ itemId: 40 }] },
+  { recipeId: 345, skill: 'alchemy', status: 'random-only', ingredients: [{ itemId: 20 }], baseOutputs: [], randomOutputs: [{ itemId: 45334 }] },
+] })
+assert(JSON.stringify(detailIds) === JSON.stringify([10, 20, 30, 40, 45334]), 'details exact item-id union')
+assert((() => { try { exactItemIdsFromRecipeDetails({ schemaVersion: 2, complete: true, supplementalDiscovery: { complete: false }, recipes: [] }); return false } catch { return true } })(), 'incomplete supplemental discovery must block item acquisition')
 console.log('collect-codex-item-evidence fixture regression passed')
