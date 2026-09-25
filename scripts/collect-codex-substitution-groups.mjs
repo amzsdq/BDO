@@ -40,17 +40,44 @@ export function parseCodexMaterialGroupHtml(html, groupId) {
   return members
 }
 
-export async function collectCodexSubstitutionGroups(groupIds, fetchImpl = fetch, collectedAt = new Date().toISOString()) {
-  const groups = []
-  for (const rawId of groupIds) {
-    const id = String(rawId).trim()
-    if (!/^\d+$/.test(id)) throw new Error(`invalid material group id: ${rawId}`)
+export async function collectCodexSubstitutionGroups(groupIds, fetchImpl = fetch, collectedAt = new Date().toISOString(), options = {}) {
+  const concurrency = Math.max(1, Math.min(16, Number(options.concurrency ?? 4)))
+  const timeoutMs = Math.max(1, Number(options.timeoutMs ?? 15000))
+  const retries = Math.max(0, Number(options.retries ?? 2))
+  const ids = [...new Set(groupIds.map((rawId) => String(rawId).trim()))].sort((x, y) => Number(x) - Number(y))
+  for (const id of ids) if (!/^\d+$/.test(id)) throw new Error(`invalid material group id: ${id}`)
+  async function collectOne(id) {
     const sourceUrl = `${BASE}/${id}/`
-    const response = await fetchImpl(sourceUrl, { headers: { 'user-agent': 'BDO-Planner-Completeness-Audit/1.0', accept: 'text/html' } })
-    if (!response.ok) throw new Error(`${response.status} ${response.statusText}: ${sourceUrl}`)
-    const html = await response.text()
-    groups.push({ id: `codex:${id}`, sourceId: id, sourceUrl: response.url || sourceUrl, members: parseCodexMaterialGroupHtml(html, id) })
+    let lastError
+    for (let attempt = 0; attempt <= retries; attempt += 1) {
+      const controller = new AbortController()
+      const timer = setTimeout(() => controller.abort(), timeoutMs)
+      try {
+        const response = await fetchImpl(sourceUrl, { headers: { 'user-agent': 'BDO-Planner-Completeness-Audit/1.0', accept: 'text/html' }, signal: controller.signal })
+        if (!response.ok) {
+          const error = new Error(`${response.status} ${response.statusText}: ${sourceUrl}`)
+          if (response.status !== 429 && response.status < 500) throw error
+          lastError = error
+        } else {
+          const html = await response.text()
+          return { id: `codex:${id}`, sourceId: id, sourceUrl: response.url || sourceUrl, members: parseCodexMaterialGroupHtml(html, id) }
+        }
+      } catch (error) {
+        lastError = error
+        if (error?.name !== 'AbortError' && !/fetch|network|socket|timeout/i.test(String(error?.message ?? error))) throw error
+      } finally { clearTimeout(timer) }
+    }
+    throw lastError
   }
+  const groups = new Array(ids.length)
+  let next = 0
+  await Promise.all(Array.from({ length: Math.min(concurrency, ids.length) }, async () => {
+    while (true) {
+      const index = next++
+      if (index >= ids.length) return
+      groups[index] = await collectOne(ids[index])
+    }
+  }))
   return { schemaVersion: 1, source: 'BDO Codex KR', collectedAt, groups }
 }
 
