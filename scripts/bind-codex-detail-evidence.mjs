@@ -23,7 +23,8 @@ function sourceMatches(recipe, variant, source) {
   return false
 }
 
-export function bindCodexDetailEvidence(dataset, details) {
+export function bindCodexDetailEvidence(dataset, details, itemEvidence) {
+  const itemEvidenceById = new Map((itemEvidence?.items || []).map((row) => [Number(row.itemId), row]))
   if (Number(details?.schemaVersion) < 2 || details?.complete !== true || Number(details?.unresolvedCount || 0) !== 0) fail('complete schema-v2 detail evidence with zero unresolved routes is required')
   const sources = (details.recipes || []).filter((row) => ['single-base', 'random-only', 'no-output'].includes(row.status))
   const entries = []
@@ -45,6 +46,11 @@ export function bindCodexDetailEvidence(dataset, details) {
       }
       if (!entry.sourceUrl) fail(`${recipe.id}:${variant.id}: source URL missing`)
       if (source.skillText) entry.skillRequirement = { skill: recipe.skill, level: source.skillText }
+      const exactItemEvidence = itemEvidenceById.get(Number(recipe.outputItemId))
+      const mastery = exactItemEvidence?.masteryRequirement
+      if (mastery && normalizedSkill(mastery.skill) === normalizedSkill(recipe.skill)) {
+        entry.skillRequirement = { ...(entry.skillRequirement || { skill: recipe.skill }), minimumMastery: Number(mastery.minimumMastery) }
+      }
       if (source.status === 'single-base') {
         entry.min = Number(source.baseOutputs[0].min)
         entry.max = Number(source.baseOutputs[0].max)
@@ -56,9 +62,9 @@ export function bindCodexDetailEvidence(dataset, details) {
 }
 
 if (process.argv[1]?.endsWith('bind-codex-detail-evidence.mjs')) {
-  const [datasetPath, detailPath, outPath] = process.argv.slice(2)
+  const [datasetPath, detailPath, outPath, itemEvidencePath] = process.argv.slice(2)
   if (!datasetPath || !detailPath || !outPath) fail('usage: node scripts/bind-codex-detail-evidence.mjs <dataset.json> <codex-details.json> <out.json>')
-  const result = bindCodexDetailEvidence(JSON.parse(fs.readFileSync(datasetPath, 'utf8')), JSON.parse(fs.readFileSync(detailPath, 'utf8')))
+  const result = bindCodexDetailEvidence(JSON.parse(fs.readFileSync(datasetPath, 'utf8')), JSON.parse(fs.readFileSync(detailPath, 'utf8')), itemEvidencePath ? JSON.parse(fs.readFileSync(itemEvidencePath, 'utf8')) : undefined)
   fs.writeFileSync(outPath, JSON.stringify(result, null, 2) + '\n')
   console.log(JSON.stringify({ ok: true, entries: result.entries.length }))
 }

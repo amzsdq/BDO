@@ -18,6 +18,17 @@ describe('Codex detail binder', () => {
       { variantId: '637', sourceRecipeId: 637, min: 1, max: 1 },
     ])
   })
+  it('merges mastery only from exact output item identity', () => {
+    const randomDataset = { recipes: { stone: { id: 'stone', skill: 'alchemy', outputItemId: 45340, variants: [{ id: '346', inputs: [{ itemId: 4481, count: 50 }] }] } } }
+    const randomDetails = { schemaVersion: 2, complete: true, unresolvedCount: 0, recipes: [
+      { skill: 'alchemy', recipeId: 346, sourceUrl: 'https://bdocodex.com/kr/recipe/346/', status: 'random-only', ingredients: [{ itemId: 4481, count: 50 }], baseOutputs: [], randomOutputs: [{ itemId: 45340, min: 1, max: 1 }] },
+    ] }
+    const wrongId = { items: [{ itemId: 45341, masteryRequirement: { skill: 'alchemy', minimumMastery: 500 } }] }
+    expect(bindCodexDetailEvidence(randomDataset, randomDetails, wrongId).entries[0].skillRequirement).toBeUndefined()
+    const exactId = { items: [{ itemId: 45340, masteryRequirement: { skill: 'alchemy', minimumMastery: 500 } }] }
+    expect(bindCodexDetailEvidence(randomDataset, randomDetails, exactId).entries[0].skillRequirement).toMatchObject({ skill: 'alchemy', minimumMastery: 500 })
+  })
+
   it('fails closed on ambiguous source signatures', () => {
     const ambiguous = { ...details, recipes: [...details.recipes, { ...details.recipes[0], recipeId: 999 }] }
     expect(() => bindCodexDetailEvidence(dataset, ambiguous)).toThrow(/expected exactly one/)
