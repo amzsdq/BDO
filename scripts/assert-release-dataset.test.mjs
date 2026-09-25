@@ -139,9 +139,9 @@ describe('final release gate', () => {
     const { datasetFile, reportFile, catalogFile } = setup(); const catalog = completeCatalog(); catalog.catalogs[0].endpointFinalUrl = 'https://bdocodex.com/query.php?a=recipes&type=alchemy&l=kr'; writeFileSync(catalogFile, JSON.stringify(catalog)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toMatch(/artifact does not match promoted evidence|endpoint scope is invalid/)
   })
   it('rejects reconciliation performed against fewer Codex pages than the complete catalog', () => {
-    const { datasetFile, reportFile, catalogFile } = setup(); const report = JSON.parse(readFileSync(reportFile, 'utf8')); report.codexLivePages = 1; writeFileSync(reportFile, JSON.stringify(report)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('does not match independently complete catalog count')
+    const { datasetFile, reportFile, catalogFile } = setup(); const report = JSON.parse(readFileSync(reportFile, 'utf8')); report.codexAccountedPages = 1; writeFileSync(reportFile, JSON.stringify(report)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('does not match independently complete catalog count')
   })
   it('rejects a same-sized reconciliation built from different Codex recipe ids', () => {
-    const { datasetFile, reportFile, catalogFile } = setup(); const report = JSON.parse(readFileSync(reportFile, 'utf8')); report.codexLiveRecipeIds = [102, 201]; writeFileSync(reportFile, JSON.stringify(report)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('recipe-id set does not match')
+    const { datasetFile, reportFile, catalogFile } = setup(); const report = JSON.parse(readFileSync(reportFile, 'utf8')); report.codexAccountedRecipeIds = [102, 201]; writeFileSync(reportFile, JSON.stringify(report)); const result = gate(datasetFile, reportFile, catalogFile); expect(result.status).toBe(1); expect(result.stderr).toContain('recipe-id set does not match')
   })
 })
