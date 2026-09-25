@@ -11,7 +11,7 @@ Use **v0.1.9 or newer** for a fresh client extraction. Record the exact tag/comm
 Why the floor matters:
 
 - v0.1.7 changed recipe `inputs` so repeated XML occurrences of the same ingredient are aggregated into one item entry with a real summed `count`. Older output can contain repeated/countless ingredient rows and must not be accepted as canonical planner input without migration.
-- v0.1.7 also changed icon redirects to URN keys and required re-extraction.
+- v0.1.7 also changed icon redirects to URN keys and required re-extraction. The reviewed icon output includes `asset_redirects.json`; `urn::item:<itemId>` entries resolve decoded WebP assets, and redirect paths may use platform-native separators.
 - v0.1.8 fixed item extraction for a newer client record layout.
 - v0.1.9 fixed the current expanded post-icon item property/footer layout and explicitly requires re-extraction.
 
