@@ -27,7 +27,8 @@
     "data:codex:items": "node scripts/collect-codex-item-evidence.mjs",
     "data:codex:groups": "node scripts/collect-codex-substitution-groups.mjs",
     "data:codex:details": "node scripts/collect-codex-recipe-details.mjs",
-    "data:codex:bind": "node scripts/bind-codex-detail-evidence.mjs"
+    "data:codex:bind": "node scripts/bind-codex-detail-evidence.mjs",
+    "data:codex:normalize-random": "node scripts/normalize-codex-random-output-aliases.mjs"
   },
   "dependencies": {
     "react": "^19.1.1",
