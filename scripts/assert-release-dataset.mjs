@@ -26,6 +26,7 @@ if (!metadata.fingerprint) fail('dataset fingerprint missing')
 if (!metadata.generatedAt) fail('generatedAt missing')
 if (!Array.isArray(metadata.sources) || metadata.sources.length < 2) fail('source provenance incomplete')
 if (!hasRecordedSourceRevision(metadata.sourceRevision)) fail('sourceRevision must identify the canonical client snapshot; unrecorded provenance cannot be released')
+if (!/^sha256:[a-f0-9]{64}$/.test(String(metadata.clientFingerprint || ''))) fail('clientFingerprint must identify the installed client snapshot as sha256:<64hex>')
 if (!metadata.counts || metadata.counts.cooking <= 0 || metadata.counts.alchemy <= 0) fail('Cooking/Alchemy counts missing or empty')
 const payloadWithoutHash = { ...dataset, metadata: { ...metadata } }
 delete payloadWithoutHash.metadata.fingerprint
