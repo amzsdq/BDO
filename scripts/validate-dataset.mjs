@@ -68,6 +68,12 @@ for (const [recipeId, recipe] of Object.entries(recipes)) {
       if (variant.outputEvidence.status === 'random-only' && !(variant.outputEvidence.randomOutputs || []).length) errors.push(`${recipeId}/${variant.id}: random-only output evidence requires random outputs`)
       if (variant.outputEvidence.status === 'random-only' && (variant.outputEvidence.baseOutputs || []).length) errors.push(`${recipeId}/${variant.id}: random-only output evidence cannot contain base outputs`)
       if (variant.outputEvidence.status === 'no-output' && ((variant.outputEvidence.baseOutputs || []).length || (variant.outputEvidence.randomOutputs || []).length)) errors.push(`${recipeId}/${variant.id}: no-output evidence cannot contain outputs`)
+      for (const [kind, outputs] of [['base', variant.outputEvidence.baseOutputs || []], ['random', variant.outputEvidence.randomOutputs || []]]) {
+        for (const output of outputs) {
+          if (!items[String(output.itemId)]) errors.push(`${recipeId}/${variant.id}: unknown ${kind} output item ${output.itemId}`)
+          if (!Number.isFinite(output.min) || output.min <= 0 || !Number.isFinite(output.max) || output.max < output.min) errors.push(`${recipeId}/${variant.id}: invalid ${kind} output range for ${output.itemId}`)
+        }
+      }
     }
     const signature = `${recipe.skill}:${recipe.outputItemId}:` + (variant.inputs || []).map((input) => `${input.itemId}:${input.count}:${input.substitutionGroupId || ''}`).sort().join('|')
     if (seenSignatures.has(signature)) errors.push(`${recipeId}/${variant.id}: duplicate variant signature`)
