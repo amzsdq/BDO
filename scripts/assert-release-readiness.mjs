@@ -5,12 +5,12 @@ import { assertMasteryReleaseEvidence } from './mastery-release-evidence.mjs'
 function fail(message) { console.error(`release blocked: ${message}`); process.exit(1) }
 
 const args = process.argv.slice(2)
-if (args.length !== 5 || args.some((value) => !value || value.startsWith('--'))) {
-  fail('usage: node scripts/assert-release-readiness.mjs <dataset.json> <reconciliation-report.json> <codex-catalog.json> <mastery-evidence.json> <mastery.json>')
+if (args.length !== 6 || args.some((value) => !value || value.startsWith('--'))) {
+  fail('usage: node scripts/assert-release-readiness.mjs <dataset.json> <reconciliation-report.json> <codex-catalog.json> <codex-details.json> <mastery-evidence.json> <mastery.json>')
 }
-const [datasetFile, reconciliationFile, catalogFile, masteryEvidenceFile, masteryFile] = args
+const [datasetFile, reconciliationFile, catalogFile, codexManifestFile, masteryEvidenceFile, masteryFile] = args
 
-const datasetGate = spawnSync(process.execPath, ['scripts/assert-release-dataset.mjs', datasetFile, reconciliationFile, catalogFile], {
+const datasetGate = spawnSync(process.execPath, ['scripts/assert-release-dataset.mjs', datasetFile, reconciliationFile, catalogFile, codexManifestFile], {
   cwd: process.cwd(), encoding: 'utf8',
 })
 if (datasetGate.status !== 0) {
