@@ -30,7 +30,8 @@
     "data:codex:bind": "node scripts/bind-codex-detail-evidence.mjs",
     "data:codex:normalize-random": "node scripts/normalize-codex-random-output-aliases.mjs",
     "data:icons:verify": "node scripts/assert-icon-manifest.mjs",
-    "data:scope:finalize": "node scripts/finalize-planner-scope.mjs"
+    "data:scope:finalize": "node scripts/finalize-planner-scope.mjs",
+    "data:import:broad": "node scripts/import-bdo-extractor.mjs"
   },
   "dependencies": {
     "react": "^19.1.1",
