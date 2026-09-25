@@ -23,7 +23,17 @@ export function applyYieldEvidence(dataset, evidence) {
     const sourceUrl = String(entry.sourceUrl ?? '').trim()
     const sourceRecipeId = Number(entry.sourceRecipeId)
     if (!Number.isSafeInteger(sourceRecipeId) || sourceRecipeId <= 0 || codexRecipeId(sourceUrl) !== sourceRecipeId) fail(`${recipeId}: sourceUrl/sourceRecipeId must identify the same BDO Codex KR recipe`)
-    recipes[recipeId] = { ...recipe, yield: { min, ...(expected == null ? {} : { expected }), max, provenance: sourceUrl, sourceRecipeId } }
+    const variantId = String(entry?.variantId ?? '').trim()
+    if (variantId) {
+      let matched = false
+      const variants = (recipe.variants ?? []).map((variant) => {
+        if (variant.id !== variantId) return variant
+        matched = true
+        return { ...variant, sourceRecipeId, yield: { min, ...(expected == null ? {} : { expected }), max, provenance: sourceUrl } }
+      })
+      if (!matched) fail(`${recipeId}: unknown variantId ${variantId}`)
+      recipes[recipeId] = { ...recipe, variants }
+    } else recipes[recipeId] = { ...recipe, yield: { min, ...(expected == null ? {} : { expected }), max, provenance: sourceUrl, sourceRecipeId } }
   }
   const metadata = { ...dataset.metadata, yieldEvidenceApplied: true, yieldEvidenceCount: seen.size, yieldEvidenceSource: String(evidence.source ?? '').trim() || undefined }
   delete metadata.fingerprint
