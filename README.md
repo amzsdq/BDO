@@ -72,7 +72,7 @@ npm run data:release-gate -- public/data/dataset.json <reconciliation-report.jso
 
 `release-e2e-evidence.json`은 `docs/E2E-ACCEPTANCE.md`의 E2E-01~09 전체 PASS를 exact release commit과 production dataset/reconciliation/mastery fingerprints에 묶는 fail-closed 증거입니다. 작성 형식과 검증 명령은 `docs/RELEASE-E2E-EVIDENCE.md`를 참고하세요. placeholder/TODO 값이나 현재 checkout과 다른 `mainCommit`은 최종 gate에서 거부됩니다.
 
-`data:codex:browser`는 실제 KR Cooking/Alchemy catalog 페이지를 열고 skill-scoped recipe XHR을 캡처합니다. 서버가 total을 제공하면 같은 transport를 끝까지 paginate하고, total이 없는 unpaginated full-array 응답은 렌더링된 recipe-id 집합과 교차검증합니다. product-scoped/부분 endpoint나 단순 non-empty 응답은 complete catalog 증거가 아닙니다. promotion과 최종 release gate는 complete catalog의 총 recipe page 수와 정확한 recipe-id set이 reconciliation report와 일치하는지 다시 검증합니다.
+`<codex-catalog.json>`은 completeness/count/recipe-id 증거이고, `data:reconcile`의 `<codex-manifest.json>`은 recipe별 output/ingredient 상세 증거입니다. 두 artifact는 역할이 다르므로 catalog ID 목록을 상세 reconciliation manifest처럼 재사용하면 안 됩니다.\n\n`data:codex:browser`는 실제 KR Cooking/Alchemy catalog 페이지를 열고 skill-scoped recipe XHR을 캡처합니다. 서버가 total을 제공하면 같은 transport를 끝까지 paginate하고, total이 없는 unpaginated full-array 응답은 렌더링된 recipe-id 집합과 교차검증합니다. product-scoped/부분 endpoint나 단순 non-empty 응답은 complete catalog 증거가 아닙니다. promotion과 최종 release gate는 complete catalog의 총 recipe page 수와 정확한 recipe-id set이 reconciliation report와 일치하는지 다시 검증합니다.
 
 `data:icons`는 extractor의 `asset_redirects.json`에서 `urn::item:<itemId>` redirect를 해석해 dataset이 참조하는 canonical `icons/<itemId>.webp`로 설치합니다. 필요한 redirect나 decoded WebP 하나라도 빠져 있으면 실패하며, source DDS 경로를 브라우저 asset 경로로 취급하지 않습니다.
 
