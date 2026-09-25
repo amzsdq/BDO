@@ -57,8 +57,9 @@ Pass: exact input-load math is never mixed with probabilistic output/peak estima
 2. Leave the intermediate as externally acquired and record totals.
 3. Switch it to craft; verify recursive base materials replace only the missing intermediate quantity after owned stock is consumed.
 4. Where multiple producer recipes or variants exist, explicitly choose each and verify totals change accordingly.
+5. For a source-verified substitution group, explicitly select a non-canonical member and verify its sourced ratio changes both checklist quantity and LT carry math; reload and verify the selection persists.
 
-Pass: no alternative producer/variant is silently flattened or lost.
+Pass: no alternative producer/variant or source-verified substitution choice is silently flattened or lost.
 
 ## E2E-06 Multiple simultaneous targets
 
