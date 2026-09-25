@@ -67,6 +67,9 @@ npm run data:mastery-evidence -- --mastery <mastery.json> --out <mastery-evidenc
 npm run data:icons -- public/data/dataset.json <extractor-data> public/icons
 npm run data:validate -- public/data/dataset.json
 npm run data:codex:browser -- --out <codex-catalog.json>
+npm run data:codex:details -- --catalog <codex-catalog.json> --out <codex-details.json>
+npm run data:codex:bind -- public/data/dataset.json <codex-details.json> <bound-yield-evidence.json>
+npm run data:yields -- public/data/dataset.json <bound-yield-evidence.json> public/data/dataset.json
 npm run data:reconcile -- --dataset public/data/dataset.json --codex <codex-manifest.json> --out <reconciliation-report.json>
 npm run data:promote -- public/data/dataset.json <reconciliation-report.json> <codex-catalog.json>
 npm run data:release-gate -- public/data/dataset.json <reconciliation-report.json> <codex-catalog.json> <mastery-evidence.json> <mastery.json> <release-e2e-evidence.json>
