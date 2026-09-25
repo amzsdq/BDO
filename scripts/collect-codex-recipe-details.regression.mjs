@@ -15,7 +15,7 @@ assert(a.randomOutputs[0].itemId === 9602 && a.randomOutputs[0].max === 2, 'rand
 
 const randomOnly = `<div class="card item_info"><a href="/kr/recipe/346/"><span class="item_title">예리한 수호의 정령석</span></a><table>
 <tr><th>재료</th></tr><tr><td><a href="/kr/item/4481/">재료 A</a> x50</td></tr><tr><td><a href="/kr/item/16080/">재료 B</a> x5</td></tr>
-<tr><th>기본 제품:</th></tr><tr><th>랜덤 제품:</th></tr><tr><td><a href="/kr/item/45340/">예리한 수호의 정령석</a> x1</td></tr>
+<tr><th>기본 제품:</th></tr><tr><th>추가 (무작위) 제품:</th></tr><tr><td><a href="/kr/item/45340/">예리한 수호의 정령석</a> x1</td></tr>
 </table></div>`
 const b = parseCodexRecipeDetailHtml(randomOnly, 346, 'alchemy')
 assert(b.status === 'random-only' && b.outputItemId == null && b.yield == null, 'random-only must not synthesize deterministic output')
