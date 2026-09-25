@@ -27,4 +27,10 @@ describe('assert-release-readiness CLI contract', () => {
     expect(result.stderr).toContain('dataset not found: missing-dataset')
     expect(result.stderr).not.toContain('usage: node scripts/assert-release-readiness.mjs')
   })
+
+  it('binds mastery evidence source revision to the promoted dataset snapshot', () => {
+    const source = require('node:fs').readFileSync('scripts/assert-release-readiness.mjs', 'utf8')
+    expect(source).toContain('evidence.sourceRevision !== dataset.metadata?.sourceRevision')
+    expect(source).toContain('mastery source revision does not match dataset snapshot')
+  })
 })
