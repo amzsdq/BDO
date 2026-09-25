@@ -25,6 +25,8 @@ describe('prepare-client-broad-from-snapshot', () => {
       clientFingerprint: `sha256:${'0'.repeat(64)}`,
       artifactSha256: { 'items.json': hash(itemsPath), 'recipes.json': hash(recipesPath) },
     }))
+    const provenancePath = path.join(dir, 'provenance.json')
+    fs.writeFileSync(provenancePath, '\uFEFF' + fs.readFileSync(provenancePath, 'utf8'))
     const run = spawnSync(process.execPath, ['scripts/prepare-client-broad-from-snapshot.mjs', dir], { cwd: process.cwd(), encoding: 'utf8' })
     expect(run.status, run.stderr || run.stdout).toBe(0)
     const dataset = JSON.parse(fs.readFileSync(path.join(dir, 'client-broad.json'), 'utf8'))
