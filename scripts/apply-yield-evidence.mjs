@@ -11,8 +11,10 @@ export function applyYieldEvidence(dataset, evidence) {
   const recipes = { ...dataset.recipes }
   for (const entry of evidence.entries) {
     const recipeId = String(entry?.recipeId ?? '').trim()
-    if (!recipeId || seen.has(recipeId)) fail(`duplicate or empty recipeId: ${recipeId || '<empty>'}`)
-    seen.add(recipeId)
+    const variantId = String(entry?.variantId ?? '').trim()
+    const evidenceKey = variantId ? `${recipeId}:${variantId}` : recipeId
+    if (!recipeId || seen.has(evidenceKey)) fail(`duplicate or empty evidence key: ${evidenceKey || '<empty>'}`)
+    seen.add(evidenceKey)
     const recipe = recipes[recipeId]
     if (!recipe) fail(`yield evidence references unknown recipe: ${recipeId}`)
     const min = finitePositive(entry.min, `${recipeId}.min`)
@@ -23,7 +25,6 @@ export function applyYieldEvidence(dataset, evidence) {
     const sourceUrl = String(entry.sourceUrl ?? '').trim()
     const sourceRecipeId = Number(entry.sourceRecipeId)
     if (!Number.isSafeInteger(sourceRecipeId) || sourceRecipeId <= 0 || codexRecipeId(sourceUrl) !== sourceRecipeId) fail(`${recipeId}: sourceUrl/sourceRecipeId must identify the same BDO Codex KR recipe`)
-    const variantId = String(entry?.variantId ?? '').trim()
     if (variantId) {
       let matched = false
       const variants = (recipe.variants ?? []).map((variant) => {
