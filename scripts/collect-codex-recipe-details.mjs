@@ -50,7 +50,8 @@ function itemRow(row) {
   const itemId = Number(anchors[0][1])
   const name = decodeText(anchors.map((entry) => entry[2]).join(' ')).trim()
   const text = decodeText(row)
-  const countMatch = text.match(/(?:x|×)\s*([0-9]+(?:\.[0-9]+)?)(?:\s*[~～-]\s*([0-9]+(?:\.[0-9]+)?))?/i)
+  const countMatch = text.match(/^\s*([0-9]+(?:\.[0-9]+)?)(?:\s*[~～]\s*([0-9]+(?:\.[0-9]+)?))?\s*[-–]\s+/)
+    || text.match(/(?:x|×)\s*([0-9]+(?:\.[0-9]+)?)(?:\s*[~～-]\s*([0-9]+(?:\.[0-9]+)?))?/i)
     || text.match(/([0-9]+(?:\.[0-9]+)?)\s*[~～-]\s*([0-9]+(?:\.[0-9]+)?)\s*(?:개)?\s*$/)
     || text.match(/([0-9]+(?:\.[0-9]+)?)\s*(?:개)?\s*$/)
   if (!Number.isSafeInteger(itemId) || itemId <= 0 || !countMatch) return null
