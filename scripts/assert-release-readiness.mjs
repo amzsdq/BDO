@@ -19,8 +19,14 @@ if (datasetGate.status !== 0) {
 }
 if (!fs.existsSync(masteryEvidenceFile)) fail('production mastery evidence is required')
 if (!fs.existsSync(masteryFile)) fail('production mastery.json snapshot is required')
+const dataset = JSON.parse(fs.readFileSync(datasetFile, 'utf8'))
 const evidence = JSON.parse(fs.readFileSync(masteryEvidenceFile, 'utf8'))
 const masteryBytes = fs.readFileSync(masteryFile)
 try { assertMasteryReleaseEvidence(evidence, masteryBytes) } catch (error) { fail(error instanceof Error ? error.message : String(error)) }
+if (evidence.sourceRevision !== dataset.metadata?.sourceRevision) {
+  fail(`mastery source revision does not match dataset snapshot: dataset=${dataset.metadata?.sourceRevision || 'missing'} mastery=${evidence.sourceRevision || 'missing'}`)
+}
+if (!String(dataset.metadata?.clientFingerprint || '').trim()) fail('dataset client fingerprint is missing')
+if (evidence.clientFingerprint !== dataset.metadata.clientFingerprint) fail('mastery client fingerprint does not match dataset snapshot')
 
 console.log(JSON.stringify({ ok: true, dataset: JSON.parse(datasetGate.stdout), masterySha256: evidence.masterySha256, masteryCrossCheck: 'PASS' }))
