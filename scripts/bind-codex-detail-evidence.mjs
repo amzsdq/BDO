@@ -19,7 +19,7 @@ function sourceMatches(recipe, variant, source) {
   if (variant.skillRequirement?.level && source.skillText && variant.skillRequirement.level !== source.skillText) return false
   if (source.status === 'single-base') return source.baseOutputs?.length === 1 && Number(source.baseOutputs[0].itemId) === Number(recipe.outputItemId)
   if (source.status === 'random-only') return source.randomOutputs?.some((row) => Number(row.itemId) === Number(recipe.outputItemId)) === true
-  if (source.status === 'no-output') return Number(variant.sourceRecipeId) === Number(source.recipeId)
+  if (source.status === 'no-output') return true
   return false
 }
 
