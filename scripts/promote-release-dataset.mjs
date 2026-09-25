@@ -24,10 +24,10 @@ function verifiedCatalog(catalogFile, reconciliation) {
     if (!Array.isArray(entry.recipeIds) || sortedIds(entry.recipeIds).length !== entry.recipeCount) fail(`Codex ${skill} catalog recipe-id evidence is incomplete`)
   }
   const pages = ['cooking', 'alchemy'].reduce((sum, skill) => sum + bySkill.get(skill).recipeCount, 0)
-  if (reconciliation.codexLivePages !== pages) fail(`reconciliation Codex page count ${reconciliation.codexLivePages ?? 'missing'} does not match independently complete catalog count ${pages}`)
+  if (reconciliation.codexAccountedPages !== pages) fail(`reconciliation accounted Codex page count ${reconciliation.codexAccountedPages ?? 'missing'} does not match independently complete catalog count ${pages}`)
   const catalogIds = sortedIds(['cooking', 'alchemy'].flatMap((skill) => bySkill.get(skill).recipeIds))
-  const reconciliationIds = sortedIds(Array.isArray(reconciliation.codexLiveRecipeIds) ? reconciliation.codexLiveRecipeIds : [])
-  if (JSON.stringify(reconciliationIds) !== JSON.stringify(catalogIds)) fail('reconciliation Codex recipe-id set does not match independently complete catalog')
+  const reconciliationIds = sortedIds(Array.isArray(reconciliation.codexAccountedRecipeIds) ? reconciliation.codexAccountedRecipeIds : [])
+  if (JSON.stringify(reconciliationIds) !== JSON.stringify(catalogIds)) fail('reconciliation accounted Codex recipe-id set does not match independently complete catalog')
   return { pages, collectedAt: catalog.collectedAt, sha256: sha256(catalogBytes) }
 }
 
