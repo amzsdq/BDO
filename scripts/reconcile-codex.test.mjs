@@ -118,6 +118,26 @@ describe('Codex reconciliation', () => {
     expect(report.codexLiveRecipeIds).toEqual([999, 1001])
     expect(report.codexSupplementalPages).toBe(1)
   })
+  it('reconciles random-only supplemental routes by exact random output item id', () => {
+    const manifest = { schemaVersion: 2, complete: true, unresolvedCount: 0, recipes: [{
+      recipeId: 345, skill: 'cooking', status: 'random-only', catalogListed: false,
+      ingredients: [{ itemId: 20, count: 2 }], baseOutputs: [], randomOutputs: [{ itemId: 10, min: 1, max: 1 }],
+    }] }
+    const { exitCode, report } = run(dataset, manifest)
+    expect(exitCode).toBe(0)
+    expect(report.codexLiveRecipeIds).toEqual([345])
+    expect(report.codexSupplementalRecipeIds).toEqual([345])
+  })
+  it('accounts for supplemental no-output evidence without creating a reconciliation diff', () => {
+    const manifest = { schemaVersion: 2, complete: true, unresolvedCount: 0, recipes: [{
+      recipeId: 343, skill: 'alchemy', status: 'no-output', catalogListed: false,
+      titleKo: '출력 미게시 연금식', ingredients: [{ itemId: 20, count: 2 }], baseOutputs: [], randomOutputs: [],
+    }, { ...matchingManifest.recipes[0], catalogListed: true }] }
+    const { exitCode, report } = run(dataset, manifest)
+    expect(exitCode).toBe(0)
+    expect(report.codexSupplementalRecipeIds).toEqual([343])
+    expect(report.codexLiveRecipeIds).toEqual([999])
+  })
   it('keeps unavailable Codex recipes out of live completeness diffs and id evidence', () => {
     const { exitCode, report } = run(dataset, { recipes: [...matchingManifest.recipes, { recipeId: 1000, skill: 'alchemy', outputItemId: 77, titleKo: '퇴역', available: false, ingredients: [] }] })
     expect(exitCode).toBe(0); expect(report.status).toBe('ZERO_UNEXPLAINED_DIFF'); expect(report.codexDisabledPages).toBe(1); expect(report.codexLiveRecipeIds).toEqual([999]); expect(report.codexAccountedRecipeIds).toEqual([999, 1000])

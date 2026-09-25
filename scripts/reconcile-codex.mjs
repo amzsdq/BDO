@@ -19,7 +19,13 @@ function args(argv) {
 }
 function normalizedName(value) { return String(value || '').normalize('NFKC').replace(/[\s·・'\"]/g, '').toLocaleLowerCase('ko-KR') }
 function normalizedSkill(value) { return String(value || '').toLowerCase() }
-function outputItemIdFromCodex(entry) { const value = entry.outputItemId ?? entry.itemId; if (value === undefined || value === null || value === '') return undefined; const id = Number(value); return Number.isSafeInteger(id) && id >= 0 ? id : undefined }
+function outputItemIdFromCodex(entry) {
+  const explicit = entry.outputItemId ?? entry.itemId
+  const value = explicit ?? (entry.status === 'random-only' && entry.randomOutputs?.length === 1 ? entry.randomOutputs[0].itemId : undefined)
+  if (value === undefined || value === null || value === '') return undefined
+  const id = Number(value)
+  return Number.isSafeInteger(id) && id >= 0 ? id : undefined
+}
 function reconciliationKey(skill, outputItemId, outputName) { return outputItemId !== undefined ? `${skill}:item:${outputItemId}` : `${skill}:name:${normalizedName(outputName)}` }
 function itemIdentity(itemId, name) { const id = Number(itemId); return Number.isSafeInteger(id) && id >= 0 ? `#${id}` : normalizedName(name) }
 function signatureFromDataset(dataset, recipe, variant) { return variant.inputs.map((input) => { const item = dataset.items[String(input.itemId)]; return `${itemIdentity(input.itemId, item?.nameKo)}:${Number(input.count)}` }).sort().join('|') }
@@ -57,7 +63,7 @@ const codexAccountedRecipeIds = liveRecipeIds(codexAccounted)
 const codexAccountedRoutes = routeKeys(codexAccounted)
 const codexSupplementalRecipeIds = liveRecipeIds(codexSupplemental)
 const codexSupplementalRoutes = routeKeys(codexSupplemental)
-const codexLive = codexResolved.filter((entry) => entry.available !== false && entry.status !== 'unavailable')
+const codexLive = codexResolved.filter((entry) => entry.available !== false && entry.status !== 'unavailable' && entry.status !== 'no-output')
 const codexLiveRecipeIds = liveRecipeIds(codexLive)
 const codexLiveRoutes = routeKeys(codexLive)
 const codexByKey = new Map()
