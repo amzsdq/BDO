@@ -48,6 +48,19 @@ for (const [name, recordedValue] of Object.entries(artifactSha256)) {
   if (!/^[0-9a-f]{64}$/.test(recorded)) throw new Error(`snapshot artifact hash is invalid: ${name}`)
   if (recorded !== sha256(file)) throw new Error(`${name} SHA-256 does not match same-snapshot provenance`)
 }
+if (provenance.source === 'installed Black Desert client via reviewed bdo-viewer') {
+  const iconRoot = path.join(root, 'icons')
+  const recordedIcons = String(provenance.iconsSnapshotSha256 || '').toLowerCase()
+  if (!/^[0-9a-f]{64}$/.test(recordedIcons)) throw new Error('viewer snapshot iconsSnapshotSha256 is required')
+  if (!fs.existsSync(iconRoot) || !fs.statSync(iconRoot).isDirectory()) throw new Error('viewer snapshot icons directory is missing')
+  const files = []
+  const walk = (dir) => { for (const entry of fs.readdirSync(dir, { withFileTypes: true })) { const full = path.join(dir, entry.name); if (entry.isDirectory()) walk(full); else if (entry.isFile()) files.push(full); else throw new Error(`unsupported viewer icon snapshot entry: ${full}`) } }
+  walk(iconRoot)
+  files.sort((a, b) => path.relative(iconRoot, a).replaceAll('\\\\', '/').localeCompare(path.relative(iconRoot, b).replaceAll('\\\\', '/')))
+  const h = crypto.createHash('sha256')
+  for (const file of files) { h.update(path.relative(iconRoot, file).replaceAll('\\\\', '/')); h.update('\0'); h.update(fs.readFileSync(file)); h.update('\0') }
+  if (h.digest('hex') !== recordedIcons) throw new Error('viewer icons snapshot SHA-256 does not match same-snapshot provenance')
+}
 const items = path.join(root, 'items.json'), recipes = path.join(root, 'recipes.json')
 const out = path.resolve(outArg || path.join(root, 'client-broad.json'))
 const result = spawnSync(process.execPath, [

@@ -6,6 +6,12 @@ import crypto from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 
 function hash(file) { return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex') }
+function iconTreeHash(root) {
+  const files = []
+  const walk = (dir) => { for (const entry of fs.readdirSync(dir, { withFileTypes: true })) { const full = path.join(dir, entry.name); if (entry.isDirectory()) walk(full); else files.push(full) } }
+  walk(root); files.sort((a,b)=>path.relative(root,a).replaceAll('\\\\','/').localeCompare(path.relative(root,b).replaceAll('\\\\','/')))
+  const h=crypto.createHash('sha256'); for(const file of files){h.update(path.relative(root,file).replaceAll('\\\\','/'));h.update('\0');h.update(fs.readFileSync(file));h.update('\0')} return h.digest('hex')
+}
 
 describe('prepare-client-broad-from-snapshot', () => {
   it('verifies snapshot hashes and broad-imports both life skills', () => {
@@ -34,6 +40,25 @@ describe('prepare-client-broad-from-snapshot', () => {
     expect(run.status, run.stderr || run.stdout).toBe(0)
     const dataset = JSON.parse(fs.readFileSync(path.join(dir, 'client-broad.json'), 'utf8'))
     expect(dataset.metadata.counts).toEqual({ cooking: 1, alchemy: 1 })
+
+    const iconsDir = path.join(dir, 'icons')
+    fs.mkdirSync(iconsDir)
+    fs.writeFileSync(path.join(iconsDir, '1.webp'), 'icon-one')
+    const viewerProvenance = JSON.parse(fs.readFileSync(provenancePath, 'utf8').slice(1))
+    viewerProvenance.source = 'installed Black Desert client via reviewed bdo-viewer'
+    viewerProvenance.iconsSnapshotSha256 = iconTreeHash(iconsDir)
+    fs.writeFileSync(provenancePath, JSON.stringify(viewerProvenance))
+    const viewerBound = spawnSync(process.execPath, ['scripts/prepare-client-broad-from-snapshot.mjs', dir], { cwd: process.cwd(), encoding: 'utf8' })
+    expect(viewerBound.status, viewerBound.stderr || viewerBound.stdout).toBe(0)
+    fs.writeFileSync(path.join(iconsDir, '1.webp'), 'tampered-icon')
+    const tamperedIcons = spawnSync(process.execPath, ['scripts/prepare-client-broad-from-snapshot.mjs', dir], { cwd: process.cwd(), encoding: 'utf8' })
+    expect(tamperedIcons.status).not.toBe(0)
+    expect(tamperedIcons.stderr).toMatch(/icons snapshot SHA-256 does not match/)
+    fs.writeFileSync(path.join(iconsDir, '1.webp'), 'icon-one')
+    viewerProvenance.source = 'test snapshot'
+    delete viewerProvenance.iconsSnapshotSha256
+    fs.writeFileSync(provenancePath, JSON.stringify(viewerProvenance))
+
     fs.writeFileSync(recipesPath, JSON.stringify([...recipes, recipes[0]]))
     const tampered = spawnSync(process.execPath, ['scripts/prepare-client-broad-from-snapshot.mjs', dir], { cwd: process.cwd(), encoding: 'utf8' })
     expect(tampered.status).not.toBe(0)
