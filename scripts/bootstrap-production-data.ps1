@@ -89,7 +89,7 @@ $Extractor = Join-Path $GoPath "bin\bdo-data-extractor.exe"
 if (-not (Test-Path $Extractor)) { throw "Extractor binary not found after go install: $Extractor" }
 
 Write-Host "[2/6] Extracting canonical client data"
-& $Extractor build --game $ResolvedGameDir --out $ResolvedOutDir
+& $Extractor build --game $ResolvedGameDir --out $ResolvedOutDir --region kr
 if ($LASTEXITCODE -ne 0) { throw "bdo-data-extractor build failed" }
 
 Write-Host "[3/6] Extracting canonical item icons"

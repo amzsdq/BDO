@@ -8,6 +8,7 @@ assert(script.includes('extractorGameFingerprint'), 'bootstrap must record extra
 assert(script.includes('service.ini'), 'bootstrap must bind raw service.ini region evidence')
 assert(script.includes('TYPE=KR'), 'bootstrap must require KR service.ini before extraction')
 assert(script.includes('regionEvidence'), 'bootstrap must record region evidence metadata')
+assert(script.includes('build --game $ResolvedGameDir --out $ResolvedOutDir --region kr'), 'bootstrap must pass explicit KR region to extractor build')
 assert(script.includes('Go 1.26+ is required'), 'bootstrap must enforce reviewed extractor Go floor')
 assert(!script.includes('Get-ChildItem -Path $ResolvedGameDir -Filter "BlackDesert*.exe"'), 'bootstrap must not fingerprint an arbitrary executable')
 assert(!script.includes('Get-ChildItem -Path $ResolvedGameDir -Filter "*.PAZ"'), 'bootstrap must not fingerprint an arbitrary PAZ archive')
