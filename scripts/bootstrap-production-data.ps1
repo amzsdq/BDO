@@ -99,7 +99,8 @@ if ($LASTEXITCODE -ne 0) { throw "bdo-data-extractor icons failed" }
 $Items = Join-Path $ResolvedOutDir "items.json"
 $Recipes = Join-Path $ResolvedOutDir "recipes.json"
 $Mastery = Join-Path $ResolvedOutDir "mastery.json"
-foreach ($required in @($Items, $Recipes, $Mastery)) {
+$AssetRedirects = Join-Path $ResolvedOutDir "asset_redirects.json"
+foreach ($required in @($Items, $Recipes, $Mastery, $AssetRedirects)) {
   if (-not (Test-Path $required)) { throw "Expected extractor output missing: $required" }
 }
 
@@ -134,7 +135,7 @@ Copy-Item -LiteralPath $ServiceIniSource -Destination $ServiceIniSnapshot -Force
 
 Write-Host "[4/6] Recording same-snapshot provenance"
 $Hashes = @{}
-foreach ($path in @($Items, $Recipes, $Mastery, $ServiceIniSnapshot)) {
+foreach ($path in @($Items, $Recipes, $Mastery, $AssetRedirects, $ServiceIniSnapshot)) {
   $Hashes[[System.IO.Path]::GetFileName($path)] = (Get-FileHash $path -Algorithm SHA256).Hash.ToLowerInvariant()
 }
 $Provenance = [ordered]@{
