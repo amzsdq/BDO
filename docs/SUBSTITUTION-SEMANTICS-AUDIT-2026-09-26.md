@@ -30,6 +30,7 @@ The current 2026-01-30 BDFoundry guides now support a deliberately small additio
 - Cooking recipes 109/548 Essence of Liquor and 110/549 Vinegar: current guide directly identifies generic flour/grain/fruit slots. Flour members are planning Worth 1; base grains are Worth 1 with 1/3/18 quality scaling; fruit uses 1/6/36 quality scaling.
 - Cooking recipe 166 Grilled Sausage: Pepper x2 and Onion x1 are exact reviewed slots; both use current 1/3/18 planning Worth. Same-title alternate routes are not implied.
 - Cooking recipe 140 Steak: Garlic x2 is an exact reviewed slot. The current Cooking Guide gives Garlic 1/3/18 planning Worth, current Codex route 140 renders Garlic x2, and a 2025-12 route comment independently reports High-Quality Garlic x1. Same-title alternate route 591 remains exact until independently reviewed.
+- Cooking recipe 123 Stir-Fried Vegetables: Hot Pepper x2 is an exact reviewed slot. The current Cooking Guide gives Hot Pepper 1/3/18 planning Worth; current Codex route 123 renders Hot Pepper x2; current BDOlytics independently calculates one Special Hot Pepper for the x2 slot. Alternate routes 351/570 remain exact until independently reviewed.
 
 For these reviewed slots, Codex member Worth remains preserved as source provenance, while `planningValueByItemId` stores the independently reviewed game-planning semantics. `requiredBaseWorth` is explicit per route slot, so a higher-Worth Codex canonical input cannot silently distort the recipe requirement. Any other slot remains exact.
 
@@ -39,7 +40,7 @@ For reviewed routes, the current Cooking and Alchemy guides explicitly permit mi
 
 ## Next evidence layer
 
-Do not expand the route list by trusting Codex Worth. The reviewed semantics policy now independently binds exact route slots, source-reported member Worth, reviewed planning Worth, explicit required base Worth, source URL/date, and a deterministic fingerprint asserted by promotion/release. Expansion must continue one independently evidenced route slot at a time; fish and all unreviewed routes remain fail-closed. Seasoning is not globally approved: only exact reviewed seasoning slots are bound: route 166 Pepper/Onion and route 140 Garlic. Hot Pepper and all other seasoning slots remain exact.
+Do not expand the route list by trusting Codex Worth. The reviewed semantics policy now independently binds exact route slots, source-reported member Worth, reviewed planning Worth, explicit required base Worth, source URL/date, and a deterministic fingerprint asserted by promotion/release. Expansion must continue one independently evidenced route slot at a time; fish and all unreviewed routes remain fail-closed. Seasoning is not globally approved: only exact reviewed seasoning slots are bound: route 166 Pepper/Onion, route 140 Garlic, and route 123 Hot Pepper. All other seasoning slots remain exact.
 
 References:
 - https://www.blackdesertfoundry.com/cooking-guide/

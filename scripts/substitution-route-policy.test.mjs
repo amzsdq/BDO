@@ -26,6 +26,9 @@ const evidence = {
     id: 'codex:6007', sourceId: '6007', sourceUrl: 'https://bdocodex.com/kr/materialgroup/6007/',
     members: [[7313,1],[7304,2],[7316,2],[7315,2],[7314,2],[7317,2],[7307,2],[7321,12],[7329,12],[7322,72],[7341,72]].map(([itemId,value]) => ({ itemId, value })),
   }, {
+    id: 'codex:6008', sourceId: '6008', sourceUrl: 'https://bdocodex.com/kr/materialgroup/6008/',
+    members: [[7305,1],[7327,6],[7339,36]].map(([itemId,value]) => ({ itemId, value })),
+  }, {
     id: 'codex:3008', sourceId: '3008', sourceUrl: 'https://bdocodex.com/kr/materialgroup/3008/',
     members: [{ itemId: 5408, value: 1 }, { itemId: 5427, value: 6 }, { itemId: 5451, value: 36 }, { itemId: 5471, value: 216 }],
   }, {
@@ -61,7 +64,7 @@ function dataset(sourceRecipeId, itemId = 7318) {
       '7311': { id: 7311 }, '7312': { id: 7312, nameKo: '파프리카' }, '7306': { id: 7306 },
       '7328': { id: 7328 }, '7331': { id: 7331, nameKo: '고급 양배추' }, '7333': { id: 7333 }, '7334': { id: 7334 },
       '7340': { id: 7340 }, '7343': { id: 7343, nameKo: '특상품 양배추' }, '7345': { id: 7345 }, '7346': { id: 7346 },
-      ...Object.fromEntries([7001,7002,7003,7004,7005,7006,7007,7008,7009,7010,7011,7012,7013,7014,7015,7101,7102,7103,7104,7105,7201,7202,7203,7204,7205,7301,7302,7303,7304,7307,7313,7314,7315,7316,7317,7321,7322,7323,7324,7325,7329,7335,7336,7337,7341].map((id) => [String(id), { id }])),
+      ...Object.fromEntries([7001,7002,7003,7004,7005,7006,7007,7008,7009,7010,7011,7012,7013,7014,7015,7101,7102,7103,7104,7105,7201,7202,7203,7204,7205,7301,7302,7303,7304,7305,7307,7313,7314,7315,7316,7317,7321,7322,7323,7324,7325,7327,7329,7335,7336,7337,7339,7341].map((id) => [String(id), { id }])),
       '5408': { id: 5408 }, '5427': { id: 5427 }, '5451': { id: 5451 }, '5471': { id: 5471 },
       '6204': { id: 6204 }, '6214': { id: 6214 }, '6216': { id: 6216 }, '6218': { id: 6218 },
       '900001': { id: 900001, nameKo: '결과물' },
@@ -133,6 +136,20 @@ describe('reviewed substitution route policy', () => {
 
   it('keeps same-title alternate Steak route 591 garlic exact until independently reviewed', () => {
     const result = applySubstitutionEvidence(dataset(591, 7302), evidence)
+    expect(result.recipes.r.variants[0].inputs[0].substitutionGroupId).toBeUndefined()
+  })
+
+  it('binds current Stir-Fried Vegetables route 123 hot-pepper slot with reviewed planning semantics', () => {
+    const result = applySubstitutionEvidence(dataset(123, 7305), evidence)
+    const input = result.recipes.r.variants[0].inputs[0]
+    expect(input.substitutionGroupId).toBe('codex:6008')
+    expect(input.requiredBaseWorth).toBe(2)
+    expect(result.substitutionGroups['codex:6008'].memberValueByItemId['7327']).toBe(6)
+    expect(result.substitutionGroups['codex:6008'].planningValueByItemId['7327']).toBe(3)
+  })
+
+  it.each([351, 570])('keeps alternate Stir-Fried Vegetables route %s hot pepper exact until independently reviewed', (sourceRecipeId) => {
+    const result = applySubstitutionEvidence(dataset(sourceRecipeId, 7305), evidence)
     expect(result.recipes.r.variants[0].inputs[0].substitutionGroupId).toBeUndefined()
   })
 

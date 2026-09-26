@@ -99,6 +99,18 @@ export const SUBSTITUTION_BINDING_POLICY = Object.freeze({
       planningValueByItemId: Object.freeze({ '7304': 1, '7307': 1, '7313': 1, '7314': 1, '7315': 1, '7316': 1, '7317': 1, '7321': 6, '7322': 36, '7329': 6, '7341': 36 }),
       requiredBaseWorthByRouteSlot: Object.freeze({ '109|7313': 1, '110|7313': 1, '548|7313': 1, '549|7313': 1 }), sourceRecipeIds: Object.freeze([109, 110, 548, 549]),
     }),
+    'codex:6008': Object.freeze({
+      semantics: 'generic-hot-pepper-worth', reviewedAt: '2026-09-26',
+      sourceEvidence: Object.freeze([
+        Object.freeze({ role: 'current-substitution-semantics', url: 'https://www.blackdesertfoundry.com/cooking-guide/', sourceUpdatedAt: '2026-01-30', observedAt: '2026-09-26' }),
+        Object.freeze({ role: 'current-route', url: 'https://bdocodex.com/kr/recipe/123/', observedAt: '2026-09-26' }),
+        Object.freeze({ role: 'current-calculator-corroboration', url: 'https://bdolytics.com/gl-en/cooking/9241', observedAt: '2026-09-26' }),
+        Object.freeze({ role: 'current-group-membership-worth', url: 'https://bdocodex.com/kr/materialgroup/6008/', observedAt: '2026-09-26' }),
+      ]),
+      expectedMemberWorthByItemId: Object.freeze({ '7305': 1, '7327': 6, '7339': 36 }),
+      planningValueByItemId: Object.freeze({ '7305': 1, '7327': 3, '7339': 18 }),
+      requiredBaseWorthByRouteSlot: Object.freeze({ '123|7305': 2 }), sourceRecipeIds: Object.freeze([123]),
+    }),
     'codex:6009': Object.freeze({
       semantics: 'generic-vegetable-worth',
       reviewedAt: '2026-09-26',
