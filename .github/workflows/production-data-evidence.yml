@@ -37,8 +37,9 @@ jobs:
       - name: Capture reviewed BDO Codex KR production web evidence
         run: npm run data:web:evidence -- --out-dir artifacts
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
           name: production-web-evidence
           path: artifacts/
-          if-no-files-found: error
+          if-no-files-found: warn
           retention-days: 14
