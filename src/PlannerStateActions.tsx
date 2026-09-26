@@ -44,9 +44,13 @@ export function PlannerStateActions({ onReset, exportDisabled = false }: Planner
 
   function reset() {
     if (!window.confirm('체크리스트, 보유 수량, 캐릭터 설정과 계획을 모두 초기화할까요?')) return
-    resetPlannerState()
     setStateError(undefined)
-    onReset()
+    try {
+      resetPlannerState()
+      onReset()
+    } catch (error) {
+      setStateError(error instanceof Error ? error.message : '저장 데이터를 안전하게 초기화할 수 없습니다.')
+    }
   }
 
   return <>

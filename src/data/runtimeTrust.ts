@@ -6,6 +6,7 @@ interface ReleaseMetadata {
   verifiedAt?: string
   fingerprint?: string
   sourceRevision?: string
+  clientFingerprint?: string
   counts?: { cooking?: number; alchemy?: number }
 }
 
@@ -26,7 +27,8 @@ export async function hasRuntimeVerifiedEvidence(dataset: RecipeDataset): Promis
   if (!metadata.verifiedAt || !metadata.fingerprint) return false
   if (!Array.isArray(metadata.sources) || metadata.sources.length < 2) return false
   const sourceRevision = String(metadata.sourceRevision ?? '').trim()
-  if (!sourceRevision || sourceRevision.toLowerCase() === 'unrecorded') return false
+  if (sourceRevision !== 'iDevelopThings/bdo-data-extractor@5bf11bd7bc60dcbb6126be34bf3d76633abdd8b2') return false
+  if (!/^sha256:[a-f0-9]{64}$/.test(String(metadata.clientFingerprint ?? '').trim())) return false
 
   const recipes = Object.values(dataset.recipes)
   const cooking = recipes.filter((recipe) => recipe.skill === 'cooking').length

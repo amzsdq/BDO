@@ -2,7 +2,9 @@ import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.mjs'
-import { validateResolvedCatalogEndpoint } from './codex-catalog-endpoint.mjs'
+import { validateCatalogEntryEvidence } from './catalog-release-evidence.mjs'
+import { assertNoRetiredCraftingRoutes } from './reviewed-retired-route-state.mjs'
+import { assertClientFingerprint, assertReviewedExtractorRevision } from './production-source-contract.mjs'
 
 function fail(message) { console.error(`promotion blocked: ${message}`); process.exit(1) }
 function fingerprint(value) { return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex') }
@@ -19,31 +21,37 @@ function verifiedCatalog(catalogFile, reconciliation) {
   const bySkill = new Map(catalog.catalogs.map((entry) => [String(entry.skill || '').toLowerCase(), entry]))
   for (const skill of ['cooking', 'alchemy']) {
     const entry = bySkill.get(skill)
-    if (!entry || entry.complete !== true || !Number.isSafeInteger(entry.recipeCount) || entry.recipeCount <= 0) fail(`Codex ${skill} catalog completeness is not proven`)
-    if (!entry.endpointUsed || !entry.endpointEvidence || (entry.countMatchesExpected !== true && entry.endpointEvidence.recordsReported !== entry.recipeCount)) fail(`Codex ${skill} catalog lacks independent count evidence`)
-    const configuredScope = validateResolvedCatalogEndpoint(entry.endpointUsed, skill)
-    const finalScope = validateResolvedCatalogEndpoint(entry.endpointFinalUrl || entry.endpointUsed, skill)
-    if (!configuredScope.ok || !finalScope.ok) fail(`Codex ${skill} catalog endpoint scope is invalid`)
+    const evidence = validateCatalogEntryEvidence(entry, skill)
+    if (!evidence.ok) fail(evidence.reason)
     if (!Array.isArray(entry.recipeIds) || sortedIds(entry.recipeIds).length !== entry.recipeCount) fail(`Codex ${skill} catalog recipe-id evidence is incomplete`)
   }
   const pages = ['cooking', 'alchemy'].reduce((sum, skill) => sum + bySkill.get(skill).recipeCount, 0)
-  if (reconciliation.codexLivePages !== pages) fail(`reconciliation Codex page count ${reconciliation.codexLivePages ?? 'missing'} does not match independently complete catalog count ${pages}`)
-  const catalogIds = sortedIds(['cooking', 'alchemy'].flatMap((skill) => bySkill.get(skill).recipeIds))
-  const reconciliationIds = sortedIds(Array.isArray(reconciliation.codexLiveRecipeIds) ? reconciliation.codexLiveRecipeIds : [])
-  if (JSON.stringify(reconciliationIds) !== JSON.stringify(catalogIds)) fail('reconciliation Codex recipe-id set does not match independently complete catalog')
+  if (reconciliation.codexAccountedPages !== pages) fail(`reconciliation accounted Codex page count ${reconciliation.codexAccountedPages ?? 'missing'} does not match independently complete catalog count ${pages}`)
+  const catalogRoutes = ['cooking', 'alchemy'].flatMap((skill) => bySkill.get(skill).recipeIds.map((id) => `${skill}:${Number(id)}`)).sort()
+  const reconciliationRoutes = Array.isArray(reconciliation.codexAccountedRoutes) ? [...reconciliation.codexAccountedRoutes].sort() : []
+  if (JSON.stringify(reconciliationRoutes) !== JSON.stringify(catalogRoutes)) fail('reconciliation accounted Codex route set does not match independently complete catalog')
   return { pages, collectedAt: catalog.collectedAt, sha256: sha256(catalogBytes) }
 }
 
-const [datasetFile, reconciliationFile, catalogFile, outFile = datasetFile] = process.argv.slice(2)
-if (!datasetFile || !reconciliationFile || !catalogFile) fail('usage: node scripts/promote-release-dataset.mjs <dataset.json> <reconciliation-report.json> <codex-catalog.json> [out.json]')
+const [datasetFile, reconciliationFile, catalogFile, codexManifestFile, outFile = datasetFile] = process.argv.slice(2)
+if (!datasetFile || !reconciliationFile || !catalogFile || !codexManifestFile) fail('usage: node scripts/promote-release-dataset.mjs <dataset.json> <reconciliation-report.json> <codex-catalog.json> <codex-details.json> [out.json]')
 if (!fs.existsSync(datasetFile)) fail(`dataset not found: ${datasetFile}`)
 if (!fs.existsSync(reconciliationFile)) fail(`reconciliation report not found: ${reconciliationFile}`)
 const dataset = JSON.parse(fs.readFileSync(datasetFile, 'utf8'))
 const reconciliation = JSON.parse(fs.readFileSync(reconciliationFile, 'utf8'))
+if (!fs.existsSync(codexManifestFile)) fail('Codex detail manifest is required')
+const codexManifestBytes = fs.readFileSync(codexManifestFile)
+const codexManifest = JSON.parse(codexManifestBytes.toString('utf8'))
+const codexManifestSha256 = sha256(codexManifestBytes)
+if (!/^[0-9a-f]{64}$/.test(String(reconciliation.codexManifestSha256 || '')) || reconciliation.codexManifestSha256 !== codexManifestSha256) fail('reconciliation Codex manifest hash does not match exact detail manifest bytes')
 const items = dataset.items || {}, recipes = dataset.recipes || {}
+try { assertNoRetiredCraftingRoutes(dataset, codexManifest) } catch (error) { fail(error instanceof Error ? error.message : String(error)) }
 if (dataset.metadata?.supportedRegion !== 'KR') fail('supportedRegion must be KR')
 if (!Array.isArray(dataset.metadata?.sources) || dataset.metadata.sources.length < 2) fail('source provenance incomplete')
-if (!hasRecordedSourceRevision(dataset.metadata?.sourceRevision)) fail('sourceRevision must identify the canonical client snapshot; unrecorded provenance cannot be promoted')
+try {
+  assertReviewedExtractorRevision(dataset.metadata?.sourceRevision)
+  assertClientFingerprint(dataset.metadata?.clientFingerprint)
+} catch (error) { fail(error instanceof Error ? error.message : String(error)) }
 if (!dataset.metadata?.generatedAt) fail('generatedAt missing')
 if (reconciliation.status !== 'ZERO_UNEXPLAINED_DIFF' || (reconciliation.unresolved || []).length) fail('reconciliation is not ZERO_UNEXPLAINED_DIFF')
 const datasetRecipeCount = Object.keys(recipes).length
@@ -61,7 +69,7 @@ const missingLocalIcons = Object.values(items).filter((item) => !fs.existsSync(p
 if (missingLocalIcons.length) fail(`${missingLocalIcons.length} canonical local icon assets are missing; first ids: ${missingLocalIcons.slice(0, 20).map((item) => item.id).join(', ')}`)
 const unresolvedNames = Object.values(items).filter((item) => !String(item.nameKo || '').trim() || /^아이템 #\d+$/.test(String(item.nameKo)))
 if (unresolvedNames.length) fail(`${unresolvedNames.length} items have unresolved Korean names`)
-const promoted = { ...dataset, metadata: { ...dataset.metadata, status: 'COMPLETE_VERIFIED', counts, verifiedAt: new Date().toISOString(), reconciliationStatus: 'ZERO_UNEXPLAINED_DIFF', codexCatalogPages: codexCatalog.pages, codexCatalogCollectedAt: codexCatalog.collectedAt, codexCatalogSha256: codexCatalog.sha256 } }
+const promoted = { ...dataset, metadata: { ...dataset.metadata, status: 'COMPLETE_VERIFIED', counts, verifiedAt: new Date().toISOString(), reconciliationStatus: 'ZERO_UNEXPLAINED_DIFF', codexCatalogPages: codexCatalog.pages, codexCatalogCollectedAt: codexCatalog.collectedAt, codexCatalogSha256: codexCatalog.sha256, codexManifestSha256 } }
 delete promoted.metadata.fingerprint
 promoted.metadata.fingerprint = fingerprint(promoted)
 fs.writeFileSync(outFile, JSON.stringify(promoted, null, 2) + '\n')

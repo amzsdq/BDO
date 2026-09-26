@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveIngredientChoice } from './substitution'
+import { resolveIngredientChoice, resolveOwnedMixedIngredientAllocation } from './substitution'
 import type { IngredientSubstitutionGroup } from './types'
 
 const groups: Record<string, IngredientSubstitutionGroup> = {
@@ -31,9 +31,10 @@ describe('ingredient substitutions', () => {
     expect(resolveIngredientChoice({ itemId: 20, count: 5, substitutionGroupId: 'codex:3001' }, groups, { selectedItemId: 22 })).toEqual({ itemId: 22, count: 2, usedSubstitution: true })
   })
 
-  it('converts through the canonical recipe member worth when it is not the base member', () => {
-    expect(resolveIngredientChoice({ itemId: 21, count: 2, substitutionGroupId: 'codex:3001' }, groups, { selectedItemId: 20 })).toEqual({ itemId: 20, count: 4, usedSubstitution: true })
-    expect(resolveIngredientChoice({ itemId: 22, count: 2, substitutionGroupId: 'codex:3001' }, groups, { selectedItemId: 21 })).toEqual({ itemId: 21, count: 3, usedSubstitution: true })
+  it('allows equal-or-higher Worth but rejects lower Worth for a higher canonical recipe member', () => {
+    expect(resolveIngredientChoice({ itemId: 21, count: 2, substitutionGroupId: 'codex:3001' }, groups, { selectedItemId: 22 })).toEqual({ itemId: 22, count: 2, usedSubstitution: true })
+    expect(() => resolveIngredientChoice({ itemId: 21, count: 2, substitutionGroupId: 'codex:3001' }, groups, { selectedItemId: 20 })).toThrow(/insufficient Worth/)
+    expect(() => resolveIngredientChoice({ itemId: 22, count: 2, substitutionGroupId: 'codex:3001' }, groups, { selectedItemId: 21 })).toThrow(/insufficient Worth/)
   })
 
   it('ranks owned substitutes against their effective required quantity', () => {
@@ -42,6 +43,26 @@ describe('ingredient substitutions', () => {
       groups,
       { ownedByItemId: { '20': 4, '21': 3, '22': 1 } },
     )).toEqual({ itemId: 21, count: 3, usedSubstitution: true })
+  })
+
+  it('finds repeatable all-owned mixed Worth and rejects unsupported precision', () => {
+    expect(resolveOwnedMixedIngredientAllocation({ itemId: 20, count: 5, substitutionGroupId: 'codex:3001' }, groups, { '20': 1, '21': 2 }, 1))
+      .toEqual(expect.arrayContaining([{ itemId: 20, count: 1 }, { itemId: 21, count: 2 }]))
+    const unsupported = structuredClone(groups)
+    unsupported['codex:3001'].memberValueByItemId!['21'] = 1.25
+    expect(resolveOwnedMixedIngredientAllocation({ itemId: 20, count: 5, substitutionGroupId: 'codex:3001' }, unsupported, { '20': 1, '21': 4 }, 1)).toBeUndefined()
+  })
+
+  it('does not let lower-Worth honey replace an exact top-Worth requirement', () => {
+    const honey = {
+      'codex:6014': {
+        id: 'codex:6014', memberItemIds: [30, 31, 32, 33],
+        memberValueByItemId: { '30': 1, '31': 2, '32': 5, '33': 10 },
+        source: { provider: 'BDO Codex KR' as const, sourceId: '6014', verifiedAt: '2026-09-26' },
+      },
+    }
+    expect(() => resolveIngredientChoice({ itemId: 33, count: 2, substitutionGroupId: 'codex:6014' }, honey, { selectedItemId: 32 })).toThrow(/insufficient Worth/)
+    expect(resolveIngredientChoice({ itemId: 33, count: 2, substitutionGroupId: 'codex:6014' }, honey, { ownedByItemId: { '32': 99 } })).toEqual({ itemId: 33, count: 2, usedSubstitution: false })
   })
 
   it('fails closed for invalid sourced values', () => {

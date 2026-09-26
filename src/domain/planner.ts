@@ -10,7 +10,7 @@ import type {
   RecipeVariant,
   YieldPolicy,
 } from './types'
-import { resolveIngredientChoice } from './substitution'
+import { resolveIngredientChoice, resolveOwnedMixedIngredientAllocation } from './substitution'
 
 function positive(value: number, label: string): number {
   if (!Number.isFinite(value) || value <= 0) throw new Error(`${label} must be a positive finite number`)
@@ -23,10 +23,12 @@ function nonNegativeFinite(value: unknown, label: string): number {
   return numeric
 }
 
-function yieldFor(recipe: Recipe, policy: YieldPolicy): number {
-  if (policy === 'minimum') return positive(recipe.yield.min, 'recipe yield.min')
-  if (policy === 'maximum') return positive(recipe.yield.max, 'recipe yield.max')
-  return positive(recipe.yield.expected ?? recipe.yield.min, 'recipe yield.expected')
+function yieldFor(recipe: Recipe, policy: YieldPolicy, variant?: RecipeVariant): number {
+  const value = variant?.yield ?? recipe.yield
+  if (!value) throw new Error(`recipe ${recipe.id} variant ${variant?.id ?? '<legacy>'} lacks deterministic yield evidence`)
+  if (policy === 'minimum') return positive(value.min, 'recipe yield.min')
+  if (policy === 'maximum') return positive(value.max, 'recipe yield.max')
+  return positive(value.expected ?? value.min, 'recipe yield.expected')
 }
 
 function selectVariant(recipe: Recipe, requested?: string): RecipeVariant {
@@ -50,7 +52,9 @@ function recipeForIntermediate(dataset: RecipeDataset, itemId: ItemId, requested
 export function attemptsForTarget(recipe: Recipe, target: PlanTarget): number {
   positive(target.amount, 'target amount')
   if (target.mode === 'attempts') return Math.ceil(target.amount)
-  return Math.ceil(target.amount / yieldFor(recipe, target.yieldPolicy ?? 'minimum'))
+  const variant = selectVariant(recipe, target.variantId)
+  if (variant.outputEvidence && variant.outputEvidence.status !== 'single-base') throw new Error(`recipe ${recipe.id} variant ${variant.id} cannot deterministically plan an output target from ${variant.outputEvidence.status} evidence`)
+  return Math.ceil(target.amount / yieldFor(recipe, target.yieldPolicy ?? 'minimum', variant))
 }
 
 export function buildPlan(dataset: RecipeDataset, targets: readonly PlanTarget[], options: PlanOptions): PlanResult {
@@ -89,7 +93,17 @@ export function buildPlan(dataset: RecipeDataset, targets: readonly PlanTarget[]
 
       for (const input of variant.inputs) {
         const selectedSubstitute = input.substitutionGroupId ? options.selectedSubstitutionItemIdByGroupId?.[input.substitutionGroupId] : undefined
-        const resolvedInput = resolveIngredientChoice(input, dataset.substitutionGroups ?? {}, { selectedItemId: selectedSubstitute, ownedByItemId: options.haveByItemId })
+        const substitutionMembers = input.substitutionGroupId ? dataset.substitutionGroups?.[input.substitutionGroupId]?.memberItemIds ?? [] : []
+        const remainingOwned = options.haveByItemId ? Object.fromEntries(substitutionMembers.map((id) => [String(id), Math.max(0, nonNegativeFinite(options.haveByItemId?.[String(id)] ?? 0, `inventory item ${id}`) - (materialMap.get(id)?.required ?? 0))])) : undefined
+        const mixed = !selectedSubstitute && input.substitutionGroupId && remainingOwned
+          ? resolveOwnedMixedIngredientAllocation(input, dataset.substitutionGroups ?? {}, remainingOwned, attempts)
+          : undefined
+        if (mixed?.length) {
+          warnings.push(`대체품목 그룹 ${input.substitutionGroupId}: 보유 재료 ${mixed.length}종을 Worth 기준으로 혼합 사용합니다.`)
+          for (const allocation of mixed) addMaterial(allocation.itemId, positive(allocation.count, 'mixed ingredient count') * attempts, depth + 1, depth === 0, false)
+          continue
+        }
+        const resolvedInput = resolveIngredientChoice(input, dataset.substitutionGroups ?? {}, { selectedItemId: selectedSubstitute, ownedByItemId: remainingOwned, requiredMultiplier: attempts })
         if (resolvedInput.usedSubstitution && input.substitutionGroupId) warnings.push(`대체품목 그룹 ${input.substitutionGroupId}: item ${input.itemId} 대신 item ${resolvedInput.itemId}을 사용합니다.`)
         const inputItemId = resolvedInput.itemId
         const total = positive(resolvedInput.count, 'ingredient count') * attempts
@@ -100,8 +114,13 @@ export function buildPlan(dataset: RecipeDataset, targets: readonly PlanTarget[]
         if (shouldCraft && nested) {
           if (!requestedNestedId && recipeIds.length > 1) warnings.push(`중간재 item ${inputItemId}에 제작법 ${recipeIds.length}개가 있습니다. 현재 ${nested.id}을 사용 중입니다.`)
           const incrementalMissing = addMaterial(inputItemId, total, depth + 1, depth === 0, true)
-          const nestedAttempts = Math.ceil(incrementalMissing / yieldFor(nested, 'minimum'))
-          expandRecipe(nested, nestedAttempts, depth + 1)
+          if (incrementalMissing > 0) {
+            const nestedVariantId = options.variantIdByRecipeId?.[nested.id]
+            const nestedVariant = selectVariant(nested, nestedVariantId)
+            if (nestedVariant.outputEvidence && nestedVariant.outputEvidence.status !== 'single-base') throw new Error(`recipe ${nested.id} variant ${nestedVariant.id} cannot deterministically plan an intermediate output from ${nestedVariant.outputEvidence.status} evidence`)
+            const nestedAttempts = Math.ceil(incrementalMissing / yieldFor(nested, 'minimum', nestedVariant))
+            expandRecipe(nested, nestedAttempts, depth + 1, nestedVariantId)
+          }
         } else addMaterial(inputItemId, total, depth + 1, depth === 0, false)
       }
     } finally {

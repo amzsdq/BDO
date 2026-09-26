@@ -22,7 +22,7 @@ const mismatchManifest = { recipes: [{ recipeId: 999, skill: 'cooking', outputIt
 describe('Codex reconciliation', () => {
   it('earns ZERO_UNEXPLAINED_DIFF when canonical item ids and counts agree', () => {
     const { exitCode, report } = run(dataset, matchingManifest)
-    expect(exitCode).toBe(0); expect(report.status).toBe('ZERO_UNEXPLAINED_DIFF'); expect(report.unresolved).toEqual([]); expect(report.codexLiveRecipeIds).toEqual([999])
+    expect(exitCode).toBe(0); expect(report.status).toBe('ZERO_UNEXPLAINED_DIFF'); expect(report.unresolved).toEqual([]); expect(report.codexLiveRecipeIds).toEqual([999]); expect(report.codexAccountedRecipeIds).toEqual([999])
     expect(report.clientRecipes).toBe(1)
   })
   it('reports a deterministic signature mismatch when canonical ingredient counts differ', () => {
@@ -76,6 +76,25 @@ describe('Codex reconciliation', () => {
     expect(report.status).toBe('ZERO_UNEXPLAINED_DIFF')
     expect(report.codexLiveRecipeIds).toEqual([999, 1001])
   })
+  it('binds a variant signature to its explicit sourceRecipeId instead of any same-output Codex route', () => {
+    const bound = structuredClone(dataset)
+    bound.recipes.r.variants[0].sourceRecipeId = 999
+    const manifest = { recipes: [
+      { recipeId: 999, skill: 'cooking', outputItemId: 10, titleKo: '결과', ingredients: [{ itemId: 20, count: 3 }] },
+      { recipeId: 1001, skill: 'cooking', outputItemId: 10, titleKo: '결과', ingredients: [{ itemId: 20, count: 2 }] },
+    ] }
+    const { exitCode, report } = run(bound, manifest)
+    expect(exitCode).toBe(2)
+    expect(report.unresolved).toEqual(expect.arrayContaining([
+      expect.objectContaining({ kind: 'CLIENT_VARIANT_ONLY', variantId: 'v1', sourceRecipeId: 999, clientSignature: '#20:2', codexSignatures: ['#20:3'] }),
+    ]))
+  })
+  it('accepts an explicit sourceRecipeId when that exact source route signature matches', () => {
+    const bound = structuredClone(dataset)
+    bound.recipes.r.variants[0].sourceRecipeId = 999
+    const { exitCode, report } = run(bound, matchingManifest)
+    expect(exitCode).toBe(0); expect(report.status).toBe('ZERO_UNEXPLAINED_DIFF')
+  })
   it('keeps every client recipe sharing an output instead of overwriting the earlier recipe', () => {
     const withTwoRecipes = structuredClone(dataset)
     withTwoRecipes.recipes.r2 = { id: 'r2', skill: 'cooking', outputItemId: 10, variants: [{ id: 'v1', inputs: [{ itemId: 20, count: 3 }] }] }
@@ -87,9 +106,54 @@ describe('Codex reconciliation', () => {
       expect.objectContaining({ kind: 'CLIENT_VARIANT_ONLY', recipeId: 'r2', clientSignature: '#20:3' }),
     ]))
   })
+  it('keeps supplemental live routes in reconciliation but out of catalog accounting', () => {
+    const manifest = { schemaVersion: 2, complete: true, unresolvedCount: 0, recipes: [
+      { ...matchingManifest.recipes[0], catalogListed: true },
+      { ...matchingManifest.recipes[0], recipeId: 1001, catalogListed: false, discovery: 'catalog-gap-probe' },
+    ] }
+    const { exitCode, report } = run(dataset, manifest)
+    expect(exitCode).toBe(0)
+    expect(report.codexAccountedRecipeIds).toEqual([999])
+    expect(report.codexSupplementalRecipeIds).toEqual([1001])
+    expect(report.codexLiveRecipeIds).toEqual([999, 1001])
+    expect(report.codexSupplementalPages).toBe(1)
+  })
+  it('reconciles random-only supplemental routes by exact random output item id', () => {
+    const manifest = { schemaVersion: 2, complete: true, unresolvedCount: 0, recipes: [{
+      recipeId: 345, skill: 'cooking', status: 'random-only', catalogListed: false,
+      ingredients: [{ itemId: 20, count: 2 }], baseOutputs: [], randomOutputs: [{ itemId: 10, min: 1, max: 1 }],
+    }] }
+    const { exitCode, report } = run(dataset, manifest)
+    expect(exitCode).toBe(0)
+    expect(report.codexLiveRecipeIds).toEqual([345])
+    expect(report.codexSupplementalRecipeIds).toEqual([345])
+  })
+  it('accounts for supplemental no-output evidence without creating a reconciliation diff', () => {
+    const manifest = { schemaVersion: 2, complete: true, unresolvedCount: 0, recipes: [{
+      recipeId: 343, skill: 'alchemy', status: 'no-output', catalogListed: false,
+      titleKo: '출력 미게시 연금식', ingredients: [{ itemId: 20, count: 2 }], baseOutputs: [], randomOutputs: [],
+    }, { ...matchingManifest.recipes[0], catalogListed: true }] }
+    const { exitCode, report } = run(dataset, manifest)
+    expect(exitCode).toBe(0)
+    expect(report.codexSupplementalRecipeIds).toEqual([343])
+    expect(report.codexLiveRecipeIds).toEqual([999])
+  })
   it('keeps unavailable Codex recipes out of live completeness diffs and id evidence', () => {
     const { exitCode, report } = run(dataset, { recipes: [...matchingManifest.recipes, { recipeId: 1000, skill: 'alchemy', outputItemId: 77, titleKo: '퇴역', available: false, ingredients: [] }] })
-    expect(exitCode).toBe(0); expect(report.status).toBe('ZERO_UNEXPLAINED_DIFF'); expect(report.codexDisabledPages).toBe(1); expect(report.codexLiveRecipeIds).toEqual([999])
+    expect(exitCode).toBe(0); expect(report.status).toBe('ZERO_UNEXPLAINED_DIFF'); expect(report.codexDisabledPages).toBe(1); expect(report.codexLiveRecipeIds).toEqual([999]); expect(report.codexAccountedRecipeIds).toEqual([999, 1000])
+  })
+  it('understands schema-v2 unavailable status without legacy available=false', () => {
+    const manifest = { schemaVersion: 2, complete: true, unresolvedCount: 0, recipes: [...matchingManifest.recipes, { recipeId: 1000, skill: 'alchemy', status: 'unavailable', ingredients: [], baseOutputs: [], randomOutputs: [] }] }
+    const { exitCode, report } = run(dataset, manifest)
+    expect(exitCode).toBe(0); expect(report.codexDisabledPages).toBe(1); expect(report.codexLiveRecipeIds).toEqual([999])
+  })
+  it('fails closed before reconciliation when schema-v2 collection is unresolved', () => {
+    const manifest = { schemaVersion: 2, complete: false, unresolvedCount: 1, recipes: [{ recipeId: 999, skill: 'cooking', status: 'unresolved', ingredients: [] }] }
+    const dir = mkdtempSync(join(tmpdir(), 'bdo-reconcile-unresolved-'))
+    const datasetPath = join(dir, 'dataset.json'), codexPath = join(dir, 'codex.json')
+    writeFileSync(datasetPath, JSON.stringify(dataset)); writeFileSync(codexPath, JSON.stringify(manifest))
+    const result = spawnSync(process.execPath, ['scripts/reconcile-codex.mjs', '--dataset', datasetPath, '--codex', codexPath], { cwd: process.cwd(), encoding: 'utf8' })
+    expect(result.status).toBe(1); expect(result.stderr).toContain('complete with zero unresolved routes')
   })
   it.each([
     [['--bogus', 'x'], 'unknown argument: --bogus'],

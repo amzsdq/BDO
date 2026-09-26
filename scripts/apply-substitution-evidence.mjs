@@ -11,7 +11,7 @@ export function applySubstitutionEvidence(dataset, evidence) {
   const seenGroupIds = new Set()
   for (const group of evidence.groups) {
     const id = String(group.id || ''); const idMatch = id.match(/^codex:(\d+)$/)
-    if (!idMatch || !Array.isArray(group.members) || group.members.length < 2) throw new Error(`invalid substitution group ${id || '<missing>'}`)
+    if (!idMatch || !Array.isArray(group.members) || group.members.length < 1) throw new Error(`invalid substitution group ${id || '<missing>'}`)
     const sourceId = String(group.sourceId || '')
     if (sourceId !== idMatch[1]) throw new Error(`${id}: sourceId does not match canonical group id`)
     if (seenGroupIds.has(id)) throw new Error(`${id}: duplicate group evidence`)
@@ -31,7 +31,7 @@ export function applySubstitutionEvidence(dataset, evidence) {
   const groups = Object.values(next.substitutionGroups)
   for (const recipe of Object.values(next.recipes || {})) for (const variant of recipe.variants || []) for (const input of variant.inputs || []) {
     if (removedCodexIds.has(input.substitutionGroupId) || String(input.substitutionGroupId || '').startsWith('codex:')) delete input.substitutionGroupId
-    const matches = groups.filter((group) => group.memberItemIds.includes(input.itemId))
+    const matches = groups.filter((group) => group.memberItemIds.length >= 2 && group.memberItemIds.includes(input.itemId))
     if (matches.length > 1) throw new Error(`${recipe.id}/${variant.id}: item ${input.itemId} belongs to multiple sourced substitution groups`)
     if (matches.length === 1) input.substitutionGroupId = matches[0].id
   }

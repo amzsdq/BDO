@@ -22,6 +22,15 @@ describe('buildActivePlan', () => {
     expect(result.error).toMatch(/Cooking mastery is required/)
   })
 
+  it('passes Alchemy mastery into source-route requirement checks', () => {
+    const dataset = structuredClone(sampleDataset)
+    dataset.recipes['sample-cooking'].skill = 'alchemy'
+    dataset.recipes['sample-cooking'].variants[0].skillRequirement = { skill: 'alchemy', minimumMastery: 500 }
+    const input = { recipeId: 'sample-cooking', variantId: 'default', mode: 'servings' as const, amount: 12, skill: 'alchemy' as const }
+    expect(buildActivePlan(dataset, input, {}, { alchemyMastery: 499 }).error).toContain('Alchemy mastery 500+')
+    expect(buildActivePlan(dataset, input, {}, { alchemyMastery: 500 }).error).toBeUndefined()
+  })
+
   it('keeps ordinary servings exact', () => {
     const result = buildActivePlan(sampleDataset, {
       recipeId: 'sample-cooking', variantId: 'default', mode: 'servings', amount: 12,
@@ -33,7 +42,7 @@ describe('buildActivePlan', () => {
 
   it('labels output-target math as conservative when server yield is unknown', () => {
     const dataset = structuredClone(sampleDataset)
-    dataset.recipes['sample-cooking'].yield.provenance = 'unknown-server-yield'
+    dataset.recipes['sample-cooking'].yield!.provenance = 'unknown-server-yield'
     const result = buildActivePlan(dataset, {
       recipeId: 'sample-cooking', variantId: 'default', mode: 'output', amount: 20, skill: 'cooking',
     }, {}, {})
@@ -44,7 +53,7 @@ describe('buildActivePlan', () => {
 
   it('does not add the unknown-yield warning to exact servings mode', () => {
     const dataset = structuredClone(sampleDataset)
-    dataset.recipes['sample-cooking'].yield.provenance = 'unknown-server-yield'
+    dataset.recipes['sample-cooking'].yield!.provenance = 'unknown-server-yield'
     const result = buildActivePlan(dataset, {
       recipeId: 'sample-cooking', variantId: 'default', mode: 'servings', amount: 20, skill: 'cooking',
     }, {}, {})

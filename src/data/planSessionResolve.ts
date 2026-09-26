@@ -4,6 +4,7 @@ import type { PersistedPlanTarget } from './planSession'
 
 export interface ResolvePlanTargetContext {
   cookingMastery?: number
+  alchemyMastery?: number
   variantIdByRecipeId?: Readonly<Record<string, string>>
 }
 
@@ -23,6 +24,13 @@ export function resolvePlanTarget(
   if (!recipe) return { error: `unknown target recipe: ${persisted.recipeId}` }
   const variantId = persisted.variantId ?? context.variantIdByRecipeId?.[String(persisted.recipeId)]
   if (variantId && !recipe.variants.some((variant) => variant.id === variantId)) return { error: `unknown target variant: ${persisted.recipeId}/${variantId}` }
+  const selectedVariant = recipe.variants.find((variant) => variant.id === variantId) ?? recipe.variants[0]
+  const minimumMastery = selectedVariant?.skillRequirement?.minimumMastery
+  if (minimumMastery != null) {
+    const mastery = recipe.skill === 'cooking' ? context.cookingMastery : context.alchemyMastery
+    if (mastery == null) return { error: `${recipe.skill === 'cooking' ? 'Cooking' : 'Alchemy'} mastery ${minimumMastery}+ is required for the selected source route` }
+    if (mastery < minimumMastery) return { error: `${recipe.skill === 'cooking' ? 'Cooking' : 'Alchemy'} mastery ${minimumMastery}+ is required for the selected source route (current ${mastery})` }
+  }
 
   if (persisted.mode === 'output') {
     if (!Number.isInteger(persisted.amount)) return { error: 'desired output quantity must be a positive integer' }

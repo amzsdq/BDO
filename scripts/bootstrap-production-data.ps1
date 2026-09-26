@@ -64,6 +64,15 @@ Require-Command "go" | Out-Null
 Require-Command "node" | Out-Null
 Require-Command "npm" | Out-Null
 
+$GoVersionText = (& go version).Trim()
+$GoVersionMatch = [regex]::Match($GoVersionText, 'go(\d+)\.(\d+)(?:\.(\d+))?')
+if (-not $GoVersionMatch.Success) { throw "Could not parse Go version: $GoVersionText" }
+$GoMajor = [int]$GoVersionMatch.Groups[1].Value
+$GoMinor = [int]$GoVersionMatch.Groups[2].Value
+if ($GoMajor -lt 1 -or ($GoMajor -eq 1 -and $GoMinor -lt 26)) {
+  throw "Go 1.26+ is required by the reviewed extractor revision; found $GoVersionText"
+}
+
 Write-Host "[1/6] Installing reviewed extractor commit $ExtractorRevision"
 & go install "github.com/iDevelopThings/bdo-data-extractor@$ExtractorRevision"
 if ($LASTEXITCODE -ne 0) { throw "go install failed" }
@@ -80,29 +89,38 @@ Write-Host "[3/6] Extracting canonical item icons"
 & $Extractor icons --game $ResolvedGameDir --out $ResolvedOutDir
 if ($LASTEXITCODE -ne 0) { throw "bdo-data-extractor icons failed" }
 
-$Items = Join-Path $ResolvedOutDir "data\items.json"
-$Recipes = Join-Path $ResolvedOutDir "data\recipes.json"
-$Mastery = Join-Path $ResolvedOutDir "data\mastery.json"
+$Items = Join-Path $ResolvedOutDir "items.json"
+$Recipes = Join-Path $ResolvedOutDir "recipes.json"
+$Mastery = Join-Path $ResolvedOutDir "mastery.json"
 foreach ($required in @($Items, $Recipes, $Mastery)) {
   if (-not (Test-Path $required)) { throw "Expected extractor output missing: $required" }
 }
 
 $ExtractedAt = [DateTime]::UtcNow.ToString("o")
-$ClientExe = Get-ChildItem -Path $ResolvedGameDir -Filter "BlackDesert*.exe" -Recurse -File -ErrorAction SilentlyContinue |
-  Sort-Object FullName |
-  Select-Object -First 1
-if ($ClientExe) {
-  $ClientHash = (Get-FileHash $ClientExe.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-  $ClientVersion = $ClientExe.VersionInfo.FileVersion
-} else {
-  $Paz = Get-ChildItem -Path $ResolvedGameDir -Filter "*.PAZ" -Recurse -File -ErrorAction SilentlyContinue |
-    Sort-Object FullName |
-    Select-Object -First 1
-  if (-not $Paz) { throw "Could not find a Black Desert executable or PAZ file for client fingerprinting." }
-  $ClientHash = (Get-FileHash $Paz.FullName -Algorithm SHA256).Hash.ToLowerInvariant()
-  $ClientVersion = $null
+$MetaPath = Join-Path $ResolvedGameDir "Paz\pad00000.meta"
+if (-not (Test-Path $MetaPath -PathType Leaf)) { throw "Extractor fingerprint source missing: $MetaPath" }
+$AdsVersionPath = Join-Path $ResolvedGameDir "ads_version"
+$Sha = [System.Security.Cryptography.SHA256]::Create()
+try {
+  foreach ($FingerprintPath in @($MetaPath, $AdsVersionPath)) {
+    if (-not (Test-Path $FingerprintPath -PathType Leaf)) { continue }
+    $Stream = [System.IO.File]::OpenRead($FingerprintPath)
+    try {
+      $Buffer = New-Object byte[] 1048576
+      while (($Read = $Stream.Read($Buffer, 0, $Buffer.Length)) -gt 0) {
+        [void]$Sha.TransformBlock($Buffer, 0, $Read, $Buffer, 0)
+      }
+    } finally {
+      $Stream.Dispose()
+    }
+  }
+  [void]$Sha.TransformFinalBlock((New-Object byte[] 0), 0, 0)
+  $ClientHash = ([System.BitConverter]::ToString($Sha.Hash) -replace '-', '').ToLowerInvariant()
+} finally {
+  $Sha.Dispose()
 }
 $ClientFingerprint = "sha256:$ClientHash"
+$ExtractorGameFingerprint = $ClientHash.Substring(0, 16)
 $SourceRevision = "iDevelopThings/bdo-data-extractor@$ExtractorRevision"
 
 Write-Host "[4/6] Recording same-snapshot provenance"
@@ -118,7 +136,8 @@ $Provenance = [ordered]@{
   extractorRevision = $ExtractorRevision
   extractedAt = $ExtractedAt
   clientFingerprint = $ClientFingerprint
-  clientFileVersion = $ClientVersion
+  extractorGameFingerprint = $ExtractorGameFingerprint
+  fingerprintInputs = @("Paz/pad00000.meta", "ads_version-if-present")
   gameDirectoryRecorded = $false
   artifactSha256 = $Hashes
 }
@@ -129,7 +148,7 @@ Write-Host "[5/6] Importing Cooking/Alchemy graph into planner schema"
 $Dataset = Join-Path $ResolvedOutDir "client-dataset.json"
 Push-Location $RepoRoot
 try {
-  & node scripts/import-scoped-bdo-extractor.mjs --items $Items --recipes $Recipes --out $Dataset --source-revision $SourceRevision
+  & node scripts/import-scoped-bdo-extractor.mjs --items $Items --recipes $Recipes --out $Dataset --source-revision $SourceRevision --client-fingerprint $ClientFingerprint
   if ($LASTEXITCODE -ne 0) { throw "planner structural import failed" }
 
   Write-Host "[6/6] Building mastery cross-check evidence"
@@ -147,4 +166,5 @@ Write-Host "dataset=$Dataset"
 Write-Host "provenance=$ProvenancePath"
 Write-Host "extractorRevision=$ExtractorRevision"
 Write-Host "clientFingerprint=$ClientFingerprint"
+Write-Host "extractorGameFingerprint=$ExtractorGameFingerprint"
 Write-Host "Next: collect Codex KR catalog evidence, enrich Korean names/icons, reconcile, then run release gate."

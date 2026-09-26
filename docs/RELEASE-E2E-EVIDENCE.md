@@ -12,13 +12,14 @@ The validator fails closed unless the manifest binds all of the following: exact
 
 Each scenario evidence pointer must be either an HTTPS URL or an existing file path relative to the manifest. Local paths are existence-checked and their bytes are hashed at validation time; a hash mismatch fails the gate. HTTPS evidence must still record `evidenceSha256` so the preserved artifact has an immutable content identity even when the validator cannot fetch the remote object. Plain labels, insecure HTTP URLs, missing files, and missing hashes are rejected.
 
-The final production gate requires this manifest as its sixth artifact. It reruns the existing production dataset/mastery gates, compares `mainCommit` against `git rev-parse HEAD`, then cross-checks the manifest's dataset fingerprint, reconciliation artifact SHA/timestamp, mastery-evidence SHA, and mastery snapshot SHA against the exact five production artifacts supplied in the same invocation:
+The final production gate requires this E2E manifest together with six data/mastery evidence artifacts: promoted dataset, reconciliation report, independently complete Codex catalog, exact Codex detail manifest, mastery evidence, and the exact mastery snapshot. The Codex detail bytes are hash-bound through reconciliation and promoted metadata, and the release dataset gate also rejects any reviewed retired crafting route that survives in the final dataset. The gate compares `mainCommit` against `git rev-parse HEAD` and cross-checks all bound fingerprints against the exact artifacts supplied in the same invocation:
 
 ```bash
 npm run data:release-gate -- \
   public/data/dataset.json \
   <reconciliation-report.json> \
   <codex-catalog.json> \
+  <codex-details.json> \
   <mastery-evidence.json> \
   <mastery.json> \
   <release-e2e-evidence.json>

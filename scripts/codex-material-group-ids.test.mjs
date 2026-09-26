@@ -14,6 +14,10 @@ describe('Codex recipe material-group id evidence', () => {
     expect(materialGroupIdsFromCodexRecipeEvidence(evidence)).toEqual(['3001', '6002', '6407'])
   })
 
+  it('accepts materialGroupIds emitted by unified item evidence', () => {
+    expect(materialGroupIdsFromCodexRecipeEvidence({ items: [{ itemId: 9203, materialGroupIds: ['6503'] }, { itemId: 9282, materialGroupIds: ['6503', '805'] }] })).toEqual(['805', '6503'])
+  })
+
   it('does not reinterpret generic recipe/item ids as material groups', () => {
     expect(materialGroupIdsFromCodexRecipeEvidence({ id: 3001, materials: [{ id: 6002 }] })).toEqual([])
   })

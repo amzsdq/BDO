@@ -32,6 +32,28 @@ describe('planner state portability', () => {
     })
   })
 
+  it('rolls back every persisted key when reset fails partway through', () => {
+    const values = new Map<string, string>([
+      ['bdo-planner:checklist:v1', '{"100":true}'],
+      ['bdo-planner:inventory:v1', '{"100":7}'],
+      ['bdo-planner:character-profile:v1', '{"maxWeightLT":1200}'],
+      ['bdo-planner:plan-session:v1', '{"version":2}'],
+    ])
+    let removals = 0
+    const storage = {
+      getItem: (key: string) => values.get(key) ?? null,
+      setItem: (key: string, value: string) => { values.set(key, value) },
+      removeItem: (key: string) => { removals += 1; if (removals === 3) throw new Error('quota fault'); values.delete(key) },
+    }
+    expect(() => resetPlannerState(storage)).toThrow('quota fault')
+    expect(Object.fromEntries(values)).toEqual({
+      'bdo-planner:checklist:v1': '{"100":true}',
+      'bdo-planner:inventory:v1': '{"100":7}',
+      'bdo-planner:character-profile:v1': '{"maxWeightLT":1200}',
+      'bdo-planner:plan-session:v1': '{"version":2}',
+    })
+  })
+
   it('clears checklist, inventory, profile and session together on explicit reset', () => {
     const storage = memoryStorage()
     writePlanSession(createInitialPlanSession(sampleDataset), storage)

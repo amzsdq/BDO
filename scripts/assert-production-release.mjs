@@ -3,22 +3,28 @@ import { spawnSync } from 'node:child_process'
 import { assertKoreanNameReleaseEvidence } from './korean-name-release-evidence.mjs'
 import { assertYieldReleaseEvidence } from './yield-release-evidence.mjs'
 import { assertReleaseE2eBindings } from './release-e2e-bindings.mjs'
+import { assertClientFingerprint, assertReviewedExtractorRevision } from './production-source-contract.mjs'
+import { assertProductionWebEvidenceBindings } from './production-web-evidence-bindings.mjs'
 
 function fail(message) { console.error(`release blocked: ${message}`); process.exit(1) }
 const args = process.argv.slice(2)
-if (args.length !== 6 || args.some((value) => !value || value.startsWith('--'))) fail('usage: node scripts/assert-production-release.mjs <dataset.json> <reconciliation-report.json> <codex-catalog.json> <mastery-evidence.json> <mastery.json> <e2e-release-evidence.json>')
-const [datasetFile, reconciliationFile, catalogFile, masteryEvidenceFile, masteryFile, e2eEvidenceFile] = args
-for (const file of [datasetFile, reconciliationFile, catalogFile, masteryEvidenceFile, masteryFile, e2eEvidenceFile]) {
-  if (!fs.existsSync(file)) fail(`required release artifact not found: ${file}`)
-}
+if (args.length !== 7 || args.some((value) => !value || value.startsWith('--'))) fail('usage: node scripts/assert-production-release.mjs <dataset.json> <reconciliation-report.json> <codex-catalog.json> <codex-details.json> <mastery-evidence.json> <mastery.json> <e2e-release-evidence.json>')
+const [datasetFile, reconciliationFile, catalogFile, codexManifestFile, masteryEvidenceFile, masteryFile, e2eEvidenceFile] = args
+if (!fs.existsSync(datasetFile)) fail(`required release artifact not found: ${datasetFile}`)
 let dataset
 try {
   dataset = JSON.parse(fs.readFileSync(datasetFile, 'utf8'))
+  assertReviewedExtractorRevision(dataset.metadata?.sourceRevision)
+  assertClientFingerprint(dataset.metadata?.clientFingerprint)
   assertKoreanNameReleaseEvidence(dataset)
   assertYieldReleaseEvidence(dataset)
+  assertProductionWebEvidenceBindings(dataset)
 } catch (error) { fail(error instanceof Error ? error.message : String(error)) }
+for (const file of [reconciliationFile, catalogFile, codexManifestFile, masteryEvidenceFile, masteryFile, e2eEvidenceFile]) {
+  if (!fs.existsSync(file)) fail(`required release artifact not found: ${file}`)
+}
 
-const readinessArgs = [datasetFile, reconciliationFile, catalogFile, masteryEvidenceFile, masteryFile]
+const readinessArgs = [datasetFile, reconciliationFile, catalogFile, codexManifestFile, masteryEvidenceFile, masteryFile]
 const existingGate = spawnSync(process.execPath, ['scripts/assert-release-readiness.mjs', ...readinessArgs], { cwd: process.cwd(), encoding: 'utf8' })
 if (existingGate.status !== 0) { process.stderr.write(existingGate.stderr || existingGate.stdout || 'release blocked: existing readiness gate failed\n'); process.exit(1) }
 
