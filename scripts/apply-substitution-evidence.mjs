@@ -1,9 +1,6 @@
 #!/usr/bin/env node
 import fs from 'node:fs'
-
-const REVIEWED_GENERIC_ROUTE_BINDINGS = new Set([
-  112, 113, 123, 125, 127, 136, 144, 154, 159, 168, 195, 477, 478, 491, 510, 513, 570, 586, 606,
-].map((sourceRecipeId) => `${sourceRecipeId}|codex:6009`))
+import { REVIEWED_GENERIC_ROUTE_BINDINGS, SUBSTITUTION_BINDING_POLICY, SUBSTITUTION_BINDING_POLICY_SHA256 } from './substitution-binding-policy.mjs'
 export function applySubstitutionEvidence(dataset, evidence) {
   if (!evidence || evidence.source !== 'BDO Codex KR' || !Array.isArray(evidence.groups)) throw new Error('invalid substitution evidence envelope')
   const collectedAt = evidence.collectedAt
@@ -46,7 +43,8 @@ export function applySubstitutionEvidence(dataset, evidence) {
     if (matches.length === 1) input.substitutionGroupId = matches[0].id
   }
   next.metadata ||= {}; next.metadata.sources = [...new Set([...(next.metadata.sources || []), 'BDO Codex KR material-group Worth evidence'])]
-  next.metadata.substitutionBindingPolicy = { version: 2, policy: 'reviewed-route-base-worth-only', reviewedRouteBindings: [...REVIEWED_GENERIC_ROUTE_BINDINGS].sort() }
+  next.metadata.substitutionBindingPolicy = structuredClone(SUBSTITUTION_BINDING_POLICY)
+  next.metadata.substitutionBindingPolicySha256 = SUBSTITUTION_BINDING_POLICY_SHA256
   return next
 }
 if (process.argv[1] && process.argv[1].endsWith('apply-substitution-evidence.mjs')) {
