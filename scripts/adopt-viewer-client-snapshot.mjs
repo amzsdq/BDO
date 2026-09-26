@@ -28,8 +28,11 @@ if (fs.existsSync(ads)) fingerprintParts.push(fs.readFileSync(ads))
 const clientHash = sha256Bytes(fingerprintParts)
 if (manifest.gameFingerprint !== clientHash.slice(0, 16)) fail('viewer manifest gameFingerprint does not match installed client bytes')
 for (const name of ['items.json', 'recipes.json', 'mastery.json']) if (!fs.existsSync(path.join(viewerDir, name))) fail(`viewer extraction artifact missing: ${name}`)
+const viewerIcons = path.join(viewerDir, 'icons')
+if (!fs.existsSync(viewerIcons) || !fs.statSync(viewerIcons).isDirectory()) fail('viewer extraction icons directory is missing')
 fs.mkdirSync(outDir, { recursive: true })
 for (const name of ['items.json', 'recipes.json', 'mastery.json']) fs.copyFileSync(path.join(viewerDir, name), path.join(outDir, name))
+fs.cpSync(viewerIcons, path.join(outDir, 'icons'), { recursive: true })
 fs.copyFileSync(serviceIni, path.join(outDir, 'service.ini'))
 const artifactSha256 = Object.fromEntries(['items.json','recipes.json','mastery.json','service.ini'].map(name => [name, sha256File(path.join(outDir, name))]))
 const provenance = {
@@ -45,6 +48,7 @@ const provenance = {
   extractorGameFingerprint: clientHash.slice(0, 16),
   fingerprintInputs: ['Paz/pad00000.meta', 'ads_version-if-present'],
   gameDirectoryRecorded: false,
+  iconsSnapshotCopied: true,
   regionEvidence: { file: 'service.ini', type: 'KR', sha256: artifactSha256['service.ini'] },
   artifactSha256,
 }

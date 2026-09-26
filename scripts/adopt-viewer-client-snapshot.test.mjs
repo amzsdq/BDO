@@ -9,9 +9,10 @@ function hash(parts) { const h=crypto.createHash('sha256'); for (const p of part
 describe('adopt-viewer-client-snapshot', () => {
   it('binds reviewed viewer output to exact KR client bytes and rejects relabeling', () => {
     const root=fs.mkdtempSync(path.join(os.tmpdir(),'bdo-viewer-adopt-')), viewer=path.join(root,'viewer'), game=path.join(root,'game'), out=path.join(root,'out')
-    fs.mkdirSync(viewer); fs.mkdirSync(path.join(game,'Paz'),{recursive:true})
+    fs.mkdirSync(viewer); fs.mkdirSync(path.join(viewer,'icons')); fs.mkdirSync(path.join(game,'Paz'),{recursive:true})
     fs.writeFileSync(path.join(game,'Paz','pad00000.meta'),'meta'); fs.writeFileSync(path.join(game,'ads_version'),'3'); fs.writeFileSync(path.join(game,'service.ini'),'TYPE=KR\r\n')
     for (const name of ['items.json','recipes.json','mastery.json']) fs.writeFileSync(path.join(viewer,name),'[]')
+    fs.writeFileSync(path.join(viewer,'icons','1.png'),'icon-bytes')
     const fp=hash([Buffer.from('meta'),Buffer.from('3')])
     fs.writeFileSync(path.join(viewer,'manifest.json'),JSON.stringify({gameFingerprint:fp.slice(0,16),appVersion:'0.1.12',lang:'en',region:'kr',extractedAt:'2026-09-26T00:00:00Z'}))
     const run=spawnSync(process.execPath,['scripts/adopt-viewer-client-snapshot.mjs',viewer,game,out],{cwd:process.cwd(),encoding:'utf8'})
@@ -21,6 +22,8 @@ describe('adopt-viewer-client-snapshot', () => {
     expect(provenance.extractorRevision).toBe('5bf11bd7bc60dcbb6126be34bf3d76633abdd8b2')
     expect(provenance.regionEvidence.type).toBe('KR')
     expect(provenance.regionEvidence.sha256).toBe(provenance.artifactSha256['service.ini'])
+    expect(provenance.iconsSnapshotCopied).toBe(true)
+    expect(fs.readFileSync(path.join(out,'icons','1.png'),'utf8')).toBe('icon-bytes')
     fs.writeFileSync(path.join(game,'service.ini'),'TYPE=NA\r\n')
     const bad=spawnSync(process.execPath,['scripts/adopt-viewer-client-snapshot.mjs',viewer,game,path.join(root,'bad')],{cwd:process.cwd(),encoding:'utf8'})
     expect(bad.status).not.toBe(0); expect(bad.stderr).toMatch(/TYPE=KR/)
