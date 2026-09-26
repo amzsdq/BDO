@@ -27,7 +27,8 @@ The current 2026-01-30 BDFoundry guides now support a deliberately small additio
 - Alchemy recipe 14 Elixir of Swiftness: Arrow Mushroom x5, with reviewed planning Worth 1/3/18/108 for normal/big/high/special.
 - Alchemy recipe 54 Clown's Blood: Blood Type 1 x2, with Wolf/Rhino/Cheetah Dragon/Flamingo blood all planning Worth 1.
 - Cooking recipe 129 Soft Bread: required base Worth 6; Wheat Dough is Worth 1 while Barley/Corn/Potato/Sweet Potato Dough are Worth 2.
-- Cooking recipes 109/548 Essence of Liquor and 110/549 Vinegar: current guide directly identifies generic flour/grain/fruit slots. Flour members are planning Worth 1; base grains are Worth 1 with 1/3/18 quality scaling; fruit uses 1/6/36 quality scaling.\n- Cooking recipe 166 Grilled Sausage: Pepper x2 and Onion x1 are exact reviewed slots; both use current 1/3/18 planning Worth. Same-title alternate routes are not implied.
+- Cooking recipes 109/548 Essence of Liquor and 110/549 Vinegar: current guide directly identifies generic flour/grain/fruit slots. Flour members are planning Worth 1; base grains are Worth 1 with 1/3/18 quality scaling; fruit uses 1/6/36 quality scaling.
+- Cooking recipe 166 Grilled Sausage: Pepper x2 and Onion x1 are exact reviewed slots; both use current 1/3/18 planning Worth. Same-title alternate routes are not implied.
 
 For these reviewed slots, Codex member Worth remains preserved as source provenance, while `planningValueByItemId` stores the independently reviewed game-planning semantics. `requiredBaseWorth` is explicit per route slot, so a higher-Worth Codex canonical input cannot silently distort the recipe requirement. Any other slot remains exact.
 
