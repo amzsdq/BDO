@@ -56,9 +56,9 @@ if (provenance.source === 'installed Black Desert client via reviewed bdo-viewer
   const files = []
   const walk = (dir) => { for (const entry of fs.readdirSync(dir, { withFileTypes: true })) { const full = path.join(dir, entry.name); if (entry.isDirectory()) walk(full); else if (entry.isFile()) files.push(full); else throw new Error(`unsupported viewer icon snapshot entry: ${full}`) } }
   walk(iconRoot)
-  files.sort((a, b) => path.relative(iconRoot, a).replaceAll('\\\\', '/').localeCompare(path.relative(iconRoot, b).replaceAll('\\\\', '/')))
+  files.sort((a, b) => path.relative(iconRoot, a).split(String.fromCharCode(92)).join('/').localeCompare(path.relative(iconRoot, b).split(String.fromCharCode(92)).join('/')))
   const h = crypto.createHash('sha256')
-  for (const file of files) { h.update(path.relative(iconRoot, file).replaceAll('\\\\', '/')); h.update('\0'); h.update(fs.readFileSync(file)); h.update('\0') }
+  for (const file of files) { h.update(path.relative(iconRoot, file).split(String.fromCharCode(92)).join('/')); h.update('\0'); h.update(fs.readFileSync(file)); h.update('\0') }
   if (h.digest('hex') !== recordedIcons) throw new Error('viewer icons snapshot SHA-256 does not match same-snapshot provenance')
 }
 const items = path.join(root, 'items.json'), recipes = path.join(root, 'recipes.json')

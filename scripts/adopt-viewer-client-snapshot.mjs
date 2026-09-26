@@ -13,9 +13,9 @@ function sha256Tree(root) {
   const files = []
   const walk = (dir) => { for (const entry of fs.readdirSync(dir, { withFileTypes: true })) { const full = path.join(dir, entry.name); if (entry.isDirectory()) walk(full); else if (entry.isFile()) files.push(full); else fail(`unsupported icon snapshot entry: ${full}`) } }
   walk(root)
-  files.sort((a, b) => path.relative(root, a).replaceAll('\\\\', '/').localeCompare(path.relative(root, b).replaceAll('\\\\', '/')))
+  files.sort((a, b) => path.relative(root, a).split(String.fromCharCode(92)).join('/').localeCompare(path.relative(root, b).split(String.fromCharCode(92)).join('/')))
   const h = crypto.createHash('sha256')
-  for (const file of files) { h.update(path.relative(root, file).replaceAll('\\\\', '/')); h.update('\0'); h.update(fs.readFileSync(file)); h.update('\0') }
+  for (const file of files) { h.update(path.relative(root, file).split(String.fromCharCode(92)).join('/')); h.update('\0'); h.update(fs.readFileSync(file)); h.update('\0') }
   return h.digest('hex')
 }
 function parseServiceType(text) { return text.replace(/^\uFEFF/, '').match(/^\s*TYPE\s*=\s*([^\r\n;#]+)/im)?.[1]?.trim().toUpperCase() || '' }
