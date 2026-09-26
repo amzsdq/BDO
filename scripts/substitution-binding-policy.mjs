@@ -68,6 +68,17 @@ export const SUBSTITUTION_BINDING_POLICY = Object.freeze({
       planningValueByItemId: Object.freeze({ '7301': 1, '7323': 3, '7335': 18 }),
       requiredBaseWorthByRouteSlot: Object.freeze({ '166|7301': 2 }), sourceRecipeIds: Object.freeze([166]),
     }),
+    'codex:6005': Object.freeze({
+      semantics: 'generic-garlic-worth', reviewedAt: '2026-09-26',
+      sourceEvidence: Object.freeze([
+        Object.freeze({ role: 'current-substitution-semantics', url: 'https://www.blackdesertfoundry.com/cooking-guide/', sourceUpdatedAt: '2026-01-30', observedAt: '2026-09-26' }),
+        Object.freeze({ role: 'current-route', url: 'https://bdocodex.com/us/recipe/140/', observedAt: '2026-09-26' }),
+        Object.freeze({ role: 'current-group-membership-worth', url: 'https://bdocodex.com/kr/materialgroup/6005/', observedAt: '2026-09-26' }),
+      ]),
+      expectedMemberWorthByItemId: Object.freeze({ '7302': 1, '7324': 6, '7336': 36 }),
+      planningValueByItemId: Object.freeze({ '7302': 1, '7324': 3, '7336': 18 }),
+      requiredBaseWorthByRouteSlot: Object.freeze({ '140|7302': 2 }), sourceRecipeIds: Object.freeze([140]),
+    }),
     'codex:6006': Object.freeze({
       semantics: 'generic-onion-worth', reviewedAt: '2026-09-26',
       sourceEvidence: Object.freeze([
