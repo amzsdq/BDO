@@ -33,6 +33,15 @@ export function applySubstitutionEvidence(dataset, evidence) {
       const expectedEntries = Object.entries(expected).sort(([a], [b]) => Number(a) - Number(b))
       const actualEntries = Object.entries(memberValueByItemId).sort(([a], [b]) => Number(a) - Number(b))
       if (JSON.stringify(actualEntries) !== JSON.stringify(expectedEntries)) throw new Error(`${id}: reviewed member Worth evidence drifted from policy`)
+      if (reviewed.planningValueByItemId) {
+        const planningEntries = Object.entries(reviewed.planningValueByItemId).sort(([a], [b]) => Number(a) - Number(b))
+        if (JSON.stringify(planningEntries.map(([itemId]) => itemId)) !== JSON.stringify(expectedEntries.map(([itemId]) => itemId))) {
+          throw new Error(`${id}: reviewed planning semantics must cover the exact reviewed member set`)
+        }
+        if (planningEntries.some(([, value]) => !Number.isFinite(Number(value)) || Number(value) <= 0)) {
+          throw new Error(`${id}: reviewed planning semantics contain invalid Worth`)
+        }
+      }
     }
     next.substitutionGroups[id] = {
       id,
