@@ -44,7 +44,7 @@ describe('prepare-client-broad-from-snapshot', () => {
     const iconsDir = path.join(dir, 'icons')
     fs.mkdirSync(iconsDir)
     fs.writeFileSync(path.join(iconsDir, '1.webp'), 'icon-one')
-    const viewerProvenance = JSON.parse(fs.readFileSync(provenancePath, 'utf8').replace(/^\\uFEFF/, ''))
+    const viewerProvenance = JSON.parse(fs.readFileSync(provenancePath, 'utf8').slice(1))
     viewerProvenance.source = 'installed Black Desert client via reviewed bdo-viewer'
     viewerProvenance.iconsSnapshotSha256 = iconTreeHash(iconsDir)
     fs.writeFileSync(provenancePath, JSON.stringify(viewerProvenance))
