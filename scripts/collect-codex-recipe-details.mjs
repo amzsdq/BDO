@@ -44,6 +44,14 @@ function logicalRows(card) {
   return starts.map((start, index) => card.slice(start, starts[index + 1] ?? card.length))
 }
 
+function isEmptyCodexRecipeShell(html) {
+  if (balancedDivByClass(html, ['card', 'item_info'])) return false
+  const emptyTitle = /<title>\s*-\s*BDO\s+Codex\s*<\/title>/i.test(html)
+  const emptyOgTitle = /<meta\b[^>]*property=["']og:title["'][^>]*content=["']\s*-\s*BDO\s+Codex\s*["'][^>]*>/i.test(html)
+    || /<meta\b[^>]*content=["']\s*-\s*BDO\s+Codex\s*["'][^>]*property=["']og:title["'][^>]*>/i.test(html)
+  return emptyTitle && emptyOgTitle
+}
+
 export function detectCodexRecipeIdentity(html, expectedRecipeId) {
   const card = balancedDivByClass(html, ['card', 'item_info'])
   if (!card) return null
@@ -309,6 +317,10 @@ export async function collectCodexRecipeDetails(catalogManifest, { fetchImpl = f
           parsed = parseCodexRecipeDetailHtml(html, route.recipeId, route.skill)
         } else {
           const identity = detectCodexRecipeIdentity(html, route.recipeId)
+          if (!identity && isEmptyCodexRecipeShell(html)) {
+            results[index] = null
+            continue
+          }
           if (!identity) throw new Error(`gap probe ${route.recipeId}: recipe identity missing`)
           try {
             parsed = parseCodexRecipeDetailHtml(html, route.recipeId, identity.skill)
