@@ -6,7 +6,7 @@ Current reviewed release: `v0.1.9` (published 2026-08-15)
 
 ## Version floor
 
-Use **v0.1.9 or newer** for a fresh client extraction. Record the exact tag/commit in dataset provenance.
+Production extraction is pinned to the exact reviewed commit `5bf11bd7bc60dcbb6126be34bf3d76633abdd8b2` (upstream v0.1.9 at review time). Do not silently accept a newer tag/commit: review it first, update `production-source-contract.mjs`, and record the exact commit in dataset provenance.
 
 Why the floor matters:
 

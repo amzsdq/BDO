@@ -46,7 +46,7 @@ A dataset may be marked `COMPLETE_VERIFIED` only when all of these hold:
 8. extractor-marked byproduct-only outputs are not exposed as directly craftable target recipes;
 9. independently complete Cooking and Alchemy Codex catalogs exist, with exact positive counts and recipe-page ID sets;
 10. Codex reconciliation covers exactly that complete catalog count and recipe-page ID set and has zero unexplained canonical output/signature differences; differing Codex page IDs alone are never a missing-recipe signal;
-11. every UI-visible item has an icon resolution result (local extracted icon, approved remote icon, or explicit reviewed fallback);
+11. every UI-visible item has its canonical local `icons/<itemId>.webp` asset installed and verified by the release icon manifest; remote/fallback icons are resilience only and do not satisfy production release;
 12. provenance records extraction/source timestamps, a non-placeholder canonical client source revision, and dataset fingerprint.
 
 Any unexplained diff, incomplete catalog evidence, catalog/reconciliation count mismatch, or recipe-ID-set mismatch keeps the dataset unreleasable.
