@@ -8,7 +8,7 @@ Missing Cooking or Alchemy recipes are a release blocker.
 
 The strongest known completeness path is the installed game client's own recipe data. The open-source `iDevelopThings/bdo-data-extractor` project documents and extracts per-item recipe XMLs into `recipes.json`, with item localization and icons into `items.json`.
 
-RRuleRO/BDO does not vendor that project's implementation or game assets by default. Instead, BDO will provide an importer for its documented JSON output and record the extractor/version/source timestamp in provenance metadata.
+BDO does not vendor that project's implementation or game assets by default. Instead, BDO will provide an importer for its documented JSON output and record the extractor/version/source timestamp in provenance metadata.
 
 This path exists because a manually maintained community list can be stale or incomplete.
 
@@ -47,7 +47,7 @@ A dataset may be marked `COMPLETE_VERIFIED` only when all of these hold:
 9. independently complete Cooking and Alchemy Codex catalogs exist, with exact positive counts and recipe-page ID sets;
 10. Codex reconciliation covers exactly that complete catalog count and recipe-page ID set and has zero unexplained canonical output/signature differences; differing Codex page IDs alone are never a missing-recipe signal;
 11. every UI-visible item has its canonical local `icons/<itemId>.webp` asset installed and verified by the release icon manifest; remote/fallback icons are resilience only and do not satisfy production release;
-12. provenance records extraction/source timestamps, a non-placeholder canonical client source revision, and dataset fingerprint.
+12. provenance records extraction/source timestamps, the exact reviewed extractor revision, a valid `sha256:<64hex>` client fingerprint, and dataset fingerprint.
 
 Any unexplained diff, incomplete catalog evidence, catalog/reconciliation count mismatch, or recipe-ID-set mismatch keeps the dataset unreleasable.
 
