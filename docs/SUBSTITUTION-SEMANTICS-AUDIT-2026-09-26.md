@@ -17,12 +17,11 @@ The Codex recipe 112 discussion also records the site maintainer's warning that 
 
 ## Reviewed vegetable route policy
 
-Current BDFoundry recipes independently render these Codex source routes with a generic vegetable set rather than a literal exact vegetable:
-112, 113, 123, 125, 127, 136, 144, 154, 159, 168, 195, 477, 478, 491, 510, 513, 570, 586, 606.
+Current production details contain 29 routes that reference a member of group 6009, but current route-level evidence is intentionally narrower than historical correlation. The only reviewed generic binding is **recipe 112 (Pickled Vegetables)**, because the BDFoundry Cooking Guide updated 2026-01-30 directly documents that recipe's generic vegetable requirement, the 1/6/36 normal/high/special Worth relationship, and a mixed-rarity worked example.
 
-Current production details contain 29 routes that reference a member of group 6009. The 19 routes above are reviewed generic bindings. Literal or unreviewed uses stay exact. Concrete exclusions include route 210 Steamed Prawn (paprika), 354 Chicken Breast Salad (cabbage), and 360/361 Frank Sandwich (cabbage).
+The older BDFoundry all-recipes page (Last Updated 2021-02-28) remains corroboration only. Its historically generic-looking routes — 113, 123, 125, 127, 136, 144, 154, 159, 168, 195, 477, 478, 491, 510, 513, 570, 586, and 606 — are **not** production substitution bindings without fresh route-level evidence. Literal or unreviewed uses stay exact; concrete exclusions include route 210 Steamed Prawn (paprika), 354 Chicken Breast Salad (cabbage), and 360/361 Frank Sandwich (cabbage).
 
-Binding therefore requires the exact enriched variant.sourceRecipeId plus group id, not group membership alone. Higher-Worth exact inputs remain exact unless separately reviewed.
+Binding therefore requires the exact enriched variant.sourceRecipeId plus group id and a current reviewed policy entry, not group membership alone. Higher-Worth exact inputs remain exact unless separately reviewed.
 
 ## Mixed Worth
 
