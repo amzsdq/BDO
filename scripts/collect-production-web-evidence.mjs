@@ -4,6 +4,7 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 import { spawnSync } from 'node:child_process'
 import { materialGroupIdsFromCodexRecipeEvidence } from './codex-material-group-ids.mjs'
+import { assertProductionWebEvidenceManifest } from './assert-production-web-evidence-manifest.mjs'
 
 function run(script, args) {
   const result = spawnSync(process.execPath, [script, ...args], { cwd: process.cwd(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
@@ -42,5 +43,7 @@ const evidenceFiles = [catalog, details, items, groups].map((file) => {
   const bytes = fs.readFileSync(file)
   return { file: path.basename(file), bytes: bytes.length, sha256: crypto.createHash('sha256').update(bytes).digest('hex') }
 })
-fs.writeFileSync(manifest, JSON.stringify({ schemaVersion: 1, source: 'BDO Codex KR', files: evidenceFiles }, null, 2) + '\n')
+const manifestPayload = { schemaVersion: 1, source: 'BDO Codex KR', files: evidenceFiles }
+fs.writeFileSync(manifest, JSON.stringify(manifestPayload, null, 2) + '\n')
+assertProductionWebEvidenceManifest(manifestPayload, args.outDir)
 console.log(JSON.stringify({ ok: true, catalog, details, items, groups, manifest, materialGroups: groupIds.length }))
