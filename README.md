@@ -95,7 +95,7 @@ npm run data:release-gate -- public/data/dataset.json <reconciliation-report.jso
 
 `data:icons`는 extractor의 `asset_redirects.json`에서 `urn::item:<itemId>` redirect를 해석해 dataset이 참조하는 canonical `icons/<itemId>.webp`로 설치합니다. 필요한 redirect나 decoded WebP 하나라도 빠져 있으면 실패하며, source DDS 경로를 브라우저 asset 경로로 취급하지 않습니다.
 
-`data:promote`는 `ZERO_UNEXPLAINED_DIFF`, 독립 Codex catalog completeness, Cooking/Alchemy count 일치, 한국어 이름과 아이콘 해소를 확인한 뒤에만 `COMPLETE_VERIFIED` 상태와 새 fingerprint를 기록합니다. promotion은 reconciliation에 기록된 exact Codex detail manifest SHA-256도 dataset metadata에 결속합니다. 그 다음 `data:release-gate`가 결과와 catalog/detail evidence를 독립적으로 다시 검증하고, dataset 옆 `public/icons/icon-manifest.json`의 전체 item set과 실제 WebP bytes/SHA-256을 다시 대조하며, production mastery evidence의 semantic cross-check PASS, exact snapshot binding, E2E-01~09의 exact-commit evidence까지 요구합니다. 어느 하나라도 통과하지 않은 dataset은 릴리스 데이터가 아닙니다.
+`data:promote`는 `ZERO_UNEXPLAINED_DIFF`, 독립 Codex catalog completeness, Cooking/Alchemy count 일치, 한국어 이름 해소뿐 아니라 icon manifest의 실제 WebP bytes/SHA-256 및 dataset client fingerprint와 결속된 redirect/icon-tree source provenance까지 다시 확인한 뒤에만 `COMPLETE_VERIFIED` 상태와 새 fingerprint를 기록합니다. promotion은 reconciliation에 기록된 exact Codex detail manifest SHA-256도 dataset metadata에 결속합니다. 그 다음 `data:release-gate`가 결과와 catalog/detail evidence를 독립적으로 다시 검증하고, dataset 옆 `public/icons/icon-manifest.json`의 전체 item set과 실제 WebP bytes/SHA-256을 다시 대조하며, production mastery evidence의 semantic cross-check PASS, exact snapshot binding, E2E-01~09의 exact-commit evidence까지 요구합니다. 어느 하나라도 통과하지 않은 dataset은 릴리스 데이터가 아닙니다.
 
 현재 검토한 extractor 계약과 획득 경로는 `docs/EXTRACTOR-CONTRACT.md`, 전체 completeness 규칙은 `docs/DATA-COMPLETENESS.md`, 숙련도 증거 규칙은 `docs/MASTERY_DATA_POLICY.md`를 참고하세요.
 
