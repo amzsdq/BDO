@@ -91,6 +91,8 @@ function itemRows(fragment) {
     found.push({ itemId: Number(match[1]), ...(name ? { name } : {}), ...range })
   }
   if (found.length) return found
+  const uniqueItemIds = new Set([...fragment.matchAll(/\/kr\/item\/(\d+)\/?/gi)].map((match) => Number(match[1])))
+  if (uniqueItemIds.size > 1) return []
   const parsed = itemRow(fragment)
   return parsed ? [parsed] : []
 }
