@@ -144,6 +144,21 @@ assert(emptyShellArtifact.complete && emptyShellArtifact.unresolvedCount === 0, 
 assert(emptyShellArtifact.supplementalRouteCount === 0 && !emptyShellArtifact.recipes.some((row) => row.recipeId === 2), 'empty supplemental shell does not fabricate a route identity')
 
 
+const guildCraftPage = `<div class="card item_info"><div class="card-header">ID: 2</div><div class="card-body"><table>
+<tr><td>레시피<br><span class="yellow_text">길드 공작</span><br><span>스킬 레벨: 초급 Lv.</span></td></tr>
+<tr><td><span class="yellow_text">- 제작 재료</span><br><div class="iconset_wrapper_medium"><a href="/kr/item/100/"><div class="quantity_small">2</div></a></div> - <a href="/kr/item/100/">재료</a></td></tr>
+</table></div></div>`
+const guildGapFetch = async (url) => {
+  const id = Number(url.match(/\/recipe\/(\d+)\//)[1])
+  if (id === 2) return { ok: true, status: 200, statusText: 'OK', url, text: async () => guildCraftPage }
+  if (id === 1 || id === 3) return { ok: true, status: 200, statusText: 'OK', url, text: async () => cookingPage(id) }
+  return { ok: false, status: 404, statusText: 'Not Found', url, text: async () => '' }
+}
+const guildGapArtifact = await collectCodexRecipeDetails(gapCatalog, { fetchImpl: guildGapFetch, retries: 0, probeGaps: true, collectedAt: '2026-09-26T00:00:00Z' })
+assert(guildGapArtifact.complete && guildGapArtifact.unresolvedCount === 0, 'identified non Cooking-Alchemy supplemental route does not block target-skill completeness')
+assert(guildGapArtifact.supplementalRouteCount === 0 && guildGapArtifact.supplementalDiscovery.nonTargetRecipeIds.join(',') === '2', 'non-target supplemental identity is explicitly accounted without entering planner routes')
+
+
 const identifiedIncompleteAlchemy = `<div class="card item_info"><a href="/kr/recipe/2/"><span class="item_title">과거 연금식</span></a> 연금 스킬 레벨: 숙련 Lv. 1<table>
 <tr><th>재료</th></tr><tr><th>기본 제품:</th></tr><tr><th>랜덤 제품:</th></tr></table></div>`
 const identifiedGapFetch = async (url) => {
