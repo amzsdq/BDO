@@ -6,30 +6,39 @@ on:
     - cron: '17 3 * * *'
   pull_request:
     paths:
+      - 'scripts/collect-production-web-evidence.mjs'
       - 'scripts/collect-codex-catalog-browser.mjs'
+      - 'scripts/collect-reviewed-codex-recipe-details.mjs'
+      - 'scripts/collect-codex-recipe-details.mjs'
+      - 'scripts/reviewed-retired-route-state.mjs'
+      - 'scripts/collect-codex-item-evidence.mjs'
+      - 'scripts/codex-material-group-ids.mjs'
+      - 'scripts/collect-codex-substitution-groups.mjs'
       - 'scripts/codex-catalog-endpoint.mjs'
       - 'scripts/codex-id-evidence.mjs'
+      - 'data/evidence/retired-crafting-routes.kr.json'
+      - 'package.json'
       - '.github/workflows/production-data-evidence.yml'
 
 permissions:
   contents: read
 
 jobs:
-  codex-catalog:
+  production-web-evidence:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
-          node-version: 22
+          node-version: '22.12.0'
       - run: npm install
       - run: npx playwright install --with-deps chromium
-      - name: Capture complete BDO Codex KR Cooking/Alchemy catalogs
-        run: npm run data:codex:browser -- --out artifacts/codex-catalog.json
+      - name: Capture reviewed BDO Codex KR production web evidence
+        run: npm run data:web:evidence -- --out-dir artifacts
       - uses: actions/upload-artifact@v4
         with:
-          name: codex-catalog
-          path: artifacts/codex-catalog.json
+          name: production-web-evidence
+          path: artifacts/
           if-no-files-found: error
           retention-days: 14
