@@ -3,6 +3,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import { spawnSync } from 'node:child_process'
+import { assertReviewedExtractorRevision } from './production-source-contract.mjs'
 
 function sha256(file) { return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex') }
 const snapshotDir = process.argv[2]
@@ -17,6 +18,7 @@ if (provenance?.schemaVersion !== 1 || provenance?.supportedRegion !== 'KR') thr
 const revision = String(provenance.extractorRevision || '').trim()
 const clientFingerprint = String(provenance.clientFingerprint || '').trim()
 if (!/^[0-9a-f]{40}$/i.test(revision)) throw new Error('snapshot extractorRevision must be an exact 40-character commit SHA')
+assertReviewedExtractorRevision(`iDevelopThings/bdo-data-extractor@${revision}`)
 if (!/^sha256:[0-9a-f]{64}$/i.test(clientFingerprint)) throw new Error('snapshot clientFingerprint is invalid')
 const items = path.join(root, 'items.json'), recipes = path.join(root, 'recipes.json')
 for (const file of [items, recipes]) {
