@@ -10,7 +10,7 @@ import type {
   RecipeVariant,
   YieldPolicy,
 } from './types'
-import { resolveIngredientChoice } from './substitution'
+import { resolveIngredientChoice, resolveOwnedMixedIngredientAllocation } from './substitution'
 
 function positive(value: number, label: string): number {
   if (!Number.isFinite(value) || value <= 0) throw new Error(`${label} must be a positive finite number`)
@@ -95,6 +95,14 @@ export function buildPlan(dataset: RecipeDataset, targets: readonly PlanTarget[]
         const selectedSubstitute = input.substitutionGroupId ? options.selectedSubstitutionItemIdByGroupId?.[input.substitutionGroupId] : undefined
         const substitutionMembers = input.substitutionGroupId ? dataset.substitutionGroups?.[input.substitutionGroupId]?.memberItemIds ?? [] : []
         const remainingOwned = options.haveByItemId ? Object.fromEntries(substitutionMembers.map((id) => [String(id), Math.max(0, nonNegativeFinite(options.haveByItemId?.[String(id)] ?? 0, `inventory item ${id}`) - (materialMap.get(id)?.required ?? 0))])) : undefined
+        const mixed = !selectedSubstitute && input.substitutionGroupId && remainingOwned
+          ? resolveOwnedMixedIngredientAllocation(input, dataset.substitutionGroups ?? {}, remainingOwned, attempts)
+          : undefined
+        if (mixed?.length) {
+          warnings.push(`대체품목 그룹 ${input.substitutionGroupId}: 보유 재료 ${mixed.length}종을 Worth 기준으로 혼합 사용합니다.`)
+          for (const allocation of mixed) addMaterial(allocation.itemId, positive(allocation.count, 'mixed ingredient count') * attempts, depth + 1, depth === 0, false)
+          continue
+        }
         const resolvedInput = resolveIngredientChoice(input, dataset.substitutionGroups ?? {}, { selectedItemId: selectedSubstitute, ownedByItemId: remainingOwned, requiredMultiplier: attempts })
         if (resolvedInput.usedSubstitution && input.substitutionGroupId) warnings.push(`대체품목 그룹 ${input.substitutionGroupId}: item ${input.itemId} 대신 item ${resolvedInput.itemId}을 사용합니다.`)
         const inputItemId = resolvedInput.itemId
