@@ -14,7 +14,7 @@
 
 ## 로컬 실행
 
-Node.js 22 기준입니다.
+Node.js 22.12 이상이 필요합니다 (`package.json`의 `engines.node >=22.12.0`).
 
 ```bash
 npm install
