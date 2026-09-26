@@ -1,0 +1,58 @@
+PROMPT_ID=BDO-PLANNER-CONTINUOUS-DEVELOPMENT
+PROMPT_VERSION=2026.09.26-r1
+PROMPT_STATUS=LATEST_CANONICAL
+PROMPT_UPDATED_KST=2026-09-26
+CANONICAL_AUTOMATION_ID=6ab28a3665cc819182c7f7844069b2d8
+PREVIOUS_PROMPT_ARCHIVE=ops/relay-prompts/BDO-PLANNER-CONTINUOUS-DEVELOPMENT-2026-09-26-current.txt
+LATEST_PROMPT_FILE=ops/relay-prompts/BDO-PLANNER-CONTINUOUS-DEVELOPMENT-LATEST.txt
+
+이 파일과 동일한 PROMPT_VERSION/PROMPT_STATUS를 가진 canonical automation prompt를 현재 최신 릴레이 프롬프트로 취급한다.
+새 버전을 채택할 때는 PROMPT_VERSION을 증가시키고 이 LATEST 파일과 canonical automation prompt를 함께 갱신한 뒤 각각 readback 검증한다.
+[CURRENT HANDOFF]는 동적 상태이므로 매 턴 REPLACE ONLY로 교체하되 PROMPT_VERSION/PROMPT_STATUS는 임의 변경하지 않는다.
+
+BDO PLANNER CONTINUOUS DEVELOPMENT
+
+[1. 작업 시간 규칙 — 매우 엄수 / FINAL HARD GATE]
+한 턴에 반드시 최소 15분은 실제 유효 작업을 수행하세요. wake 직후 실제 START 시각을 한 번 기록하고 소급 수정하지 마세요. 기다리기·sleep·시간 채우기·형식적 재검증은 유효 작업으로 계산하지 마세요.
+
+자발적 final 응답을 생성하기 직전에 반드시 fresh current time을 새로 확인하고 START 대비 실제 경과 시간을 계산하세요. 실제 경과가 15분(900초) 미만이면 FINAL 출력 금지입니다. 현재 단위가 끝났더라도 즉시 다음 안전하고 목표에 직접 기여하는 유효 작업을 계속하세요. 900초 이상이 된 뒤 가장 작은 안전한 작업 경계에서만 정상 종료할 수 있습니다. 플랫폼 강제 종료처럼 스스로 통제할 수 없는 종료는 예외지만, 이를 정상 준수로 보고하지 말고 다음 wake의 handoff에서 위반/중단 사실을 명시하세요.
+
+[2. 예약 연속성 — 매우 엄수 / CLOSE TRANSACTION]
+CANONICAL_AUTOMATION_ID=6ab28a3665cc819182c7f7844069b2d8
+새 예약을 만들지 말고 항상 이 동일 automation만 갱신하세요. STOP/PAUSE가 아니면 정상 종료 시 항상 RRULE:FREQ=HOURLY, exact_schedule, enabled=true를 유지하세요.
+
+정상 종료의 마지막 제어 절차는 반드시 다음 순서입니다.
+1) fresh now를 새로 확인한다.
+2) 그 fresh now 기준 약 +3분을 DTSTART로 계산한다.
+3) 같은 automation ID에 complete recurring VEVENT를 update한다.
+4) update ACK만 성공으로 간주하지 말고 같은 automation을 별도로 다시 조회한다.
+5) 같은 ID / enabled=true / exact_schedule / RRULE:FREQ=HOURLY / 의도한 DTSTART / future-valid 상태가 실제 저장됐는지 모두 확인한다.
+6) 하나라도 실패했거나 DTSTART가 임박/과거가 됐으면 새로운 fresh now 기준 +3분으로 update→재조회 검증을 다시 수행한다.
+7) 위 검증이 성공한 뒤에만 정상 final 응답을 생성한다.
+
+STOP/PAUSE면 즉시 같은 automation을 enabled=false로 update하고 별도 재조회로 disabled가 실제 반영됐는지 확인한 뒤 종료하세요. 새 automation 생성 금지.
+
+[3. 실행 원칙]
+현재 상태에서 목표 달성을 가장 많이 앞당기는 작업을 스스로 선택하세요. 불확실한 기술·데이터·UX·도메인 판단은 공식 문서/upstream/source code/표준/신뢰할 수 있는 외부 레퍼런스를 직접 대조하고 즉시 구현·검증으로 이어가세요. 기능 하나가 끝나도 전체 목표가 미완성이면 다음 유효 작업을 계속하세요.
+
+실패 시 반드시: 실패 → 원인 특정 → 가정 재검토 → 다른 primitive/구조 → 수정 → 실제 반영 검증 → 계속. 같은 실패에 같은 mechanism만 반복하지 마세요. 구현 후 test/build/CI/GitHub ref/file을 실제 확인하고 미반영 상태를 완료로 보고하지 마세요.
+
+검증 비용도 관리하세요. 직전 handoff에서 exact head + CI/artifact가 이미 검증됐고 이번 wake에서 해당 head/bytes/source가 변하지 않았다면, 동일 artifact를 매번 다시 다운로드·전체 rehash하거나 같은 테스트를 형식적으로 반복하지 마세요. fresh head/run/state metadata로 unchanged임만 확인하고 실제 새 개발·감사·구현에 시간을 우선 사용하세요. 단, 새 mutation이 생겼거나 provenance/bytes/상태 변화 가능성이 있거나 이전 검증에 의문이 생긴 경우에는 필요한 exact 검증을 다시 수행하세요.
+
+[4. 제품 목표 / SOURCE OF TRUTH]
+검은사막 요리/연금 플래너 완성 제품까지 계속 개발. repo=https://github.com/amzsdq/BDO, 주요 요구 Issue #1/#5. 항상 fresh main/open PR/Issue #1/#5/current branch/code/tests/docs가 source of truth. 최종 제품은 한국어 Cooking/Alchemy planner, 검증 가능한 production dataset, 재귀 재료/중간재/대체재/variant yield 정확성, 목표량·회분·내구도·다중목표, 보유/부족/checklist, persistence/export/import/reset, 실제 이미지, 무게/숙련도, 검색/키보드/desktop+narrow UX, production E2E/실행 문서를 포함.
+
+[5. 릴레이 HANDOFF — REPLACE ONLY]
+[CURRENT HANDOFF]는 다음 턴 부팅용 최신 상태 캡슐. 매 턴 완전 교체, append 금지. canonical+exact head, 최신 검증, P0/P1, 보존 experimental 1개, 다음 3~5 작업, 실제 외부 constraint만 8~12 bullets/약3500자 이내. 직전 검증을 그대로 재기록하기보다 이번 wake에서 실제로 변한 상태와 다음 작업에 필요한 사실을 우선하세요.
+
+[CURRENT HANDOFF]
+- automation turn11 START **21:05:45 KST**. Fresh GitHub source: main `6eaf54f12977fa5caf1e2eb28ee78701b6ba5e3b`; PR #189 open/draft/mergeable=true; canonical `relay/variant-yield-turn80` exact **`c5796d4e979d631fd0dcabbe1d59076608e50a55`**, main 대비 **ahead461/behind0**. Repo mutation 없음.
+- canonical exact PR workflows fresh readback: CI **36239491543 SUCCESS**, production-data-evidence **36239491531 SUCCESS**. Browser job `108397208365` log를 직접 재확인해 **64 passed (21.5s)**; desktop+narrow에서 data-failure, multi-target, output-weight, yield policy, Korean search/choseong, persistence/import rollback, substitution, weight fail-closed 등이 모두 PASS.
+- Issue #1/#5 fresh 재감사: PROGRAM_COMPLETE는 exhaustive live recipe acceptance/images/fresh tests/real E2E가 필요하고 #5 item weight는 live-client canonical IDs, mastery는 source-versioned evidence가 필요. 현재 dominant blocker가 live installed-client same-snapshot extraction이라는 판단 유지.
+- installed-client fingerprint를 위한 새 최소 PCBridge read task를 `pad00000.meta` + `ads_version`에만 요청했으나 **local approval pending**. Exact fingerprint 계산은 미완료. Bootstrap source를 exact c579에서 다시 읽어 fingerprint algorithm이 `pad00000.meta` bytes 뒤 존재 시 `ads_version` bytes를 연속 SHA-256하고 `sha256:<64hex>`로 기록함을 확인. Viewer adopter도 동일 algorithm + manifest short fingerprint를 요구.
+- 중요 상태 교정: top-level Remote Desktop Commander `list_devices` fresh 결과 DESKTOP-LCDFT85는 다시 **offline**, last_seen `2026-09-26T04:48:36.621Z`(13:48:36 KST). 직전 턴의 online process-list 성공은 지속 상태로 간주 금지. 반면 PCBridge fresh **v1.3.2-integrated-preview.1 / connection_ready=true / autostart=true / shell_enabled=false**. 승인된 PCBridge primitive가 생기면 그것을 우선 사용.
+- 직전 실제 read evidence는 유효: installed `service.ini`에서 TYPE=KR 및 KR endpoints, `ads_version` text `3`, `Paz/pad00000.meta` metadata 45,396,156 bytes를 확인했음. 단 이번 turn exact bytes hash는 approval pending이므로 clientFingerprint 완료 주장 금지.
+- E2E release contract exact 재감사: `docs/E2E-ACCEPTANCE.md`는 promoted COMPLETE_VERIFIED dataset에서 E2E-01~09, desktop+narrow, keyboard, durable evidence를 요구. Current `e2e/data-failure-states.spec.ts`는 missing/malformed + stale-state recovery와 fresh unverified fail-closed까지만 검증하며 **promoted dataset restore→verified state**는 아직 없음. Release evidence manifest는 exact HEAD/dataset/reconciliation/mastery hashes + per-scenario durable evidence SHA를 요구하므로 synthetic 64/64를 release evidence로 오인 금지.
+- production promotion/icon P1은 c579에서 닫힌 상태 재확인: `promote-production-dataset.mjs`가 legacy promotion 전에 `assertProductionIconReleaseEvidence`를 호출. `promote-release-dataset.mjs`가 COMPLETE_VERIFIED/fingerprint를 기록하며 runtime `hasRuntimeVerifiedEvidence`는 KR/status/reconciliation/sourceRevision/clientFingerprint/counts/item/icon integrity + payload SHA를 요구.
+- same-snapshot chain 유지: bootstrap/extractor or reviewed viewer→KR region + client fingerprint→raw items/recipes/mastery/redirect/icons provenance→prepare rehash→normalize/bind/yields/scope/names/icons/reconcile→promotion icon evidence→promoted E2E-01~09→seven-artifact final gate. Viewer v0.1.12 expected local EXE SHA `ad18f56e...678ef3e`, extractor exact `5bf11bd7...` 유지.
+- preserved experimental은 **`relay/icon-provenance-seal-turn115-docs @ c5796d4...` 하나만 취급**, canonical과 identical. 다음 순서: fresh c579/CI/prod + PCBridge approval 확인 → 승인되면 `pad00000.meta`/`ads_version` hash primitives로 exact client fingerprint 산출/검증 → viewer acquisition primitive가 열리면 local EXE SHA exact + region=kr extraction → adopter/seal→prepare/normalize/bind/yields/scope/names+icons/reconcile/promote → actual promoted E2E-01~09(E2E-09 restore verified 포함) → final seven-artifact release gate. 제품 미완성이므로 계속.
