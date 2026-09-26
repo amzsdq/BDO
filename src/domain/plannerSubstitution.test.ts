@@ -52,7 +52,7 @@ describe('planner substitution resolution', () => {
       { recipeId: 'r1', mode: 'attempts', amount: 2 },
     ], {
       craftIntermediateItemIds: new Set(),
-      haveByItemId: { '10': 5, '11': 7 },
+      haveByItemId: { '10': 6, '11': 7 },
     })
     expect(sharedInventory.materials).toEqual(expect.arrayContaining([
       expect.objectContaining({ itemId: 11, required: 6, missing: 0 }),
