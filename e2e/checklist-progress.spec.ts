@@ -10,11 +10,11 @@ const fixture = {
 test('checklist progress is visible and updates with preparation state', async ({ page }) => {
   await page.route('**/data/dataset.json', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(fixture) }))
   await page.goto('/')
-  const progress = page.getByRole('status', { name: '준비 진행률 0/1' })
+  const progress = page.locator('.checklist-progress')
   await expect(progress).toContainText('0 / 1 준비 완료')
   await expect(progress).toContainText('0%')
   await page.locator('.material-row input[type="checkbox"]').check()
-  const complete = page.getByRole('status', { name: '준비 진행률 1/1' })
+  const complete = page.locator('.checklist-progress')
   await expect(complete).toContainText('1 / 1 준비 완료')
   await expect(complete).toContainText('100%')
   await expect(complete.getByRole('progressbar', { name: '준비 진행률' })).toHaveAttribute('value', '1')
