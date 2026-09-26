@@ -1,4 +1,5 @@
-import crypto from 'node:crypto'\nimport { SUBSTITUTION_BINDING_POLICY_SHA256 } from './substitution-binding-policy.mjs'
+import crypto from 'node:crypto'
+import { SUBSTITUTION_BINDING_POLICY_SHA256 } from './substitution-binding-policy.mjs'
 
 export function assertProductionWebEvidenceBindings(dataset) {
   const metadata = dataset?.metadata || {}
@@ -8,6 +9,8 @@ export function assertProductionWebEvidenceBindings(dataset) {
   if (!/^[0-9a-f]{64}$/.test(nameSha)) throw new Error('exact Korean-name evidence SHA-256 binding is required')
   if (metadata.substitutionEvidenceApplied !== true) throw new Error('production substitution evidence must be applied')
   if (!/^[0-9a-f]{64}$/.test(substitutionSha)) throw new Error('exact substitution evidence SHA-256 binding is required')
-  if (policySha !== SUBSTITUTION_BINDING_POLICY_SHA256) throw new Error('exact reviewed substitution binding policy SHA-256 is required')\n  const embeddedPolicySha = crypto.createHash('sha256').update(JSON.stringify(metadata.substitutionBindingPolicy ?? null)).digest('hex')\n  if (embeddedPolicySha !== SUBSTITUTION_BINDING_POLICY_SHA256) throw new Error('embedded reviewed substitution binding policy must match its exact SHA-256')
+  if (policySha !== SUBSTITUTION_BINDING_POLICY_SHA256) throw new Error('exact reviewed substitution binding policy SHA-256 is required')
+  const embeddedPolicySha = crypto.createHash('sha256').update(JSON.stringify(metadata.substitutionBindingPolicy ?? null)).digest('hex')
+  if (embeddedPolicySha !== SUBSTITUTION_BINDING_POLICY_SHA256) throw new Error('embedded reviewed substitution binding policy must match its exact SHA-256')
   return { koreanNameEvidenceSha256: nameSha, substitutionEvidenceSha256: substitutionSha, substitutionBindingPolicySha256: policySha }
 }
