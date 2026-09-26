@@ -1,5 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs'
+
+const REVIEWED_GENERIC_RECIPE_GROUP_IDS = new Set(['codex:6009', 'codex:801', 'codex:802', 'codex:803', 'codex:804', 'codex:805'])
 export function applySubstitutionEvidence(dataset, evidence) {
   if (!evidence || evidence.source !== 'BDO Codex KR' || !Array.isArray(evidence.groups)) throw new Error('invalid substitution evidence envelope')
   const collectedAt = evidence.collectedAt
@@ -31,11 +33,18 @@ export function applySubstitutionEvidence(dataset, evidence) {
   const groups = Object.values(next.substitutionGroups)
   for (const recipe of Object.values(next.recipes || {})) for (const variant of recipe.variants || []) for (const input of variant.inputs || []) {
     if (removedCodexIds.has(input.substitutionGroupId) || String(input.substitutionGroupId || '').startsWith('codex:')) delete input.substitutionGroupId
-    const matches = groups.filter((group) => group.memberItemIds.length >= 2 && group.memberItemIds.includes(input.itemId))
+    const matches = groups.filter((group) => {
+      if (group.source?.provider === 'BDO Codex KR' && !REVIEWED_GENERIC_RECIPE_GROUP_IDS.has(group.id)) return false
+      if (group.memberItemIds.length < 2 || !group.memberItemIds.includes(input.itemId)) return false
+      const canonicalWorth = Number(group.memberValueByItemId?.[String(input.itemId)])
+      const minimumWorth = Math.min(...group.memberItemIds.map((itemId) => Number(group.memberValueByItemId?.[String(itemId)])))
+      return Number.isFinite(canonicalWorth) && canonicalWorth === minimumWorth
+    })
     if (matches.length > 1) throw new Error(`${recipe.id}/${variant.id}: item ${input.itemId} belongs to multiple sourced substitution groups`)
     if (matches.length === 1) input.substitutionGroupId = matches[0].id
   }
   next.metadata ||= {}; next.metadata.sources = [...new Set([...(next.metadata.sources || []), 'BDO Codex KR material-group Worth evidence'])]
+  next.metadata.substitutionBindingPolicy = { version: 1, policy: 'reviewed-generic-base-worth-only', reviewedGroupIds: [...REVIEWED_GENERIC_RECIPE_GROUP_IDS].sort() }
   return next
 }
 if (process.argv[1] && process.argv[1].endsWith('apply-substitution-evidence.mjs')) {
