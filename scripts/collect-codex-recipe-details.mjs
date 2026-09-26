@@ -60,9 +60,15 @@ export function detectCodexRecipeIdentity(html, expectedRecipeId) {
   if (!hrefIds.length && !new RegExp(`\\b(?:ID|Recipe\\s*ID)\\s*:?\\s*${Number(expectedRecipeId)}\\b`, 'i').test(decodeText(card))) throw new Error(`recipe ${expectedRecipeId}: card recipe identity missing`)
   const cardText = decodeText(card)
   const pageSkillToken = cardText.match(/(?:요리|연금|Cooking|Alchemy)\s*(?:스킬\s*레벨|Skill\s*level)/i)?.[0] || ''
-  const skill = /(?:연금|Alchemy)/i.test(pageSkillToken) ? 'alchemy' : /(?:요리|Cooking)/i.test(pageSkillToken) ? 'cooking' : undefined
+  let skill = /(?:연금|Alchemy)/i.test(pageSkillToken) ? 'alchemy' : /(?:요리|Cooking)/i.test(pageSkillToken) ? 'cooking' : undefined
+  let skillLabel
+  if (!skill) {
+    const labelMatch = card.match(/<span\b[^>]*class=["'][^"']*\byellow_text\b[^"']*["'][^>]*>([\s\S]*?)<\/span>\s*<br\s*\/?>\s*<span\b[^>]*>\s*(?:스킬\s*레벨|Skill\s*level)/i)
+    skillLabel = labelMatch ? decodeText(labelMatch[1]) : undefined
+    if (skillLabel) skill = 'other'
+  }
   if (!skill) throw new Error(`recipe ${expectedRecipeId}: page skill identity missing`)
-  return { card, cardText, skill }
+  return { card, cardText, skill, ...(skillLabel ? { skillLabel } : {}) }
 }
 
 function itemRow(row) {
@@ -286,6 +292,7 @@ export async function collectCodexRecipeDetails(catalogManifest, { fetchImpl = f
     ...probeRoutes,
   ]
   const results = new Array(routes.length)
+  const nonTargetRecipeIds = []
   let cursor = 0
   let requestGate = Promise.resolve()
   let nextRequestAt = 0
@@ -322,6 +329,11 @@ export async function collectCodexRecipeDetails(catalogManifest, { fetchImpl = f
             continue
           }
           if (!identity) throw new Error(`gap probe ${route.recipeId}: recipe identity missing`)
+          if (identity.skill === 'other') {
+            nonTargetRecipeIds.push(route.recipeId)
+            results[index] = null
+            continue
+          }
           try {
             parsed = parseCodexRecipeDetailHtml(html, route.recipeId, identity.skill)
           } catch (error) {
@@ -353,7 +365,7 @@ export async function collectCodexRecipeDetails(catalogManifest, { fetchImpl = f
     catalogRouteCount: expected.length,
     supplementalRouteCount: present.filter((row) => !row.catalogListed).length,
     supplementalDiscovery: probeGaps
-      ? { method: 'catalog-gap-probe', probedGapCount: probeRoutes.length, probedMinRecipeId: 1, probedMaxRecipeId: Math.max(0, ...catalogRoutes.map((row) => row.recipeId)), boundedByCatalogHighWater: true, complete: unresolved.length === 0 }
+      ? { method: 'catalog-gap-probe', probedGapCount: probeRoutes.length, probedMinRecipeId: 1, probedMaxRecipeId: Math.max(0, ...catalogRoutes.map((row) => row.recipeId)), boundedByCatalogHighWater: true, nonTargetRecipeIds: [...new Set(nonTargetRecipeIds)].sort((a, b) => a - b), complete: unresolved.length === 0 }
       : { method: 'none', probedGapCount: 0, complete: false },
     recipes: present,
   }
