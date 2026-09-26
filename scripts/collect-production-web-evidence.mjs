@@ -46,4 +46,5 @@ const evidenceFiles = [catalog, details, items, groups].map((file) => {
 const manifestPayload = { schemaVersion: 1, source: 'BDO Codex KR', files: evidenceFiles }
 fs.writeFileSync(manifest, JSON.stringify(manifestPayload, null, 2) + '\n')
 assertProductionWebEvidenceManifest(manifestPayload, args.outDir)
-console.log(JSON.stringify({ ok: true, catalog, details, items, groups, manifest, materialGroups: groupIds.length }))
+const manifestSha256 = crypto.createHash('sha256').update(fs.readFileSync(manifest)).digest('hex')
+console.log(JSON.stringify({ ok: true, catalog, details, items, groups, manifest, manifestSha256, materialGroups: groupIds.length }))
