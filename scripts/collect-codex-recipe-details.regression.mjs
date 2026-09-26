@@ -112,6 +112,16 @@ assert(supplemental && supplemental.catalogListed === false && supplemental.disc
 assert(supplemental.status === 'unavailable' && supplemental.skill === 'alchemy', 'disabled supplemental route is preserved as unavailable evidence')
 assert(gapArtifact.recipes.filter((row) => row.catalogListed).length === 2, 'catalog accounting excludes supplemental route')
 
+const malformedGap = noOutput.replaceAll('/recipe/343/', '/recipe/2/').replace('<tr><th>기본 제품:</th>', '<tr><td>x4</td></tr><tr><th>기본 제품:</th>')
+const preserveFetch = async (url) => {
+  const id = Number(url.match(/\\/recipe\\/(\\d+)\\//)[1])
+  if (id === 2) return { ok: true, status: 200, statusText: 'OK', url, text: async () => malformedGap }
+  return { ok: true, status: 200, statusText: 'OK', url, text: async () => cookingPage(id) }
+}
+const preserveArtifact = await collectCodexRecipeDetails(gapCatalog, { fetchImpl: preserveFetch, retries: 0, probeGaps: true, concurrency: 1, collectedAt: '2026-09-26T00:00:00Z' })
+const preserveRow = preserveArtifact.recipes.find((row) => row.recipeId === 2)
+assert(preserveRow?.status === 'unresolved' && preserveRow.skill === 'alchemy', 'identified supplemental parse failure preserves observed skill')
+
 let terminalCalls = 0
 const terminalFetch = async () => {
   terminalCalls += 1
