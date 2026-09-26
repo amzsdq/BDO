@@ -17,7 +17,7 @@ Do not mix snapshots. The reviewed extractor revision is pinned in `scripts/boot
 2. Broad-import all Cooking/Alchemy routes with `data:import:broad` into `client-broad.json`. Do not scope-prune yet.
 3. Capture independently complete KR Codex Cooking/Alchemy catalogs.
 4. Capture schema-v2 details with bounded catalog-gap discovery and reviewed route-state evidence. Current reviewed evidence retires historical spirit-stone crafting routes 342–346 per the official KR PC 2026-09-02 update; stale Codex detail pages must not restore them.
-5. Prune reviewed retired crafting outputs from the broad client graph before random-alias normalization or source binding.
+5. Prune reviewed retired crafting outputs and any variant consuming a reviewed deleted crafting ingredient from the broad client graph before random-alias normalization or source binding; preserve unrelated variants for the same output.
 6. Collect initial exact item evidence from the complete detail artifact, discover material-group IDs, and collect group evidence.
 7. Normalize markerless random-output aliases, bind exact Codex detail evidence, then apply reviewed yield evidence. Random-only/unavailable routes are not forced into a positive base-yield contract.
 8. Apply substitution evidence and finalize planner scope without re-importing the client graph.
@@ -26,7 +26,7 @@ Do not mix snapshots. The reviewed extractor revision is pinned in `scripts/boot
 11. Validate, reconcile against the exact catalog/details artifacts, prepare same-snapshot mastery evidence, and promote only at `ZERO_UNEXPLAINED_DIFF`.
 12. Run production E2E-01..09 against the exact promoted dataset and release commit, then run the final production release gate.
 
-The exact Codex detail artifact bytes are SHA-256 bound through reconciliation and promoted metadata into the final release gate. Reviewed retired-route evidence is embedded in that detail artifact; a final dataset that still contains one of its retired crafting outputs must be rejected.
+The exact Codex detail artifact bytes are SHA-256 bound through reconciliation and promoted metadata into the final release gate. Reviewed retired-route evidence is embedded in that detail artifact; a promotion/final dataset that still contains one of its retired crafting outputs or consumes a reviewed deleted crafting ingredient must be rejected.
 
 ## Core commands
 
