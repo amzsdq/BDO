@@ -39,8 +39,8 @@ npm run data:codex:details:reviewed -- --catalog <codex-catalog.json> --route-st
 npm run data:retired:prune -- <client-broad.json> data/evidence/retired-crafting-routes.kr.json <client-live.json>
 npm run data:codex:items -- --details <codex-details.json> --out <initial-item-evidence.json>
 npm run data:codex:normalize-random -- <client-live.json> <codex-details.json> <normalized.json>
-npm run data:codex:bind -- <normalized.json> <codex-details.json> <bound.json>
-npm run data:yields -- <bound.json> <yield-evidence.json> <yielded.json>
+npm run data:codex:bind -- <normalized.json> <codex-details.json> <bound-yield-evidence.json> <initial-item-evidence.json>
+npm run data:yields -- <normalized.json> <bound-yield-evidence.json> <yielded.json>
 npm run data:scope:finalize -- <yielded.json> <scoped.json> <substitution-evidence.json>
 npm run data:codex:items -- --dataset <scoped.json> --out <final-item-evidence.json>
 npm run data:names-ko -- <scoped.json> <final-item-evidence.json> public/data/dataset.json

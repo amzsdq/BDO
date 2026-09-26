@@ -39,8 +39,9 @@ npm run build
 기본 구조 import는 extractor가 한국어를 제공하지 않으므로 의도적으로 `아이템 #<id>` placeholder를 만듭니다. 따라서 import 직후 BDO Codex KR item-id 증거를 적용하는 단계가 필수입니다. 이 단계를 생략한 dataset은 promotion이 거부됩니다.
 
 ```bash
-npm run data:import -- --items <items.json> --recipes <recipes.json> --out <client-dataset.json> --source-revision <reviewed-extractor-sha> --client-fingerprint <client-fingerprint>
-node scripts/apply-korean-name-evidence.mjs <client-dataset.json> <korean-name-evidence.json> public/data/dataset.json
+node scripts/prepare-client-broad-from-snapshot.mjs <bootstrap-snapshot-dir> <client-broad.json>
+# Or, from separately verified raw files:
+npm run data:import:broad -- --items <items.json> --recipes <recipes.json> --out <client-broad.json> --source-revision <reviewed-extractor-sha> --client-fingerprint <client-fingerprint>
 ```
 
 `<korean-name-evidence.json>`은 canonical item id별 한국어 이름과 `https://bdocodex.com/kr/item/<id>/` 증거 URL을 포함해야 하며, 중복 item id·알 수 없는 item id·placeholder 이름·item id와 맞지 않는 URL은 fail closed 합니다. 모든 planner-scoped item의 이름이 해소되어야 `metadata.koreanNamesVerified=true`가 됩니다. 부분 증거는 중간 작업에는 사용할 수 있지만 production promotion은 통과하지 못합니다.
@@ -65,11 +66,12 @@ npm run data:mastery-evidence -- --mastery <mastery.json> --out <mastery-evidenc
 
 ```bash
 npm run data:codex:browser -- --out <codex-catalog.json>
-npm run data:codex:details -- --catalog <codex-catalog.json> --out <codex-details.json> --probe-gaps true
+npm run data:codex:details:reviewed -- --catalog <codex-catalog.json> --route-state-evidence data/evidence/retired-crafting-routes.kr.json --out <codex-details.json>
+npm run data:retired:prune -- <client-broad.json> data/evidence/retired-crafting-routes.kr.json <client-live.json>
 npm run data:codex:items -- --details <codex-details.json> --out <codex-initial-item-evidence.json> --concurrency 6 --retries 2
 node scripts/codex-material-group-ids.mjs <codex-initial-item-evidence.json>
 npm run data:codex:groups -- --groups <discovered-group-ids> --out <codex-substitutions.json>
-npm run data:codex:normalize-random -- <client-broad.json> <codex-details.json> <client-normalized.json>
+npm run data:codex:normalize-random -- <client-live.json> <codex-details.json> <client-normalized.json>
 npm run data:codex:bind -- <client-normalized.json> <codex-details.json> <bound-yield-evidence.json> <codex-initial-item-evidence.json>
 npm run data:yields -- <client-normalized.json> <bound-yield-evidence.json> <client-enriched.json>
 npm run data:scope:finalize -- <client-enriched.json> <client-scoped.json> <codex-substitutions.json>
