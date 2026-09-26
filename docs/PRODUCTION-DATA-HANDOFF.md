@@ -23,7 +23,7 @@ Do not mix snapshots. The reviewed extractor revision is pinned in `scripts/boot
 8. Apply substitution evidence and finalize planner scope without re-importing the client graph.
 9. Collect a second exact item-evidence pass for the final scoped item set, then apply Korean names/weights/mastery enrichment.
 10. Install canonical WebP icons and verify `icon-manifest.json` bytes, per-file SHA-256, exact item set, and deterministic set hash.
-11. Validate, reconcile against the exact catalog/details artifacts, prepare same-snapshot mastery evidence, and promote only at `ZERO_UNEXPLAINED_DIFF`.
+11. Validate, reconcile against the exact catalog/details artifacts, prepare same-snapshot mastery evidence, and promote only at `ZERO_UNEXPLAINED_DIFF`; standard promotion rechecks the icon manifest's actual WebP bytes/SHA-256 and its dataset client-fingerprint/redirect/icon-tree source provenance before writing `COMPLETE_VERIFIED`.
 12. Run production E2E-01..09 against the exact promoted dataset and release commit, then run the final production release gate.
 
 The exact Codex detail artifact bytes are SHA-256 bound through reconciliation and promoted metadata into the final release gate. Reviewed retired-route evidence is embedded in that detail artifact; a promotion/final dataset that still contains one of its retired crafting outputs or consumes a reviewed deleted crafting ingredient must be rejected.
