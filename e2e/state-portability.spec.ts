@@ -7,9 +7,13 @@ const fixture = {
   recipesByOutput: { '960001': ['state'] },
 }
 
-test('reset clears complete planner state and a valid import restores it', async ({ page }) => {
+async function installFixture(page: import('@playwright/test').Page) {
   await page.route('**/data/dataset.json', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(fixture) }))
   await page.goto('/')
+}
+
+test('reset clears complete planner state and a valid import restores it', async ({ page }) => {
+  await installFixture(page)
   await page.getByLabel('E2E 상태 재료 보유 수량').fill('3')
   await page.locator('.material-row input[type="checkbox"]').check()
   await page.getByText('캐릭터 설정 · 무게/숙련도').click()
@@ -51,5 +55,33 @@ test('reset clears complete planner state and a valid import restores it', async
   await expect(page.getByLabel('요리 숙련도')).toHaveValue('1500')
   await page.reload()
   await expect(page.getByLabel('E2E 상태 재료 보유 수량')).toHaveValue('3')
+  await expect(page.locator('.material-row input[type="checkbox"]')).toBeChecked()
+})
+
+test('unsupported import is rejected without mutating valid planner state', async ({ page }) => {
+  await installFixture(page)
+  await page.getByLabel('E2E 상태 재료 보유 수량').fill('7')
+  await page.locator('.material-row input[type="checkbox"]').check()
+  const before = await page.evaluate(() => Object.fromEntries([
+    'bdo-planner:checklist:v1',
+    'bdo-planner:inventory:v1',
+    'bdo-planner:character-profile:v1',
+    'bdo-planner:plan-session:v1',
+  ].map((key) => [key, localStorage.getItem(key)])))
+
+  await page.getByLabel('계획 파일 가져오기').setInputFiles({
+    name: 'unsupported.json',
+    mimeType: 'application/json',
+    buffer: Buffer.from(JSON.stringify({ version: 999, exportedAt: '2026-09-26T00:00:00.000Z' })),
+  })
+  await expect(page.getByRole('alert')).toContainText('지원하지 않는 플래너 내보내기 파일입니다')
+  const after = await page.evaluate(() => Object.fromEntries([
+    'bdo-planner:checklist:v1',
+    'bdo-planner:inventory:v1',
+    'bdo-planner:character-profile:v1',
+    'bdo-planner:plan-session:v1',
+  ].map((key) => [key, localStorage.getItem(key)])))
+  expect(after).toEqual(before)
+  await expect(page.getByLabel('E2E 상태 재료 보유 수량')).toHaveValue('7')
   await expect(page.locator('.material-row input[type="checkbox"]')).toBeChecked()
 })
