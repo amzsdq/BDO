@@ -24,6 +24,14 @@ describe('production icon release provenance',()=>{
   writeFileSync(join(icons,'icon-manifest.json'),JSON.stringify({...base,sourceProvenance:{clientFingerprint:fp,assetRedirectsSha256:'c'.repeat(64),iconsSnapshotSha256:'d'.repeat(64)}}))
   expect(assertProductionIconReleaseEvidence(datasetFile,dataset).itemCount).toBe(1)
  })
+ it('returns the exact icon manifest byte hash for release E2E binding',()=>{
+  const {datasetFile,dataset,icons,fp,base}=fixture()
+  const manifest={...base,sourceProvenance:{clientFingerprint:fp,assetRedirectsSha256:'c'.repeat(64),iconsSnapshotSha256:'d'.repeat(64)}}
+  const bytes=JSON.stringify(manifest)
+  writeFileSync(join(icons,'icon-manifest.json'),bytes)
+  const result=assertProductionIconReleaseEvidence(datasetFile,dataset)
+  expect(result.manifestSha256).toBe(crypto.createHash('sha256').update(bytes).digest('hex'))
+ })
  it('rejects post-manifest WebP mutation',()=>{
   const {datasetFile,dataset,icons,fp,base}=fixture()
   writeFileSync(join(icons,'icon-manifest.json'),JSON.stringify({...base,sourceProvenance:{clientFingerprint:fp,assetRedirectsSha256:'c'.repeat(64),iconsSnapshotSha256:'d'.repeat(64)}}))
