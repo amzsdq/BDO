@@ -54,6 +54,7 @@ export function applySubstitutionEvidence(dataset, evidence) {
     if (matches.length === 1) input.substitutionGroupId = matches[0].id
   }
   next.metadata ||= {}; next.metadata.sources = [...new Set([...(next.metadata.sources || []), 'BDO Codex KR material-group Worth evidence'])]
+  next.metadata.substitutionBindingPolicy = { version: 1, policy: 'reviewed-generic-groups', reviewedGroupIds: [...REVIEWED_GENERIC_RECIPE_GROUP_IDS].sort((a, b) => Number(a.split(':')[1]) - Number(b.split(':')[1])) }
   return next
 }
 if (process.argv[1] && process.argv[1].endsWith('apply-substitution-evidence.mjs')) {
