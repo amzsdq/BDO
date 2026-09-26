@@ -209,6 +209,7 @@ test('craftable intermediate consumes owned stock before recursive producer expa
     }
   })).toEqual({ craft: true, producer: 'e2e-intermediate-b' })
   await page.reload()
+  await page.getByText('중간재 직접 제작', { exact: true }).click()
   await expect(page.getByRole('checkbox', { name: 'E2E 중간재 직접 제작' })).toBeChecked()
   await expect(page.getByLabel('제작법')).toHaveValue('e2e-intermediate-b')
   await expect(page.locator('.material-row').filter({ hasText: 'E2E 원재료 A' })).toHaveCount(0)
