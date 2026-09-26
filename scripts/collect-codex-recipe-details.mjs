@@ -316,6 +316,7 @@ export async function collectCodexRecipeDetails(catalogManifest, { fetchImpl = f
       if (index >= routes.length) return
       const route = routes[index]
       const sourceUrl = `${BASE}/${route.recipeId}/`
+      let observedSkill = route.skill || null
       try {
         const response = await fetchWithRetry(sourceUrl, fetchImpl, timeoutMs, retries, waitForRequestSlot)
         const html = await response.text()
@@ -329,6 +330,7 @@ export async function collectCodexRecipeDetails(catalogManifest, { fetchImpl = f
             continue
           }
           if (!identity) throw new Error(`gap probe ${route.recipeId}: recipe identity missing`)
+          observedSkill = identity.skill
           if (identity.skill === 'other') {
             nonTargetRecipeIds.push(route.recipeId)
             results[index] = null
@@ -344,7 +346,7 @@ export async function collectCodexRecipeDetails(catalogManifest, { fetchImpl = f
         results[index] = { ...parsed, catalogListed: route.catalogListed, discovery: route.discovery, sourceUrl: response.url || sourceUrl }
       } catch (error) {
         if (!route.catalogListed && error?.status === 404) results[index] = null
-        else results[index] = { recipeId: route.recipeId, skill: route.skill || 'unknown', catalogListed: route.catalogListed, discovery: route.discovery, status: 'unresolved', ingredients: [], baseOutputs: [], randomOutputs: [], sourceUrl, error: String(error?.message || error) }
+        else results[index] = { recipeId: route.recipeId, skill: observedSkill || 'unknown', catalogListed: route.catalogListed, discovery: route.discovery, status: 'unresolved', ingredients: [], baseOutputs: [], randomOutputs: [], sourceUrl, error: String(error?.message || error) }
       }
     }
   }

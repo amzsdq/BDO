@@ -184,6 +184,16 @@ const reviewedSupplemental = reviewedGap.recipes.find((row) => row.recipeId === 
 assert(reviewedGap.complete && reviewedGap.unresolvedCount === 0, 'reviewed retired route resolves an identity-established supplemental parse failure')
 assert(reviewedSupplemental?.status === 'unavailable' && reviewedSupplemental.liveState === 'retired-reviewed' && reviewedSupplemental.skill === 'alchemy', 'reviewed route keeps exact supplemental identity')
 
+const malformedIdentifiedAlchemy = identifiedIncompleteAlchemy.replace('<tr><th>기본 제품:</th>', '<tr><td>x4</td></tr><tr><th>기본 제품:</th>')
+const malformedIdentityFetch = async (url) => {
+  const id = Number(url.match(/\/recipe\/(\d+)\//)[1])
+  if (id === 2) return { ok: true, status: 200, statusText: 'OK', url, text: async () => malformedIdentifiedAlchemy }
+  return { ok: true, status: 200, statusText: 'OK', url, text: async () => cookingPage(id) }
+}
+const malformedIdentityArtifact = await collectCodexRecipeDetails(gapCatalog, { fetchImpl: malformedIdentityFetch, retries: 0, probeGaps: true, concurrency: 1, collectedAt: '2026-09-26T00:00:00Z' })
+const malformedIdentityRow = malformedIdentityArtifact.recipes.find((row) => row.recipeId === 2)
+assert(malformedIdentityRow?.status === 'unresolved' && malformedIdentityRow.skill === 'alchemy', 'post-identity supplemental parse failure preserves observed alchemy skill')
+
 let terminalCalls = 0
 const terminalFetch = async () => {
   terminalCalls += 1
