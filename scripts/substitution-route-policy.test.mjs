@@ -11,6 +11,7 @@ const evidence = {
     members: [
       { itemId: 7318, value: 1 },
       { itemId: 7309, value: 1 },
+      { itemId: 7312, value: 1 },
       { itemId: 7331, value: 6 },
       { itemId: 7343, value: 36 },
     ],
@@ -22,6 +23,7 @@ function dataset(sourceRecipeId, itemId = 7318) {
     items: {
       '7318': { id: 7318, nameKo: '양배추' },
       '7309': { id: 7309, nameKo: '올리브' },
+      '7312': { id: 7312, nameKo: '파프리카' },
       '7331': { id: 7331, nameKo: '고급 양배추' },
       '7343': { id: 7343, nameKo: '특상품 양배추' },
       '900001': { id: 900001, nameKo: '결과물' },
@@ -41,7 +43,7 @@ describe('reviewed substitution route policy', () => {
   })
 
   it.each([354, 360, 210])('keeps literal-ingredient route %s exact', (sourceRecipeId) => {
-    const result = applySubstitutionEvidence(dataset(sourceRecipeId), evidence)
+    const result = applySubstitutionEvidence(dataset(sourceRecipeId, sourceRecipeId === 210 ? 7312 : 7318), evidence)
     expect(result.recipes.r.variants[0].inputs[0].substitutionGroupId).toBeUndefined()
   })
 
