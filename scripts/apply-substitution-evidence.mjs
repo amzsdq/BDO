@@ -49,8 +49,14 @@ export function applySubstitutionEvidence(dataset, evidence) {
       delete input.requiredBaseWorth
     }
     const matches = groups.filter((group) => {
-      if (group.source?.provider === 'BDO Codex KR' && !REVIEWED_GENERIC_ROUTE_BINDINGS.has(`${Number(variant.sourceRecipeId)}|${group.id}`)) return false
       if (group.memberItemIds.length < 2 || !group.memberItemIds.includes(input.itemId)) return false
+      if (group.source?.provider === 'BDO Codex KR') {
+        if (!REVIEWED_GENERIC_ROUTE_BINDINGS.has(`${Number(variant.sourceRecipeId)}|${group.id}`)) return false
+        const reviewed = SUBSTITUTION_BINDING_POLICY.reviewedGroups?.[group.id]
+        const slotKey = `${Number(variant.sourceRecipeId)}|${input.itemId}`
+        const requiredBaseWorth = reviewed?.requiredBaseWorthByRouteSlot?.[slotKey]
+        return Number.isFinite(requiredBaseWorth) && requiredBaseWorth > 0
+      }
       const canonicalWorth = Number(group.memberValueByItemId?.[String(input.itemId)])
       const minimumWorth = Math.min(...group.memberItemIds.map((itemId) => Number(group.memberValueByItemId?.[String(itemId)])))
       return Number.isFinite(canonicalWorth) && canonicalWorth === minimumWorth
@@ -59,7 +65,7 @@ export function applySubstitutionEvidence(dataset, evidence) {
     if (matches.length === 1) {
       input.substitutionGroupId = matches[0].id
       const reviewed = SUBSTITUTION_BINDING_POLICY.reviewedGroups?.[matches[0].id]
-      const requiredBaseWorth = reviewed?.requiredBaseWorthBySourceRecipeId?.[String(Number(variant.sourceRecipeId))]
+      const requiredBaseWorth = reviewed?.requiredBaseWorthByRouteSlot?.[`${Number(variant.sourceRecipeId)}|${input.itemId}`]
       if (!Number.isFinite(requiredBaseWorth) || requiredBaseWorth <= 0) throw new Error(`${recipe.id}/${variant.id}: reviewed route lacks requiredBaseWorth`)
       input.requiredBaseWorth = requiredBaseWorth
     }

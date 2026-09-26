@@ -109,6 +109,12 @@ describe('reviewed substitution route policy', () => {
     expect(result.substitutionGroups[groupId].planningValueByItemId[String(semanticItemId)]).toBe(semanticValue)
   })
 
+  it('does not bind an unreviewed slot merely because its route and group are reviewed', () => {
+    const result = applySubstitutionEvidence(dataset(129, 7201), evidence)
+    expect(result.recipes.r.variants[0].inputs[0].substitutionGroupId).toBeUndefined()
+    expect(result.recipes.r.variants[0].inputs[0].requiredBaseWorth).toBeUndefined()
+  })
+
   it('keeps historical-only generic vegetable route 113 exact until fresh route evidence is reviewed', () => {
     const result = applySubstitutionEvidence(dataset(113), evidence)
     expect(result.recipes.r.variants[0].inputs[0].substitutionGroupId).toBeUndefined()
