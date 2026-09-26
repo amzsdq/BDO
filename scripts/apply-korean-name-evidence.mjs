@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import fs from 'node:fs'\nimport crypto from 'node:crypto'
+import fs from 'node:fs'
+import crypto from 'node:crypto'
 
 export function applyKoreanNameEvidence(dataset, evidence, evidenceSha256) {
   if (!evidence || evidence.source !== 'BDO Codex KR' || !Array.isArray(evidence.items)) throw new Error('invalid Korean-name evidence envelope')
@@ -30,6 +31,8 @@ if (process.argv[1] && process.argv[1].endsWith('apply-korean-name-evidence.mjs'
   if (args.length !== 3 || args.some((value) => !value || value.startsWith('--'))) throw new Error('usage: node scripts/apply-korean-name-evidence.mjs <dataset.json> <evidence.json> <out.json>')
   const [datasetPath, evidencePath, outPath] = args
   const dataset = JSON.parse(fs.readFileSync(datasetPath, 'utf8'))
-  const evidence = JSON.parse(fs.readFileSync(evidencePath, 'utf8'))
-  fs.writeFileSync(outPath, JSON.stringify(applyKoreanNameEvidence(dataset, evidence), null, 2) + '\n')
+  const evidenceBytes = fs.readFileSync(evidencePath)
+  const evidence = JSON.parse(evidenceBytes.toString('utf8'))
+  const evidenceSha256 = crypto.createHash('sha256').update(evidenceBytes).digest('hex')
+  fs.writeFileSync(outPath, JSON.stringify(applyKoreanNameEvidence(dataset, evidence, evidenceSha256), null, 2) + '\n')
 }

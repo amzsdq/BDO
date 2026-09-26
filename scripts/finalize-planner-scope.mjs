@@ -1,5 +1,6 @@
 #!/usr/bin/env node
-import fs from 'node:fs'\nimport crypto from 'node:crypto'
+import fs from 'node:fs'
+import crypto from 'node:crypto'
 import { applySubstitutionEvidence } from './apply-substitution-evidence.mjs'
 import { pruneItemsToPlannerScope } from './planner-item-scope.mjs'
 
@@ -13,15 +14,18 @@ export function finalizePlannerScope(dataset, substitutionEvidence, substitution
   result.metadata.itemScope = 'planner-referenced-cooking-alchemy-v2'
   result.metadata.importedItemCount = before
   result.metadata.scopedItemCount = Object.keys(result.items).length
-  result.metadata.substitutionEvidenceApplied = Boolean(substitutionEvidence)\n  if (substitutionEvidenceSha256) result.metadata.substitutionEvidenceSha256 = substitutionEvidenceSha256
+  result.metadata.substitutionEvidenceApplied = Boolean(substitutionEvidence)
+  if (substitutionEvidenceSha256) result.metadata.substitutionEvidenceSha256 = substitutionEvidenceSha256
   return result
 }
 if (process.argv[1]?.endsWith('finalize-planner-scope.mjs')) {
   const [datasetPath, outPath, substitutionPath] = process.argv.slice(2)
   if (!datasetPath || !outPath) throw new Error('usage: node scripts/finalize-planner-scope.mjs <pre-enriched-dataset.json> <out.json> [substitution-evidence.json]')
   const dataset = JSON.parse(fs.readFileSync(datasetPath, 'utf8'))
-  const evidence = substitutionPath ? JSON.parse(fs.readFileSync(substitutionPath, 'utf8')) : undefined
-  const result = finalizePlannerScope(dataset, evidence)
+  const substitutionBytes = substitutionPath ? fs.readFileSync(substitutionPath) : undefined
+  const evidence = substitutionBytes ? JSON.parse(substitutionBytes.toString('utf8')) : undefined
+  const substitutionEvidenceSha256 = substitutionBytes ? crypto.createHash('sha256').update(substitutionBytes).digest('hex') : undefined
+  const result = finalizePlannerScope(dataset, evidence, substitutionEvidenceSha256)
   fs.writeFileSync(outPath, JSON.stringify(result, null, 2) + '\n')
   console.log(JSON.stringify({ ok: true, importedItems: result.metadata.importedItemCount, scopedItems: result.metadata.scopedItemCount, substitutionEvidenceApplied: result.metadata.substitutionEvidenceApplied }))
 }
