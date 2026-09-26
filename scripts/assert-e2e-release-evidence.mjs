@@ -17,7 +17,13 @@ const evidencePointerResolves = (value) => {
   if (/^https:\/\//i.test(value)) {
     try { return new URL(value).protocol === 'https:'; } catch { return false; }
   }
-  return fs.existsSync(localEvidencePath(value));
+  if (path.isAbsolute(value)) return false;
+  const candidate = localEvidencePath(value);
+  if (!fs.existsSync(candidate) || !fs.statSync(candidate).isFile()) return false;
+  const base = fs.realpathSync(path.dirname(manifestPath));
+  const resolved = fs.realpathSync(candidate);
+  const relative = path.relative(base, resolved);
+  return relative !== '..' && !relative.startsWith(`..${path.sep}`) && !path.isAbsolute(relative);
 };
 const fileSha256 = (filePath) => createHash('sha256').update(fs.readFileSync(filePath)).digest('hex');
 
