@@ -141,7 +141,7 @@ assert(reviewedSupplemental?.status === 'unavailable' && reviewedSupplemental.li
 
 const malformedIdentifiedAlchemy = identifiedIncompleteAlchemy.replace('<tr><th>기본 제품:</th>', '<tr><td>x4</td></tr><tr><th>기본 제품:</th>')
 const malformedIdentityFetch = async (url) => {
-  const id = Number(url.match(/\\/recipe\\/(\\d+)\\//)[1])
+  const id = Number(url.match(/\/recipe\/(\d+)\//)[1])
   if (id === 2) return { ok: true, status: 200, statusText: 'OK', url, text: async () => malformedIdentifiedAlchemy }
   return { ok: true, status: 200, statusText: 'OK', url, text: async () => cookingPage(id) }
 }
