@@ -47,10 +47,11 @@ const redirectBytes = fs.readFileSync(redirectFile)
 const redirects = JSON.parse(redirectBytes.toString('utf8'))
 const provenanceFile = path.join(dataRoot, 'provenance.json')
 let sourceProvenance = null
+const datasetFingerprint = String(dataset.metadata?.clientFingerprint || '').toLowerCase()
+if (/^sha256:[0-9a-f]{64}$/.test(datasetFingerprint) && !fs.existsSync(provenanceFile)) fail('verified client dataset requires same-snapshot icon provenance')
 if (fs.existsSync(provenanceFile)) {
   const provenance = JSON.parse(fs.readFileSync(provenanceFile, 'utf8').replace(/^\uFEFF/, ''))
   const clientFingerprint = String(provenance.clientFingerprint || '').toLowerCase()
-  const datasetFingerprint = String(dataset.metadata?.clientFingerprint || '').toLowerCase()
   if (!/^sha256:[0-9a-f]{64}$/.test(clientFingerprint) || clientFingerprint !== datasetFingerprint) fail('icon snapshot client fingerprint does not match dataset')
   const redirectHash = String(provenance.artifactSha256?.['asset_redirects.json'] || '').toLowerCase()
   if (!/^[0-9a-f]{64}$/.test(redirectHash) || redirectHash !== sha256(redirectBytes)) fail('asset_redirects.json does not match same-snapshot provenance')
