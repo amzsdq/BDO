@@ -34,7 +34,8 @@ fs.mkdirSync(outDir, { recursive: true })
 for (const name of ['items.json', 'recipes.json', 'mastery.json']) fs.copyFileSync(path.join(viewerDir, name), path.join(outDir, name))
 fs.cpSync(viewerIcons, path.join(outDir, 'icons'), { recursive: true })
 fs.copyFileSync(serviceIni, path.join(outDir, 'service.ini'))
-const artifactSha256 = Object.fromEntries(['items.json','recipes.json','mastery.json','service.ini'].map(name => [name, sha256File(path.join(outDir, name))]))
+fs.copyFileSync(manifestPath, path.join(outDir, 'viewer-manifest.json'))
+const artifactSha256 = Object.fromEntries(['items.json','recipes.json','mastery.json','service.ini','viewer-manifest.json'].map(name => [name, sha256File(path.join(outDir, name))]))
 const provenance = {
   schemaVersion: 1,
   source: 'installed Black Desert client via reviewed bdo-viewer',
@@ -43,6 +44,7 @@ const provenance = {
   extractorRevision: REVIEWED_EXTRACTOR_REVISION,
   viewer: 'iDevelopThings/bdo-viewer',
   viewerVersion: REVIEWED_VIEWER_VERSION,
+  viewerManifestSha256: artifactSha256['viewer-manifest.json'],
   extractedAt: manifest.extractedAt,
   clientFingerprint: `sha256:${clientHash}`,
   extractorGameFingerprint: clientHash.slice(0, 16),

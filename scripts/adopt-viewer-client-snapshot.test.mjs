@@ -22,6 +22,7 @@ describe('adopt-viewer-client-snapshot', () => {
     expect(provenance.extractorRevision).toBe('5bf11bd7bc60dcbb6126be34bf3d76633abdd8b2')
     expect(provenance.regionEvidence.type).toBe('KR')
     expect(provenance.regionEvidence.sha256).toBe(provenance.artifactSha256['service.ini'])
+    expect(provenance.viewerManifestSha256).toBe(provenance.artifactSha256['viewer-manifest.json'])
     expect(provenance.iconsSnapshotCopied).toBe(true)
     expect(fs.readFileSync(path.join(out,'icons','1.png'),'utf8')).toBe('icon-bytes')
     fs.writeFileSync(path.join(game,'service.ini'),'TYPE=NA\r\n')
