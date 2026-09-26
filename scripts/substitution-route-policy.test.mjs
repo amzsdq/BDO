@@ -5,6 +5,18 @@ const evidence = {
   source: 'BDO Codex KR',
   collectedAt: '2026-09-26T00:00:00.000Z',
   groups: [{
+    id: 'codex:6001', sourceId: '6001', sourceUrl: 'https://bdocodex.com/kr/materialgroup/6001/',
+    members: [[7001,1],[7003,2],[7004,2],[7002,2],[7005,2],[7008,6],[7009,6],[7006,6],[7007,6],[7010,6],[7013,36],[7014,36],[7011,36],[7012,36],[7015,36]].map(([itemId,value]) => ({ itemId, value })),
+  }, {
+    id: 'codex:6002', sourceId: '6002', sourceUrl: 'https://bdocodex.com/kr/materialgroup/6002/',
+    members: [[7101,1],[7103,2],[7104,2],[7102,2],[7105,2]].map(([itemId,value]) => ({ itemId, value })),
+  }, {
+    id: 'codex:6003', sourceId: '6003', sourceUrl: 'https://bdocodex.com/kr/materialgroup/6003/',
+    members: [[7201,1],[7203,4],[7204,4],[7202,4],[7205,4]].map(([itemId,value]) => ({ itemId, value })),
+  }, {
+    id: 'codex:6007', sourceId: '6007', sourceUrl: 'https://bdocodex.com/kr/materialgroup/6007/',
+    members: [[7313,1],[7304,2],[7316,2],[7315,2],[7314,2],[7317,2],[7307,2],[7321,12],[7329,12],[7322,72],[7341,72]].map(([itemId,value]) => ({ itemId, value })),
+  }, {
     id: 'codex:3008', sourceId: '3008', sourceUrl: 'https://bdocodex.com/kr/materialgroup/3008/',
     members: [{ itemId: 5408, value: 1 }, { itemId: 5427, value: 6 }, { itemId: 5451, value: 36 }, { itemId: 5471, value: 216 }],
   }, {
@@ -40,6 +52,7 @@ function dataset(sourceRecipeId, itemId = 7318) {
       '7311': { id: 7311 }, '7312': { id: 7312, nameKo: '파프리카' }, '7306': { id: 7306 },
       '7328': { id: 7328 }, '7331': { id: 7331, nameKo: '고급 양배추' }, '7333': { id: 7333 }, '7334': { id: 7334 },
       '7340': { id: 7340 }, '7343': { id: 7343, nameKo: '특상품 양배추' }, '7345': { id: 7345 }, '7346': { id: 7346 },
+      ...Object.fromEntries([7001,7002,7003,7004,7005,7006,7007,7008,7009,7010,7011,7012,7013,7014,7015,7101,7102,7103,7104,7105,7201,7202,7203,7204,7205,7304,7307,7313,7314,7315,7316,7317,7321,7322,7329,7341].map((id) => [String(id), { id }])),
       '5408': { id: 5408 }, '5427': { id: 5427 }, '5451': { id: 5451 }, '5471': { id: 5471 },
       '6204': { id: 6204 }, '6214': { id: 6214 }, '6216': { id: 6216 }, '6218': { id: 6218 },
       '900001': { id: 900001, nameKo: '결과물' },
@@ -80,6 +93,20 @@ describe('reviewed substitution route policy', () => {
     expect(input.requiredBaseWorth).toBe(2)
     expect(result.substitutionGroups['codex:805'].memberValueByItemId['6216']).toBe(2)
     expect(result.substitutionGroups['codex:805'].planningValueByItemId['6216']).toBe(1)
+  })
+
+  it.each([
+    [129, 7205, 'codex:6003', 6, 7203, 2],
+    [548, 7101, 'codex:6002', 1, 7103, 1],
+    [548, 7313, 'codex:6007', 1, 7304, 1],
+    [549, 7001, 'codex:6001', 1, 7003, 1],
+    [549, 7313, 'codex:6007', 1, 7304, 1],
+  ])('binds current Cooking Guide route %s with reviewed planning semantics', (sourceRecipeId, itemId, groupId, requiredBaseWorth, semanticItemId, semanticValue) => {
+    const result = applySubstitutionEvidence(dataset(sourceRecipeId, itemId), evidence)
+    const input = result.recipes.r.variants[0].inputs[0]
+    expect(input.substitutionGroupId).toBe(groupId)
+    expect(input.requiredBaseWorth).toBe(requiredBaseWorth)
+    expect(result.substitutionGroups[groupId].planningValueByItemId[String(semanticItemId)]).toBe(semanticValue)
   })
 
   it('keeps historical-only generic vegetable route 113 exact until fresh route evidence is reviewed', () => {
