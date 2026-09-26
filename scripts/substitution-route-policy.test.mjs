@@ -139,11 +139,15 @@ describe('reviewed substitution route policy', () => {
     expect(result.recipes.r.variants[0].inputs[0].substitutionGroupId).toBeUndefined()
   })
 
-  it('binds current Stir-Fried Vegetables route 123 hot-pepper slot with reviewed planning semantics', () => {
-    const result = applySubstitutionEvidence(dataset(123, 7305), evidence)
-    const input = result.recipes.r.variants[0].inputs[0]
-    expect(input.substitutionGroupId).toBe('codex:6008')
-    expect(input.requiredBaseWorth).toBe(2)
+  it('binds only the reviewed Hot Pepper slot on route 123 while its unreviewed vegetable slot stays exact', () => {
+    const candidate = dataset(123, 7305)
+    candidate.recipes.r.variants[0].inputs.push({ itemId: 7318, count: 5 })
+    const result = applySubstitutionEvidence(candidate, evidence)
+    const [hotPepper, vegetable] = result.recipes.r.variants[0].inputs
+    expect(hotPepper.substitutionGroupId).toBe('codex:6008')
+    expect(hotPepper.requiredBaseWorth).toBe(2)
+    expect(vegetable.substitutionGroupId).toBeUndefined()
+    expect(vegetable.requiredBaseWorth).toBeUndefined()
     expect(result.substitutionGroups['codex:6008'].memberValueByItemId['7327']).toBe(6)
     expect(result.substitutionGroups['codex:6008'].planningValueByItemId['7327']).toBe(3)
   })
