@@ -23,10 +23,10 @@ const fileSha256 = (filePath) => createHash('sha256').update(fs.readFileSync(fil
 
 if (manifest.schemaVersion !== 1) fail('schemaVersion must be 1');
 if (!gitSha.test(manifest.mainCommit ?? '') || allZero(manifest.mainCommit)) fail('mainCommit must be a non-placeholder exact 40-char git SHA');
-for (const key of ['datasetFingerprint', 'reconciliationFingerprint', 'masteryEvidenceFingerprint']) {
-  if (!evidenceString(manifest[key])) fail(`${key} is required and cannot be a placeholder`);
+if (!evidenceString(manifest.datasetFingerprint)) fail('datasetFingerprint is required and cannot be a placeholder');
+for (const key of ['reconciliationFingerprint', 'masteryEvidenceFingerprint', 'masterySha256']) {
+  if (!sha256.test(manifest[key] ?? '') || allZero(manifest[key])) fail(`${key} must be a non-placeholder 64-char SHA-256`);
 }
-if (!sha256.test(manifest.masterySha256 ?? '') || allZero(manifest.masterySha256)) fail('masterySha256 must be a non-placeholder 64-char SHA-256');
 if (!evidenceString(manifest.reconciliationTimestamp)) fail('reconciliationTimestamp is required');
 if (Number.isNaN(Date.parse(manifest.reconciliationTimestamp))) fail('reconciliationTimestamp must be ISO-8601 parseable');
 if (!Array.isArray(manifest.browsers) || manifest.browsers.length === 0 || manifest.browsers.some((x) => !evidenceString(x))) fail('at least one concrete browser is required');
