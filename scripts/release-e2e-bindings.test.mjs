@@ -14,12 +14,14 @@ const base = {
     reconciliationTimestamp: '2026-09-24T00:00:00Z',
     masteryEvidenceFingerprint: sha(masteryEvidenceBytes),
     masterySha256: sha(masteryBytes),
+    iconManifestSha256: 'f'.repeat(64),
   },
   dataset: { metadata: { fingerprint: 'dataset-fp' } },
   reconciliation: { generatedAt: '2026-09-24T00:00:00Z' },
   reconciliationBytes,
   masteryEvidenceBytes,
   masteryBytes,
+  iconManifestSha256: 'f'.repeat(64),
   head: 'a'.repeat(40),
 };
 assert.doesNotThrow(() => assertReleaseE2eBindings(base));
@@ -30,6 +32,7 @@ for (const mutate of [
   (v) => { v.reconciliation.generatedAt = '2026-09-25T00:00:00Z'; },
   (v) => { v.masteryEvidenceBytes = Buffer.from('changed'); },
   (v) => { v.masteryBytes = Buffer.from('changed'); },
+  (v) => { v.iconManifestSha256 = '0'.repeat(64); },
 ]) {
   const candidate = structuredClone(base);
   mutate(candidate);
