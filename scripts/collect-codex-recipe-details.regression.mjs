@@ -1,4 +1,5 @@
 import { parseCodexRecipeDetailHtml, collectCodexRecipeDetails } from './collect-codex-recipe-details.mjs'
+import { applyRetiredRouteStateToDetails } from './reviewed-retired-route-state.mjs'
 
 function assert(condition, message) { if (!condition) throw new Error(message) }
 
@@ -111,6 +112,32 @@ const supplemental = gapArtifact.recipes.find((row) => row.recipeId === 2)
 assert(supplemental && supplemental.catalogListed === false && supplemental.discovery === 'catalog-gap-probe', 'supplemental route preserves discovery provenance')
 assert(supplemental.status === 'unavailable' && supplemental.skill === 'alchemy', 'disabled supplemental route is preserved as unavailable evidence')
 assert(gapArtifact.recipes.filter((row) => row.catalogListed).length === 2, 'catalog accounting excludes supplemental route')
+
+
+const identifiedIncompleteAlchemy = `<div class="card item_info"><a href="/kr/recipe/2/"><span class="item_title">과거 연금식</span></a> 연금 스킬 레벨: 숙련 Lv. 1<table>
+<tr><th>재료</th></tr><tr><th>기본 제품:</th></tr><tr><th>랜덤 제품:</th></tr></table></div>`
+const identifiedGapFetch = async (url) => {
+  const id = Number(url.match(/\/recipe\/(\d+)\//)[1])
+  if (id === 2) return { ok: true, status: 200, statusText: 'OK', url, text: async () => identifiedIncompleteAlchemy }
+  if (id === 1 || id === 3) return { ok: true, status: 200, statusText: 'OK', url, text: async () => cookingPage(id) }
+  return { ok: false, status: 404, statusText: 'Not Found', url, text: async () => '' }
+}
+const identifiedGap = await collectCodexRecipeDetails(gapCatalog, { fetchImpl: identifiedGapFetch, retries: 0, probeGaps: true, collectedAt: '2026-09-26T00:00:00Z' })
+const identifiedSupplemental = identifiedGap.recipes.find((row) => row.recipeId === 2)
+assert(!identifiedGap.complete && identifiedGap.unresolvedCount === 1, 'identified-but-incomplete supplemental route remains unresolved before review')
+assert(identifiedSupplemental?.skill === 'alchemy' && /no exact ingredients parsed/.test(identifiedSupplemental.error || ''), 'supplemental failure preserves exact skill identity')
+const reviewedGap = applyRetiredRouteStateToDetails(identifiedGap, {
+  schemaVersion: 1,
+  scope: 'kr-pc-crafting-route-live-state',
+  reviewedAt: '2026-09-26',
+  source: { url: 'https://www.kr.playblackdesert.com/ko-KR/News/Detail?groupContentNo=16141', effectiveDate: '2026-09-02' },
+  routes: [{ recipeId: 2, skill: 'alchemy', status: 'retired' }],
+  retiredCraftingOutputItemIds: [999001],
+  retiredCraftingIngredientItemIds: [999002],
+})
+const reviewedSupplemental = reviewedGap.recipes.find((row) => row.recipeId === 2)
+assert(reviewedGap.complete && reviewedGap.unresolvedCount === 0, 'reviewed retired route resolves an identity-established supplemental parse failure')
+assert(reviewedSupplemental?.status === 'unavailable' && reviewedSupplemental.liveState === 'retired-reviewed' && reviewedSupplemental.skill === 'alchemy', 'reviewed route keeps exact supplemental identity')
 
 let terminalCalls = 0
 const terminalFetch = async () => {
