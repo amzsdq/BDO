@@ -17,6 +17,12 @@ export const SUBSTITUTION_BINDING_POLICY = Object.freeze({
         '7328': 6, '7331': 6, '7333': 6, '7334': 6,
         '7340': 36, '7343': 36, '7345': 36, '7346': 36,
       }),
+      planningValueByItemId: Object.freeze({
+        '7306': 1, '7309': 1, '7311': 1, '7312': 1, '7318': 1,
+        '7328': 6, '7331': 6, '7333': 6, '7334': 6,
+        '7340': 36, '7343': 36, '7345': 36, '7346': 36,
+      }),
+      requiredBaseWorthBySourceRecipeId: Object.freeze({ '112': 8 }),
       sourceRecipeIds: Object.freeze([112]),
     }),
   }),

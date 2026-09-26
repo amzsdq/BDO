@@ -48,6 +48,12 @@ describe('reviewed substitution route policy', () => {
   it('binds current Pickled Vegetables route 112 to reviewed vegetable group 6009', () => {
     const result = applySubstitutionEvidence(dataset(112), evidence)
     expect(result.recipes.r.variants[0].inputs[0].substitutionGroupId).toBe('codex:6009')
+    expect(result.recipes.r.variants[0].inputs[0].requiredBaseWorth).toBe(8)
+    expect(result.substitutionGroups['codex:6009'].planningValueByItemId).toEqual({
+      '7306': 1, '7309': 1, '7311': 1, '7312': 1, '7318': 1,
+      '7328': 6, '7331': 6, '7333': 6, '7334': 6,
+      '7340': 36, '7343': 36, '7345': 36, '7346': 36,
+    })
   })
 
   it('keeps historical-only generic vegetable route 113 exact until fresh route evidence is reviewed', () => {
