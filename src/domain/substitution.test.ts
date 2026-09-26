@@ -31,9 +31,10 @@ describe('ingredient substitutions', () => {
     expect(resolveIngredientChoice({ itemId: 20, count: 5, substitutionGroupId: 'codex:3001' }, groups, { selectedItemId: 22 })).toEqual({ itemId: 22, count: 2, usedSubstitution: true })
   })
 
-  it('converts through the canonical recipe member worth when it is not the base member', () => {
-    expect(resolveIngredientChoice({ itemId: 21, count: 2, substitutionGroupId: 'codex:3001' }, groups, { selectedItemId: 20 })).toEqual({ itemId: 20, count: 4, usedSubstitution: true })
-    expect(resolveIngredientChoice({ itemId: 22, count: 2, substitutionGroupId: 'codex:3001' }, groups, { selectedItemId: 21 })).toEqual({ itemId: 21, count: 3, usedSubstitution: true })
+  it('allows equal-or-higher Worth but rejects lower Worth for a higher canonical recipe member', () => {
+    expect(resolveIngredientChoice({ itemId: 21, count: 2, substitutionGroupId: 'codex:3001' }, groups, { selectedItemId: 22 })).toEqual({ itemId: 22, count: 2, usedSubstitution: true })
+    expect(() => resolveIngredientChoice({ itemId: 21, count: 2, substitutionGroupId: 'codex:3001' }, groups, { selectedItemId: 20 })).toThrow(/insufficient Worth/)
+    expect(() => resolveIngredientChoice({ itemId: 22, count: 2, substitutionGroupId: 'codex:3001' }, groups, { selectedItemId: 21 })).toThrow(/insufficient Worth/)
   })
 
   it('ranks owned substitutes against their effective required quantity', () => {
