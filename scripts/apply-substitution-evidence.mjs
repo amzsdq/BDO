@@ -31,7 +31,12 @@ export function applySubstitutionEvidence(dataset, evidence) {
   const groups = Object.values(next.substitutionGroups)
   for (const recipe of Object.values(next.recipes || {})) for (const variant of recipe.variants || []) for (const input of variant.inputs || []) {
     if (removedCodexIds.has(input.substitutionGroupId) || String(input.substitutionGroupId || '').startsWith('codex:')) delete input.substitutionGroupId
-    const matches = groups.filter((group) => group.memberItemIds.length >= 2 && group.memberItemIds.includes(input.itemId))
+    const matches = groups.filter((group) => {
+      if (group.memberItemIds.length < 2 || !group.memberItemIds.includes(input.itemId)) return false
+      const canonicalWorth = Number(group.memberValueByItemId?.[String(input.itemId)])
+      const minimumWorth = Math.min(...group.memberItemIds.map((itemId) => Number(group.memberValueByItemId?.[String(itemId)])))
+      return Number.isFinite(canonicalWorth) && canonicalWorth === minimumWorth
+    })
     if (matches.length > 1) throw new Error(`${recipe.id}/${variant.id}: item ${input.itemId} belongs to multiple sourced substitution groups`)
     if (matches.length === 1) input.substitutionGroupId = matches[0].id
   }
