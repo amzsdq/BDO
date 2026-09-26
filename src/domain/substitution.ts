@@ -13,7 +13,8 @@ export interface ResolveIngredientChoiceOptions {
 }
 
 function sourcedValue(group: IngredientSubstitutionGroup, itemId: ItemId): number | undefined {
-  const rawValue = group.planningValueByItemId?.[String(itemId)] ?? group.memberValueByItemId?.[String(itemId)]
+  const valueMap = group.planningValueByItemId ?? group.memberValueByItemId
+  const rawValue = valueMap?.[String(itemId)]
   if (rawValue == null) return undefined
   const value = Number(rawValue)
   if (!Number.isFinite(value) || value <= 0) throw new Error(`invalid substitution value for item ${itemId} in group ${group.id}`)
@@ -111,8 +112,8 @@ export function resolveOwnedMixedIngredientAllocation(
   }).filter((entry) => entry.maxPerAttempt > 0)
   if (!available.length) return undefined
 
-  // Bounded DP over source Worth. Worth values are at most one decimal place in
-  // current production evidence; scaling preserves exact source ratios.
+  // Bounded DP over reviewed planning Worth (or source Worth for legacy reviewed groups).
+  // Scaling preserves the exact reviewed ratios supported by the planner.
   const scale = 10
   const scaledValues = available.map((entry) => entry.value * scale)
   if (![target * scale, ...scaledValues].every((value) => Math.abs(value - Math.round(value)) <= 1e-9)) return undefined

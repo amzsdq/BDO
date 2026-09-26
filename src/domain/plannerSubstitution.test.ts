@@ -140,5 +140,18 @@ describe('planner substitution resolution', () => {
       selectedSubstitutionItemIdByGroupId: { 'codex:6003': 11 },
     })
     expect(plan.materials).toEqual([expect.objectContaining({ itemId: 11, required: 3 })])
+    const missingSemanticMember: RecipeDataset = {
+      ...semanticDataset,
+      substitutionGroups: {
+        'codex:6003': {
+          ...semanticDataset.substitutionGroups!['codex:6003'],
+          planningValueByItemId: { '10': 1 },
+        },
+      },
+    }
+    expect(() => buildPlan(missingSemanticMember, [{ recipeId: 'r1', mode: 'attempts', amount: 1 }], {
+      craftIntermediateItemIds: new Set(),
+      selectedSubstitutionItemIdByGroupId: { 'codex:6003': 11 },
+    })).toThrow(/missing substitution value/)
   })
 })
