@@ -14,6 +14,24 @@ assert(a.skillText === '숙련 Lv. 6', 'skill text')
 assert(a.ingredients.length === 2 && a.ingredients[0].itemId === 9203 && a.ingredients[0].count === 1, 'exact ingredients')
 assert(a.randomOutputs[0].itemId === 9602 && a.randomOutputs[0].max === 2, 'random range')
 
+
+const liveRowShape = `<div class="card item_info"><div class="card-header">ID: 54<div class="item_title" id="item_name"><b>광대의 혈액</b></div></div>
+<div class="card-body"><table><tr><td>레시피<br><span class="yellow_text">연금</span><br>스킬 레벨: 견습 Lv. 1</td></tr>
+<tr><td><span class="yellow_text">- 제작 재료</span><br>
+<div class="iconset_wrapper_medium inlinediv"><a href="/kr/item/5006/"><div class="quantity_small nowrap">1</div></a></div> - <a href="/kr/item/5006/">정령의 잎사귀</a><br>
+<div class="iconset_wrapper_medium inlinediv"><a href="/kr/item/4801/"><div class="quantity_small nowrap">1</div></a></div> - <a href="/kr/item/4801/">어둠의 가루</a><br>
+<div class="iconset_wrapper_medium inlinediv"><a href="/kr/item/5301/"><div class="quantity_small nowrap">1</div></a></div> - <a href="/kr/item/5301/">맑은 액체 시약</a><br>
+<div class="iconset_wrapper_medium inlinediv"><a href="/kr/item/6214/"><div class="quantity_small nowrap">2</div></a></div> - <a href="/kr/item/6214/">늑대 피</a></td></tr>
+<tr><td><span class="yellow_text">- 제작 결과</span><br>기본 제품:<br>
+<div class="iconset_wrapper_medium inlinediv"><a href="/kr/item/6353/"><div class="quantity_small nowrap">1~4</div></a></div> - <a href="/kr/item/6353/">광대의 혈액</a>
+<br>추가 (무작위) 제품:<br>
+<div class="iconset_wrapper_medium inlinediv"><a href="/kr/item/9733/"><div class="quantity_small nowrap">1</div></a></div> - <a href="/kr/item/9733/">빛나는 가루</a></td></tr>
+<tr><td>참고</td></tr></table></div></div>`
+const liveRowParsed = parseCodexRecipeDetailHtml(liveRowShape, 54, 'alchemy')
+assert(liveRowParsed.ingredients.length === 4 && liveRowParsed.ingredients.map((row) => row.count).join(',') === '1,1,1,2', 'live Codex section row parses every ingredient')
+assert(liveRowParsed.status === 'single-base' && liveRowParsed.outputItemId === 6353 && liveRowParsed.yield.min === 1 && liveRowParsed.yield.max === 4, 'live Codex section row parses base output range')
+assert(liveRowParsed.randomOutputs.length === 1 && liveRowParsed.randomOutputs[0].itemId === 9733, 'live Codex section row separates random output from base output')
+
 const randomOnly = `<div class="card item_info"><a href="/kr/recipe/346/"><span class="item_title">예리한 수호의 정령석</span></a> 연금 스킬 레벨: 숙련 Lv. 1<table>
 <tr><th>재료</th></tr><tr><td>50 - <a href="/kr/item/4481/">재료 A</a></td></tr><tr><td>5 - <a href="/kr/item/16080/">재료 B</a></td></tr>
 <tr><th>기본 제품:</th></tr><tr><th>추가 (무작위) 제품:</th></tr><tr><td>1 - <a href="/kr/item/45340/">예리한 수호의 정령석</a></td></tr>
