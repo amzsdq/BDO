@@ -41,6 +41,12 @@ describe('planner substitution resolution', () => {
     })
     expect(plan.materials[0]?.itemId).toBe(11)
     expect(plan.materials[0]?.required).toBe(6)
+    const fullBatch = buildPlan(dataset, [{ recipeId: 'r1', mode: 'attempts', amount: 10 }], {
+      craftIntermediateItemIds: new Set(),
+      haveByItemId: { '10': 100, '11': 4 },
+    })
+    expect(fullBatch.materials[0]?.itemId).toBe(10)
+    expect(fullBatch.materials[0]?.missing).toBe(0)
     expect(() => buildPlan(dataset, [{ recipeId: 'r1', mode: 'attempts', amount: 1 }], {
       craftIntermediateItemIds: new Set(),
       selectedSubstitutionItemIdByGroupId: { 'codex:6502': 99 },

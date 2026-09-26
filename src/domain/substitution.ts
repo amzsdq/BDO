@@ -9,6 +9,7 @@ export interface IngredientChoice {
 export interface ResolveIngredientChoiceOptions {
   selectedItemId?: ItemId
   ownedByItemId?: Readonly<Record<string, number>>
+  requiredMultiplier?: number
 }
 
 function sourcedValue(group: IngredientSubstitutionGroup, itemId: ItemId): number | undefined {
@@ -61,8 +62,10 @@ export function resolveIngredientChoice(
   }
 
   const owned = options.ownedByItemId ?? {}
+  const multiplier = options.requiredMultiplier == null ? 1 : options.requiredMultiplier
+  if (!Number.isFinite(multiplier) || multiplier <= 0) throw new Error('substitution requiredMultiplier must be a positive finite number')
   const ranked = members
-    .map((itemId) => ({ itemId, required: requiredCount(group, ingredient.itemId, itemId, ingredient.count), owned: Math.max(0, Number(owned[String(itemId)]) || 0) }))
+    .map((itemId) => ({ itemId, required: requiredCount(group, ingredient.itemId, itemId, ingredient.count) * multiplier, owned: Math.max(0, Number(owned[String(itemId)]) || 0) }))
     .sort((a, b) => Number(b.owned >= b.required) - Number(a.owned >= a.required) || (b.owned / b.required) - (a.owned / a.required) || a.itemId - b.itemId)
   const chosen = ranked[0]?.owned ? ranked[0] : ranked.find((entry) => entry.itemId === ingredient.itemId)
   const itemId = chosen?.itemId ?? ingredient.itemId
