@@ -53,6 +53,18 @@ describe('ingredient substitutions', () => {
     expect(resolveOwnedMixedIngredientAllocation({ itemId: 20, count: 5, substitutionGroupId: 'codex:3001' }, unsupported, { '20': 1, '21': 4 }, 1)).toBeUndefined()
   })
 
+  it('does not let lower-Worth honey replace an exact top-Worth requirement', () => {
+    const honey = {
+      'codex:6014': {
+        id: 'codex:6014', memberItemIds: [30, 31, 32, 33],
+        memberValueByItemId: { '30': 1, '31': 2, '32': 5, '33': 10 },
+        source: { provider: 'BDO Codex KR' as const, sourceId: '6014', verifiedAt: '2026-09-26' },
+      },
+    }
+    expect(() => resolveIngredientChoice({ itemId: 33, count: 2, substitutionGroupId: 'codex:6014' }, honey, { selectedItemId: 32 })).toThrow(/insufficient Worth/)
+    expect(resolveIngredientChoice({ itemId: 33, count: 2, substitutionGroupId: 'codex:6014' }, honey, { ownedByItemId: { '32': 99 } })).toEqual({ itemId: 33, count: 2, usedSubstitution: false })
+  })
+
   it('fails closed for invalid sourced values', () => {
     const invalid = structuredClone(groups)
     invalid['codex:3001'].memberValueByItemId!['21'] = 0
