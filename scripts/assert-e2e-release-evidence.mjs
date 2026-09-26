@@ -30,7 +30,7 @@ const fileSha256 = (filePath) => createHash('sha256').update(fs.readFileSync(fil
 if (manifest.schemaVersion !== 1) fail('schemaVersion must be 1');
 if (!gitSha.test(manifest.mainCommit ?? '') || allZero(manifest.mainCommit)) fail('mainCommit must be a non-placeholder exact 40-char git SHA');
 if (!evidenceString(manifest.datasetFingerprint)) fail('datasetFingerprint is required and cannot be a placeholder');
-for (const key of ['reconciliationFingerprint', 'masteryEvidenceFingerprint', 'masterySha256']) {
+for (const key of ['reconciliationFingerprint', 'masteryEvidenceFingerprint', 'masterySha256', 'iconManifestSha256']) {
   if (!sha256.test(manifest[key] ?? '') || allZero(manifest[key])) fail(`${key} must be a non-placeholder 64-char SHA-256`);
 }
 if (!evidenceString(manifest.reconciliationTimestamp)) fail('reconciliationTimestamp is required');
