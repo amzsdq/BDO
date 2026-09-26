@@ -1,19 +1,32 @@
 import crypto from 'node:crypto'
 
 export const SUBSTITUTION_BINDING_POLICY = Object.freeze({
-  version: 3,
+  version: 4,
   policy: 'reviewed-route-semantics-evidence',
   reviewedGroups: Object.freeze({
     'codex:6009': Object.freeze({
       semantics: 'generic-vegetable-worth',
       reviewedAt: '2026-09-26',
-      sources: Object.freeze([
-        'https://www.blackdesertfoundry.com/cooking-guide/',
-        'https://www.blackdesertfoundry.com/all-recipes/',
-        'https://bdocodex.com/kr/materialgroup/6009/',
+      sourceEvidence: Object.freeze([
+        Object.freeze({
+          role: 'current-substitution-semantics',
+          url: 'https://www.blackdesertfoundry.com/cooking-guide/',
+          sourceUpdatedAt: '2026-01-30',
+          observedAt: '2026-09-26',
+        }),
+        Object.freeze({
+          role: 'current-route-rendering',
+          url: 'https://www.blackdesertfoundry.com/all-recipes/',
+          observedAt: '2026-09-26',
+        }),
+        Object.freeze({
+          role: 'current-group-membership-worth',
+          url: 'https://bdocodex.com/kr/materialgroup/6009/',
+          observedAt: '2026-09-26',
+        }),
       ]),
       memberWorthPolicy: Object.freeze({
-        kind: 'source-evidence',
+        kind: 'reviewed-source-evidence',
         normal: 1,
         highQuality: 6,
         special: 36,
