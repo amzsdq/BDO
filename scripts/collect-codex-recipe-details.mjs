@@ -180,10 +180,11 @@ function catalogRows(manifest) {
   return rows
 }
 
-async function fetchWithRetry(url, fetchImpl, timeoutMs, retries) {
+async function fetchWithRetry(url, fetchImpl, timeoutMs, retries, waitForRequestSlot = async () => {}) {
   let last
   for (let attempt = 0; attempt <= retries; attempt += 1) {
     try {
+      await waitForRequestSlot()
       const response = await fetchImpl(url, { headers: { 'user-agent': 'BDO-Planner-Completeness-Audit/1.0', accept: 'text/html' }, signal: AbortSignal.timeout(timeoutMs) })
       if (response.ok) return response
       const error = new Error(`${response.status} ${response.statusText}`)
@@ -201,7 +202,7 @@ async function fetchWithRetry(url, fetchImpl, timeoutMs, retries) {
   throw last
 }
 
-export async function collectCodexRecipeDetails(catalogManifest, { fetchImpl = fetch, concurrency = 6, timeoutMs = 20000, retries = 2, collectedAt = new Date().toISOString(), probeGaps = false } = {}) {
+export async function collectCodexRecipeDetails(catalogManifest, { fetchImpl = fetch, concurrency = 6, timeoutMs = 20000, retries = 2, requestDelayMs = 0, collectedAt = new Date().toISOString(), probeGaps = false } = {}) {
   const catalogRoutes = catalogRows(catalogManifest)
   const listed = new Set(catalogRoutes.map((row) => `${row.skill}:${row.recipeId}`))
   const probeRoutes = []
@@ -218,6 +219,22 @@ export async function collectCodexRecipeDetails(catalogManifest, { fetchImpl = f
   ]
   const results = new Array(routes.length)
   let cursor = 0
+  let requestGate = Promise.resolve()
+  let nextRequestAt = 0
+  const waitForRequestSlot = async () => {
+    if (!(requestDelayMs > 0)) return
+    let release
+    const previous = requestGate
+    requestGate = new Promise((resolve) => { release = resolve })
+    await previous
+    try {
+      const waitMs = Math.max(0, nextRequestAt - Date.now())
+      if (waitMs > 0) await new Promise((resolve) => setTimeout(resolve, waitMs))
+      nextRequestAt = Date.now() + requestDelayMs
+    } finally {
+      release()
+    }
+  }
   const worker = async () => {
     while (true) {
       const index = cursor++
@@ -225,7 +242,7 @@ export async function collectCodexRecipeDetails(catalogManifest, { fetchImpl = f
       const route = routes[index]
       const sourceUrl = `${BASE}/${route.recipeId}/`
       try {
-        const response = await fetchWithRetry(sourceUrl, fetchImpl, timeoutMs, retries)
+        const response = await fetchWithRetry(sourceUrl, fetchImpl, timeoutMs, retries, waitForRequestSlot)
         const html = await response.text()
         let parsed
         if (route.catalogListed) {
@@ -271,7 +288,7 @@ export async function collectCodexRecipeDetails(catalogManifest, { fetchImpl = f
 }
 
 function parseArgs(argv) {
-  const out = { concurrency: 6, timeoutMs: 20000, retries: 2 }
+  const out = { concurrency: 6, timeoutMs: 20000, retries: 2, requestDelayMs: 0 }
   for (let i = 0; i < argv.length; i += 2) {
     const flag = argv[i], value = argv[i + 1]
     if (!value || value.startsWith('--')) throw new Error(`missing value for ${flag || 'argument'}`)
@@ -280,13 +297,15 @@ function parseArgs(argv) {
     else if (flag === '--concurrency') out.concurrency = Number(value)
     else if (flag === '--timeout-ms') out.timeoutMs = Number(value)
     else if (flag === '--retries') out.retries = Number(value)
+    else if (flag === '--request-delay-ms') out.requestDelayMs = Number(value)
     else if (flag === '--probe-gaps') out.probeGaps = value === 'true' ? true : value === 'false' ? false : (() => { throw new Error('--probe-gaps must be true or false') })()
     else throw new Error(`unknown argument: ${flag}`)
   }
-  if (!out.catalog || !out.out) throw new Error('usage: --catalog data/codex-catalog.json --out data/codex-details.json [--concurrency 6] [--timeout-ms 20000] [--retries 2] [--probe-gaps true]')
+  if (!out.catalog || !out.out) throw new Error('usage: --catalog data/codex-catalog.json --out data/codex-details.json [--concurrency 6] [--timeout-ms 20000] [--retries 2] [--request-delay-ms 0] [--probe-gaps true]')
   if (!Number.isSafeInteger(out.concurrency) || out.concurrency < 1 || out.concurrency > 16) throw new Error('--concurrency must be 1..16')
   if (!Number.isFinite(out.timeoutMs) || out.timeoutMs < 1000) throw new Error('--timeout-ms must be >=1000')
   if (!Number.isSafeInteger(out.retries) || out.retries < 0 || out.retries > 5) throw new Error('--retries must be 0..5')
+  if (!Number.isSafeInteger(out.requestDelayMs) || out.requestDelayMs < 0 || out.requestDelayMs > 5000) throw new Error('--request-delay-ms must be 0..5000')
   return out
 }
 
