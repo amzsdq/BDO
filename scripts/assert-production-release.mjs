@@ -12,7 +12,7 @@ const args = process.argv.slice(2)
 if (args.length !== 7 || args.some((value) => !value || value.startsWith('--'))) fail('usage: node scripts/assert-production-release.mjs <dataset.json> <reconciliation-report.json> <codex-catalog.json> <codex-details.json> <mastery-evidence.json> <mastery.json> <e2e-release-evidence.json>')
 const [datasetFile, reconciliationFile, catalogFile, codexManifestFile, masteryEvidenceFile, masteryFile, e2eEvidenceFile] = args
 if (!fs.existsSync(datasetFile)) fail(`required release artifact not found: ${datasetFile}`)
-let dataset
+let dataset, iconReleaseEvidence
 try {
   dataset = JSON.parse(fs.readFileSync(datasetFile, 'utf8'))
   assertReviewedExtractorRevision(dataset.metadata?.sourceRevision)
@@ -20,7 +20,7 @@ try {
   assertKoreanNameReleaseEvidence(dataset)
   assertYieldReleaseEvidence(dataset)
   assertProductionWebEvidenceBindings(dataset)
-  assertProductionIconReleaseEvidence(datasetFile, dataset)
+  iconReleaseEvidence = assertProductionIconReleaseEvidence(datasetFile, dataset)
 } catch (error) { fail(error instanceof Error ? error.message : String(error)) }
 for (const file of [reconciliationFile, catalogFile, codexManifestFile, masteryEvidenceFile, masteryFile, e2eEvidenceFile]) {
   if (!fs.existsSync(file)) fail(`required release artifact not found: ${file}`)
@@ -48,6 +48,7 @@ try {
     reconciliationBytes: fs.readFileSync(reconciliationFile),
     masteryEvidenceBytes: fs.readFileSync(masteryEvidenceFile),
     masteryBytes: fs.readFileSync(masteryFile),
+    iconManifestSha256: iconReleaseEvidence.manifestSha256,
     head: git.stdout.trim(),
   })
 } catch (error) { fail(error instanceof Error ? error.message : String(error)) }
