@@ -64,7 +64,7 @@ if (!redirects || typeof redirects !== 'object' || Array.isArray(redirects)) fai
 function sourceForItem(itemId) {
   const redirect = redirects[`urn::item:${itemId}`]
   if (typeof redirect !== 'string' || !redirect.trim()) return null
-  const normalized = redirect.split(String.fromCharCode(92)).join('/').replace(/^\.\//, '')
+  const normalized = redirect.split(String.fromCharCode(92)).join('/').replace(/\/+/g, '/').replace(/^\.\//, '')
   if (path.isAbsolute(normalized) || normalized.split('/').includes('..')) fail(`unsafe extractor icon redirect for item ${itemId}: ${redirect}`)
   if (!normalized.toLowerCase().endsWith('.webp')) fail(`extractor icon redirect is not a WebP asset for item ${itemId}: ${redirect}`)
   const source = path.resolve(dataRoot, normalized)
