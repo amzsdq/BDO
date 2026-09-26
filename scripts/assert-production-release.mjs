@@ -5,6 +5,7 @@ import { assertYieldReleaseEvidence } from './yield-release-evidence.mjs'
 import { assertReleaseE2eBindings } from './release-e2e-bindings.mjs'
 import { assertClientFingerprint, assertReviewedExtractorRevision } from './production-source-contract.mjs'
 import { assertProductionWebEvidenceBindings } from './production-web-evidence-bindings.mjs'
+import { assertProductionIconReleaseEvidence } from './production-icon-release-evidence.mjs'
 
 function fail(message) { console.error(`release blocked: ${message}`); process.exit(1) }
 const args = process.argv.slice(2)
@@ -19,6 +20,7 @@ try {
   assertKoreanNameReleaseEvidence(dataset)
   assertYieldReleaseEvidence(dataset)
   assertProductionWebEvidenceBindings(dataset)
+  assertProductionIconReleaseEvidence(datasetFile, dataset)
 } catch (error) { fail(error instanceof Error ? error.message : String(error)) }
 for (const file of [reconciliationFile, catalogFile, codexManifestFile, masteryEvidenceFile, masteryFile, e2eEvidenceFile]) {
   if (!fs.existsSync(file)) fail(`required release artifact not found: ${file}`)
