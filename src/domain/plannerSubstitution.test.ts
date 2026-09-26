@@ -95,4 +95,24 @@ describe('planner substitution resolution', () => {
       selectedSubstitutionItemIdByGroupId: { 'codex:6502': 99 },
     })).toThrow(/not a member/)
   })
+  it('plans mixed Worth inventory across repeated targets', () => {
+    const mixedDataset: RecipeDataset = {
+      ...dataset,
+      items: { ...dataset.items, '12': { id: 12, nameKo: '고급 대체 재료' } },
+      recipes: { ...dataset.recipes, r1: { ...dataset.recipes.r1, variants: [{ id: 'v1', inputs: [{ itemId: 10, count: 8, substitutionGroupId: 'codex:6009' }] }] } },
+      substitutionGroups: { 'codex:6009': { id: 'codex:6009', memberItemIds: [10, 11, 12], memberValueByItemId: { '10': 1, '11': 1, '12': 6 }, source: { provider: 'BDO Codex KR', sourceId: '6009', verifiedAt: '2026-09-26' } } },
+    }
+    const one = buildPlan(mixedDataset, [{ recipeId: 'r1', mode: 'attempts', amount: 1 }], { craftIntermediateItemIds: new Set(), haveByItemId: { '11': 2, '12': 1 } })
+    expect(one.materials).toEqual(expect.arrayContaining([
+      expect.objectContaining({ itemId: 11, required: 2, missing: 0 }),
+      expect.objectContaining({ itemId: 12, required: 1, missing: 0 }),
+    ]))
+    const repeated = buildPlan(mixedDataset, [{ recipeId: 'r1', mode: 'attempts', amount: 1 }, { recipeId: 'r1', mode: 'attempts', amount: 1 }], { craftIntermediateItemIds: new Set(), haveByItemId: { '10': 8, '11': 2, '12': 1 } })
+    expect(repeated.materials).toEqual(expect.arrayContaining([
+      expect.objectContaining({ itemId: 11, required: 2, missing: 0 }),
+      expect.objectContaining({ itemId: 12, required: 1, missing: 0 }),
+      expect.objectContaining({ itemId: 10, required: 8, missing: 0 }),
+    ]))
+  })
+
 })
