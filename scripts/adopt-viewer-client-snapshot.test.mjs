@@ -20,6 +20,7 @@ describe('adopt-viewer-client-snapshot', () => {
     const provenance=JSON.parse(fs.readFileSync(path.join(out,'provenance.json'),'utf8'))
     expect(provenance.clientFingerprint).toBe(`sha256:${fp}`)
     expect(provenance.extractorRevision).toBe('5bf11bd7bc60dcbb6126be34bf3d76633abdd8b2')
+    expect(provenance.viewerReleaseExpectedSha256).toBe('ad18f56eb4e27da6d313bdc3bba6cf8f6ca9948ccd9eb1026dacd12fc678ef3e')
     expect(provenance.regionEvidence.type).toBe('KR')
     expect(provenance.regionEvidence.sha256).toBe(provenance.artifactSha256['service.ini'])
     expect(provenance.viewerManifestSha256).toBe(provenance.artifactSha256['viewer-manifest.json'])
