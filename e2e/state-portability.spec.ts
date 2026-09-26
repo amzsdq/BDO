@@ -40,7 +40,8 @@ test('reset clears complete planner state and a valid import restores it', async
     localStorage.getItem('bdo-planner:checklist:v1'),
     localStorage.getItem('bdo-planner:inventory:v1'),
     localStorage.getItem('bdo-planner:character-profile:v1'),
-  ])).toEqual([null, null, null])
+    localStorage.getItem('bdo-planner:plan-session:v1'),
+  ])).toEqual([null, null, null, null])
   await expect(page.getByLabel('E2E 상태 재료 보유 수량')).toHaveValue('0')
 
   await page.getByLabel('계획 파일 가져오기').setInputFiles({
