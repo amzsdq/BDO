@@ -38,6 +38,8 @@ if (!fs.existsSync(redirects)) fail('asset_redirects.json is missing')
 const redirectSha = sha256File(redirects)
 if (provenance.artifactSha256?.['asset_redirects.json'] !== redirectSha) fail('asset_redirects.json does not match recorded provenance hash')
 const iconsSnapshotSha256 = sha256Tree(path.join(snapshotDir, 'icons'))
+const recordedIconTree = String(provenance.iconsSnapshotSha256 || '').toLowerCase()
+if (recordedIconTree && (!/^[0-9a-f]{64}$/.test(recordedIconTree) || recordedIconTree !== iconsSnapshotSha256)) fail('icon tree does not match previously sealed provenance')
 provenance.iconsSnapshotCopied = true
 provenance.iconsSnapshotSha256 = iconsSnapshotSha256
 fs.writeFileSync(provenancePath, JSON.stringify(provenance, null, 2) + '\n')

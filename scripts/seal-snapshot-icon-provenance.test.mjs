@@ -18,7 +18,7 @@ function fixture() {
   return root
 }
 describe('snapshot icon provenance seal', () => {
-  test('is deterministic and changes when icon bytes change', () => {
+  test('is deterministic and refuses to bless post-seal icon drift', () => {
     const root = fixture()
     execFileSync(process.execPath, [script, root])
     const first = JSON.parse(fs.readFileSync(path.join(root, 'provenance.json'), 'utf8')).iconsSnapshotSha256
@@ -26,8 +26,8 @@ describe('snapshot icon provenance seal', () => {
     execFileSync(process.execPath, [script, root])
     expect(JSON.parse(fs.readFileSync(path.join(root, 'provenance.json'), 'utf8')).iconsSnapshotSha256).toBe(first)
     fs.writeFileSync(path.join(root, 'icons', '1.webp'), 'changed')
-    execFileSync(process.execPath, [script, root])
-    expect(JSON.parse(fs.readFileSync(path.join(root, 'provenance.json'), 'utf8')).iconsSnapshotSha256).not.toBe(first)
+    expect(() => execFileSync(process.execPath, [script, root], { stdio: 'pipe' })).toThrow()
+    expect(JSON.parse(fs.readFileSync(path.join(root, 'provenance.json'), 'utf8')).iconsSnapshotSha256).toBe(first)
   })
   test('rejects redirect provenance drift', () => {
     const root = fixture()
