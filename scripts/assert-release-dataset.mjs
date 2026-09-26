@@ -6,6 +6,7 @@ import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.m
 import { validateCatalogEntryEvidence } from './catalog-release-evidence.mjs'
 import { assertIconManifest } from './assert-icon-manifest.mjs'
 import { assertNoRetiredCraftingRoutes } from './reviewed-retired-route-state.mjs'
+import { assertClientFingerprint, assertReviewedExtractorRevision } from './production-source-contract.mjs'
 
 function fail(message) { console.error(`release blocked: ${message}`); process.exit(1) }
 function fingerprint(value) { return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex') }
@@ -26,8 +27,10 @@ if (metadata.supportedRegion !== 'KR') fail(`supportedRegion is ${metadata.suppo
 if (!metadata.fingerprint) fail('dataset fingerprint missing')
 if (!metadata.generatedAt) fail('generatedAt missing')
 if (!Array.isArray(metadata.sources) || metadata.sources.length < 2) fail('source provenance incomplete')
-if (!hasRecordedSourceRevision(metadata.sourceRevision)) fail('sourceRevision must identify the canonical client snapshot; unrecorded provenance cannot be released')
-if (!String(metadata.clientFingerprint || '').trim()) fail('clientFingerprint must identify the installed client snapshot')
+try {
+  assertReviewedExtractorRevision(metadata.sourceRevision)
+  assertClientFingerprint(metadata.clientFingerprint)
+} catch (error) { fail(error instanceof Error ? error.message : String(error)) }
 if (!metadata.counts || metadata.counts.cooking <= 0 || metadata.counts.alchemy <= 0) fail('Cooking/Alchemy counts missing or empty')
 const payloadWithoutHash = { ...dataset, metadata: { ...metadata } }
 delete payloadWithoutHash.metadata.fingerprint
