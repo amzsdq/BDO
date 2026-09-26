@@ -53,6 +53,13 @@ describe('canonical dataset validator', () => {
     expect(JSON.parse(result.stdout).substitutionGroups).toBe(1)
   })
 
+  it('keeps singleton source evidence non-selectable unless a recipe explicitly references it', () => {
+    const dataset = validDataset()
+    dataset.substitutionGroups = { 'codex:6027': { id: 'codex:6027', memberItemIds: [21], memberValueByItemId: { '21': 1 }, source: { provider: 'BDO Codex KR', sourceId: '6027', verifiedAt: '2026-09-26' } } }
+    const result = run(dataset)
+    expect(result.status).toBe(0)
+  })
+
   it('rejects an empty substitution evidence group', () => {
     const dataset = validDataset()
     dataset.substitutionGroups = { 'codex:empty': { id: 'codex:empty', memberItemIds: [], memberValueByItemId: {}, source: { provider: 'BDO Codex KR', sourceId: 'empty', verifiedAt: '2026-09-26' } } }
