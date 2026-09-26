@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { applySubstitutionEvidence } from './apply-substitution-evidence.mjs'
+import { SUBSTITUTION_BINDING_POLICY } from './substitution-binding-policy.mjs'
 
 const evidence = {
   source: 'BDO Codex KR',
@@ -78,6 +79,16 @@ function dataset(sourceRecipeId, itemId = 7318) {
 }
 
 describe('reviewed substitution route policy', () => {
+  it('keeps all Codex provenance on the reviewed KR locale', () => {
+    const codexUrls = Object.values(SUBSTITUTION_BINDING_POLICY.reviewedGroups)
+      .flatMap((group) => group.sourceEvidence.map((entry) => entry.url))
+      .filter((url) => url.includes('bdocodex.com/'))
+    expect(codexUrls.length).toBeGreaterThan(0)
+    expect(codexUrls.every((url) => url.startsWith('https://bdocodex.com/kr/'))).toBe(true)
+    expect(SUBSTITUTION_BINDING_POLICY.reviewedGroups['codex:6005'].sourceEvidence)
+      .toContainEqual(expect.objectContaining({ role: 'current-route', url: 'https://bdocodex.com/kr/recipe/140/' }))
+  })
+
   it('binds current Pickled Vegetables route 112 to reviewed vegetable group 6009', () => {
     const result = applySubstitutionEvidence(dataset(112), evidence)
     expect(result.recipes.r.variants[0].inputs[0].substitutionGroupId).toBe('codex:6009')
