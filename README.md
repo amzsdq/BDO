@@ -36,6 +36,8 @@ npm run build
 
 라이브 클라이언트 추출물 `items.json`, `recipes.json`, `mastery.json`, 그리고 `bdo-data-extractor icons`가 `<extractor-data>/asset_redirects.json`에 기록한 `urn::item:<id> -> icons/<shared-asset>.webp` redirect 및 그 redirect가 가리키는 decoded WebP 자산을 준비합니다. runtime이 실제로 읽는 dataset과 브라우저가 실제로 제공하는 icon asset을 함께 설치합니다. Codex reconciliation 전에 Cooking/Alchemy 카탈로그 전체를 독립적으로 수집하고 completeness가 증명된 `<codex-catalog.json>` artifact를 보존해야 합니다. 부분 manifest끼리 서로 일치하는 것만으로는 release gate를 통과할 수 없습니다.
 
+Go toolchain 없이 reviewed `bdo-viewer` 경로를 사용할 때는 v0.1.12 Windows amd64 실행 파일의 로컬 SHA-256이 `ad18f56eb4e27da6d313bdc3bba6cf8f6ca9948ccd9eb1026dacd12fc678ef3e`와 일치하는지 **실행 전에 별도로 검증**하고, UI extraction region을 `kr`로 지정합니다. 추출 완료 후 `node scripts/adopt-viewer-client-snapshot.mjs <viewer-data-dir> <game-dir> <snapshot-out-dir>`로 snapshot을 채택합니다. Adopter는 appVersion/region/extractedAt, installed-client short fingerprint, raw `service.ini` TYPE=KR, `asset_redirects.json`, icons와 `.icon_provenance`를 다시 검증하지만 실행 파일 자체의 로컬 SHA 검증을 대신하지 않습니다.
+
 기본 구조 import는 extractor가 한국어를 제공하지 않으므로 의도적으로 `아이템 #<id>` placeholder를 만듭니다. 따라서 import 직후 BDO Codex KR item-id 증거를 적용하는 단계가 필수입니다. 이 단계를 생략한 dataset은 promotion이 거부됩니다.
 
 ```bash
