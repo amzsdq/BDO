@@ -196,9 +196,19 @@ test('craftable intermediate consumes owned stock before recursive producer expa
   await expect(rawARow.locator('.quantity').first()).toContainText('18')
   await page.getByLabel('제작법').selectOption('e2e-intermediate-b')
   await expect(page.locator('.material-row').filter({ hasText: 'E2E 원재료 A' })).toHaveCount(0)
-  const rawBRow = page.locator('.material-row').filter({ hasText: 'E2E 원재료 B' })
+  let rawBRow = page.locator('.material-row').filter({ hasText: 'E2E 원재료 B' })
   await expect(rawBRow).toBeVisible()
   await expect(rawBRow.locator('.quantity').first()).toContainText('24')
+
+  // E2E-05 requires the craft/acquire choice and explicit producer selection to survive reload.
+  await page.reload()
+  await expect(page.getByRole('checkbox', { name: 'E2E 중간재 직접 제작' })).toBeChecked()
+  await expect(page.getByLabel('제작법')).toHaveValue('e2e-intermediate-b')
+  await expect(page.locator('.material-row').filter({ hasText: 'E2E 원재료 A' })).toHaveCount(0)
+  rawBRow = page.locator('.material-row').filter({ hasText: 'E2E 원재료 B' })
+  await expect(rawBRow).toBeVisible()
+  await expect(rawBRow.locator('.quantity').first()).toContainText('24')
+
   await page.getByRole('checkbox', { name: 'E2E 중간재 직접 제작' }).uncheck()
   await expect(page.locator('.material-row').filter({ hasText: 'E2E 원재료 B' })).toHaveCount(0)
   await expect(intermediateRow).toBeVisible()
