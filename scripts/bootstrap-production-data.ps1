@@ -58,6 +58,13 @@ if ($ExtractorRevision -notmatch '^[0-9a-f]{40}$') {
 $RepoRoot = (Resolve-Path (Join-Path $PSScriptRoot "..")).Path
 $ResolvedGameDir = Resolve-BdoGameDir $GameDir
 $ResolvedOutDir = [System.IO.Path]::GetFullPath((Join-Path $RepoRoot $OutDir))
+$ServiceIniSource = Join-Path $ResolvedGameDir "service.ini"
+if (-not (Test-Path $ServiceIniSource -PathType Leaf)) { throw "KR region evidence missing: $ServiceIniSource" }
+$ServiceIniText = Get-Content $ServiceIniSource -Raw
+$ServiceTypeMatch = [regex]::Match($ServiceIniText, '(?im)^\s*TYPE\s*=\s*([^\r\n;#]+)')
+if (-not $ServiceTypeMatch.Success -or $ServiceTypeMatch.Groups[1].Value.Trim().ToUpperInvariant() -ne "KR") {
+  throw "Selected Black Desert install is not verified as KR by service.ini TYPE=KR"
+}
 New-Item -ItemType Directory -Force -Path $ResolvedOutDir | Out-Null
 
 Require-Command "go" | Out-Null
@@ -122,10 +129,12 @@ try {
 $ClientFingerprint = "sha256:$ClientHash"
 $ExtractorGameFingerprint = $ClientHash.Substring(0, 16)
 $SourceRevision = "iDevelopThings/bdo-data-extractor@$ExtractorRevision"
+$ServiceIniSnapshot = Join-Path $ResolvedOutDir "service.ini"
+Copy-Item -LiteralPath $ServiceIniSource -Destination $ServiceIniSnapshot -Force
 
 Write-Host "[4/6] Recording same-snapshot provenance"
 $Hashes = @{}
-foreach ($path in @($Items, $Recipes, $Mastery)) {
+foreach ($path in @($Items, $Recipes, $Mastery, $ServiceIniSnapshot)) {
   $Hashes[[System.IO.Path]::GetFileName($path)] = (Get-FileHash $path -Algorithm SHA256).Hash.ToLowerInvariant()
 }
 $Provenance = [ordered]@{
@@ -139,6 +148,11 @@ $Provenance = [ordered]@{
   extractorGameFingerprint = $ExtractorGameFingerprint
   fingerprintInputs = @("Paz/pad00000.meta", "ads_version-if-present")
   gameDirectoryRecorded = $false
+  regionEvidence = [ordered]@{
+    file = "service.ini"
+    type = "KR"
+    sha256 = $Hashes["service.ini"]
+  }
   artifactSha256 = $Hashes
 }
 $ProvenancePath = Join-Path $ResolvedOutDir "provenance.json"

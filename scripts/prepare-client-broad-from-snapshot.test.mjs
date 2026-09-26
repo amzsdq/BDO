@@ -15,15 +15,17 @@ describe('prepare-client-broad-from-snapshot', () => {
       { type: 'COOK', output: 1, inputs: [{ item: 2, count: 1 }] },
       { type: 'ALCHEMY', output: 3, inputs: [{ item: 2, count: 2 }] },
     ]
-    const itemsPath = path.join(dir, 'items.json'), recipesPath = path.join(dir, 'recipes.json')
+    const itemsPath = path.join(dir, 'items.json'), recipesPath = path.join(dir, 'recipes.json'), serviceIniPath = path.join(dir, 'service.ini')
     fs.writeFileSync(itemsPath, JSON.stringify(items))
     fs.writeFileSync(recipesPath, JSON.stringify(recipes))
+    fs.writeFileSync(serviceIniPath, 'TYPE=KR\r\n')
     fs.writeFileSync(path.join(dir, 'provenance.json'), JSON.stringify({
       schemaVersion: 1,
       supportedRegion: 'KR',
       extractorRevision: '5bf11bd7bc60dcbb6126be34bf3d76633abdd8b2',
       clientFingerprint: `sha256:${'0'.repeat(64)}`,
-      artifactSha256: { 'items.json': hash(itemsPath), 'recipes.json': hash(recipesPath) },
+      regionEvidence: { file: 'service.ini', type: 'KR', sha256: hash(serviceIniPath) },
+      artifactSha256: { 'items.json': hash(itemsPath), 'recipes.json': hash(recipesPath), 'service.ini': hash(serviceIniPath) },
     }))
     const provenancePath = path.join(dir, 'provenance.json')
     fs.writeFileSync(provenancePath, '\uFEFF' + fs.readFileSync(provenancePath, 'utf8'))
@@ -35,5 +37,15 @@ describe('prepare-client-broad-from-snapshot', () => {
     const tampered = spawnSync(process.execPath, ['scripts/prepare-client-broad-from-snapshot.mjs', dir], { cwd: process.cwd(), encoding: 'utf8' })
     expect(tampered.status).not.toBe(0)
     expect(tampered.stderr).toMatch(/SHA-256 does not match/)
+
+    fs.writeFileSync(recipesPath, JSON.stringify(recipes))
+    fs.writeFileSync(serviceIniPath, 'TYPE=NA\r\n')
+    const provenance = JSON.parse(fs.readFileSync(provenancePath, 'utf8').replace(/^\uFEFF/, ''))
+    provenance.regionEvidence.sha256 = hash(serviceIniPath)
+    provenance.artifactSha256['service.ini'] = hash(serviceIniPath)
+    fs.writeFileSync(provenancePath, JSON.stringify(provenance))
+    const relabeled = spawnSync(process.execPath, ['scripts/prepare-client-broad-from-snapshot.mjs', dir], { cwd: process.cwd(), encoding: 'utf8' })
+    expect(relabeled.status).not.toBe(0)
+    expect(relabeled.stderr).toMatch(/TYPE=KR/)
   })
 })

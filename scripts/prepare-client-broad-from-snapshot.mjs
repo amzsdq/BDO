@@ -20,6 +20,20 @@ const clientFingerprint = String(provenance.clientFingerprint || '').trim()
 if (!/^[0-9a-f]{40}$/i.test(revision)) throw new Error('snapshot extractorRevision must be an exact 40-character commit SHA')
 assertReviewedExtractorRevision(`iDevelopThings/bdo-data-extractor@${revision}`)
 if (!/^sha256:[0-9a-f]{64}$/i.test(clientFingerprint)) throw new Error('snapshot clientFingerprint is invalid')
+const regionEvidence = provenance?.regionEvidence
+if (regionEvidence?.file !== 'service.ini' || regionEvidence?.type !== 'KR' || !/^[0-9a-f]{64}$/i.test(String(regionEvidence?.sha256 || ''))) {
+  throw new Error('KR service.ini regionEvidence is required')
+}
+const serviceIni = path.join(root, 'service.ini')
+if (!fs.existsSync(serviceIni)) throw new Error(`snapshot region evidence missing: ${serviceIni}`)
+const serviceIniSha = sha256(serviceIni)
+const recordedServiceIniSha = String(provenance?.artifactSha256?.['service.ini'] || '').toLowerCase()
+if (!recordedServiceIniSha || recordedServiceIniSha !== serviceIniSha || String(regionEvidence.sha256).toLowerCase() !== serviceIniSha) {
+  throw new Error('service.ini SHA-256 does not match same-snapshot provenance')
+}
+const serviceIniText = fs.readFileSync(serviceIni, 'utf8').replace(/^\uFEFF/, '')
+const serviceType = serviceIniText.match(/^\s*TYPE\s*=\s*([^\r\n;#]+)/im)?.[1]?.trim().toUpperCase()
+if (serviceType !== 'KR') throw new Error('snapshot service.ini must verify TYPE=KR')
 const items = path.join(root, 'items.json'), recipes = path.join(root, 'recipes.json')
 for (const file of [items, recipes]) {
   if (!fs.existsSync(file)) throw new Error(`snapshot artifact missing: ${file}`)
