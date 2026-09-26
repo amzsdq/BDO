@@ -100,4 +100,4 @@ Pass: completeness and provenance failures are visible and fail closed.
 
 ## Completion evidence
 
-For release acceptance, record the exact main commit, dataset fingerprint, reconciliation artifact SHA-256/timestamp, exact production `mastery.json` SHA-256 plus mastery-evidence artifact SHA-256/provenance, browser(s), viewport(s), and pass/fail result for every scenario. Preserve the scenario evidence in the fail-closed manifest described by `docs/RELEASE-E2E-EVIDENCE.md`, then run the final seven-artifact `data:release-gate`. Any failed scenario or final-gate failure keeps the program in `CONTINUE`.
+For release acceptance, record the exact main commit, dataset fingerprint, reconciliation artifact SHA-256/timestamp, exact production `mastery.json` SHA-256 plus mastery-evidence artifact SHA-256/provenance, exact production `icon-manifest.json` SHA-256, browser(s), viewport(s), and pass/fail result for every scenario. Preserve the scenario evidence in the fail-closed manifest described by `docs/RELEASE-E2E-EVIDENCE.md`, then run the final seven-artifact `data:release-gate`. Any failed scenario or final-gate failure keeps the program in `CONTINUE`.
