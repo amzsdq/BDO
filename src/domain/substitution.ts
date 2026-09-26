@@ -110,8 +110,10 @@ export function resolveOwnedMixedIngredientAllocation(
   // Bounded DP over source Worth. Worth values are at most one decimal place in
   // current production evidence; scaling preserves exact source ratios.
   const scale = 10
-  const targetUnits = Math.ceil(target * scale - 1e-9)
-  const maxValueUnits = Math.max(...available.map((entry) => Math.round(entry.value * scale)))
+  const scaledValues = available.map((entry) => entry.value * scale)
+  if (![target * scale, ...scaledValues].every((value) => Math.abs(value - Math.round(value)) <= 1e-9)) return undefined
+  const targetUnits = Math.round(target * scale)
+  const maxValueUnits = Math.max(...scaledValues.map((value) => Math.round(value)))
   const limit = targetUnits + maxValueUnits - 1
   const best: Array<Array<number> | undefined> = Array(limit + 1)
   best[0] = Array(available.length).fill(0)
