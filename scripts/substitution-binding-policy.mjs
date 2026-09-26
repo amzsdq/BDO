@@ -72,7 +72,7 @@ export const SUBSTITUTION_BINDING_POLICY = Object.freeze({
       semantics: 'generic-garlic-worth', reviewedAt: '2026-09-26',
       sourceEvidence: Object.freeze([
         Object.freeze({ role: 'current-substitution-semantics', url: 'https://www.blackdesertfoundry.com/cooking-guide/', sourceUpdatedAt: '2026-01-30', observedAt: '2026-09-26' }),
-        Object.freeze({ role: 'current-route', url: 'https://bdocodex.com/us/recipe/140/', observedAt: '2026-09-26' }),
+        Object.freeze({ role: 'current-route', url: 'https://bdocodex.com/kr/recipe/140/', observedAt: '2026-09-26' }),
         Object.freeze({ role: 'current-group-membership-worth', url: 'https://bdocodex.com/kr/materialgroup/6005/', observedAt: '2026-09-26' }),
       ]),
       expectedMemberWorthByItemId: Object.freeze({ '7302': 1, '7324': 6, '7336': 36 }),
