@@ -9,6 +9,15 @@ const REVIEWED_VIEWER_RELEASE_SHA256 = 'ad18f56eb4e27da6d313bdc3bba6cf8f6ca9948c
 function fail(message) { throw new Error(message) }
 function sha256Bytes(parts) { const h = crypto.createHash('sha256'); for (const part of parts) h.update(part); return h.digest('hex') }
 function sha256File(file) { return sha256Bytes([fs.readFileSync(file)]) }
+function sha256Tree(root) {
+  const files = []
+  const walk = (dir) => { for (const entry of fs.readdirSync(dir, { withFileTypes: true })) { const full = path.join(dir, entry.name); if (entry.isDirectory()) walk(full); else if (entry.isFile()) files.push(full); else fail(`unsupported icon snapshot entry: ${full}`) } }
+  walk(root)
+  files.sort((a, b) => path.relative(root, a).replaceAll('\\\\', '/').localeCompare(path.relative(root, b).replaceAll('\\\\', '/')))
+  const h = crypto.createHash('sha256')
+  for (const file of files) { h.update(path.relative(root, file).replaceAll('\\\\', '/')); h.update('\0'); h.update(fs.readFileSync(file)); h.update('\0') }
+  return h.digest('hex')
+}
 function parseServiceType(text) { return text.replace(/^\uFEFF/, '').match(/^\s*TYPE\s*=\s*([^\r\n;#]+)/im)?.[1]?.trim().toUpperCase() || '' }
 
 const [viewerArg, gameArg, outArg] = process.argv.slice(2)
@@ -59,6 +68,7 @@ const provenance = {
   fingerprintInputs: ['Paz/pad00000.meta', 'ads_version-if-present'],
   gameDirectoryRecorded: false,
   iconsSnapshotCopied: true,
+  iconsSnapshotSha256: sha256Tree(path.join(outDir, 'icons')),
   regionEvidence: { file: 'service.ini', type: 'KR', sha256: artifactSha256['service.ini'] },
   artifactSha256,
 }

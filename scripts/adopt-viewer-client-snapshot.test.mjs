@@ -28,6 +28,7 @@ describe('adopt-viewer-client-snapshot', () => {
     expect(provenance.artifactSha256['asset_redirects.json']).toMatch(/^[0-9a-f]{64}$/)
     expect(provenance.artifactSha256['.icon_provenance']).toMatch(/^[0-9a-f]{64}$/)
     expect(provenance.iconsSnapshotCopied).toBe(true)
+    expect(provenance.iconsSnapshotSha256).toMatch(/^[0-9a-f]{64}$/)
     expect(fs.readFileSync(path.join(out,'icons','1.png'),'utf8')).toBe('icon-bytes')
     fs.writeFileSync(path.join(game,'service.ini'),'TYPE=NA\r\n')
     const bad=spawnSync(process.execPath,['scripts/adopt-viewer-client-snapshot.mjs',viewer,game,path.join(root,'bad')],{cwd:process.cwd(),encoding:'utf8'})
