@@ -45,6 +45,38 @@ describe('canonical dataset validator', () => {
     expect(JSON.parse(result.stdout).substitutionGroups).toBe(1)
   })
 
+  it('accepts a source-backed singleton substitution group without inventing equivalence', () => {
+    const dataset = validDataset()
+    dataset.substitutionGroups = { 'codex:6026': { id: 'codex:6026', memberItemIds: [20], memberValueByItemId: { '20': 1 }, source: { provider: 'BDO Codex KR', sourceId: '6026', verifiedAt: '2026-09-26' } } }
+    const result = run(dataset)
+    expect(result.status).toBe(0)
+    expect(JSON.parse(result.stdout).substitutionGroups).toBe(1)
+  })
+
+  it('keeps singleton source evidence non-selectable unless a recipe explicitly references it', () => {
+    const dataset = validDataset()
+    dataset.substitutionGroups = { 'codex:6027': { id: 'codex:6027', memberItemIds: [21], memberValueByItemId: { '21': 1 }, source: { provider: 'BDO Codex KR', sourceId: '6027', verifiedAt: '2026-09-26' } } }
+    const result = run(dataset)
+    expect(result.status).toBe(0)
+  })
+
+  it('rejects an empty substitution evidence group', () => {
+    const dataset = validDataset()
+    dataset.substitutionGroups = { 'codex:empty': { id: 'codex:empty', memberItemIds: [], memberValueByItemId: {}, source: { provider: 'BDO Codex KR', sourceId: 'empty', verifiedAt: '2026-09-26' } } }
+    const result = run(dataset)
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('substitution group requires at least one source-backed member')
+  })
+
+  it('rejects selectable substitution groups without verified ratios regardless of provider', () => {
+    const dataset = validDataset()
+    dataset.substitutionGroups = { 'client:1': { id: 'client:1', memberItemIds: [20, 21], source: { provider: 'BDO client', sourceId: '1', verifiedAt: '2026-09-25' } } }
+    dataset.recipes.cook.variants[0].inputs[0].substitutionGroupId = 'client:1'
+    const result = run(dataset)
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('verified substitution value map missing')
+  })
+
   it('rejects incomplete Codex Worth evidence', () => {
     const dataset = validDataset()
     dataset.substitutionGroups = { 'codex:6502': { id: 'codex:6502', memberItemIds: [20, 21], memberValueByItemId: { '20': 1 }, source: { provider: 'BDO Codex KR', sourceId: '6502', verifiedAt: '2026-09-23' } } }
@@ -92,6 +124,26 @@ describe('canonical dataset validator', () => {
     expect(result.stderr).toContain('expected yield outside min/max')
   })
 
+  it('accepts an explicitly classified random-only route without fake recipe yield', () => {
+    const dataset = validDataset()
+    delete dataset.recipes.alch.yield
+    dataset.recipes.alch.variants[0].sourceRecipeId = 346
+    dataset.recipes.alch.variants[0].outputEvidence = { status: 'random-only', sourceUrl: 'https://bdocodex.com/kr/recipe/346/', randomOutputs: [{ itemId: 11, min: 1, max: 1 }] }
+    const result = run(dataset)
+    expect(result.status).toBe(0)
+  })
+
+  it('rejects malformed random-only output evidence', () => {
+    const dataset = validDataset()
+    dataset.recipes.alch.variants[0].outputEvidence = { status: 'random-only', baseOutputs: [{ itemId: 999, min: 2, max: 1 }] }
+    const result = run(dataset)
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('random-only output evidence requires random outputs')
+    expect(result.stderr).toContain('random-only output evidence cannot contain base outputs')
+    expect(result.stderr).toContain('unknown base output item 999')
+    expect(result.stderr).toContain('invalid base output range for 999')
+  })
+
   it('accepts a byproduct whose output and craftable parent items are known', () => {
     const dataset = validDataset()
     dataset.byproducts = { '30': { outputItemId: 30, producedWhileCraftingItemIds: [10] } }
@@ -125,4 +177,27 @@ describe('canonical dataset validator', () => {
     expect(withResult.status).toBe(0)
     expect(JSON.parse(without.stdout).structuralHash).not.toBe(JSON.parse(withResult.stdout).structuralHash)
   })
+  it('requires finite non-negative weight for every recipe material and every selectable substitute', () => {
+    const direct = validDataset()
+    delete direct.items['20'].weightLT
+    let result = run(direct)
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('missing or invalid weightLT for recipe material 20')
+
+    const substituted = validDataset()
+    substituted.substitutionGroups = { 'codex:6502': { id: 'codex:6502', memberItemIds: [20, 21], memberValueByItemId: { '20': 1, '21': 2 }, source: { provider: 'BDO Codex KR', sourceId: '6502', verifiedAt: '2026-09-23' } } }
+    substituted.recipes.cook.variants[0].inputs[0].substitutionGroupId = 'codex:6502'
+    delete substituted.items['21'].weightLT
+    result = run(substituted)
+    expect(result.status).toBe(1)
+    expect(result.stderr).toContain('missing or invalid weightLT for recipe material 21')
+  })
+
+  it('accepts verified zero-LT recipe materials', () => {
+    const dataset = validDataset()
+    dataset.items['20'].weightLT = 0
+    const result = run(dataset)
+    expect(result.status).toBe(0)
+  })
+
 })

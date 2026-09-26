@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 import fs from 'node:fs'
+import crypto from 'node:crypto'
 
-export function applyKoreanNameEvidence(dataset, evidence) {
+export function applyKoreanNameEvidence(dataset, evidence, evidenceSha256) {
   if (!evidence || evidence.source !== 'BDO Codex KR' || !Array.isArray(evidence.items)) throw new Error('invalid Korean-name evidence envelope')
   if (!evidence.collectedAt || Number.isNaN(Date.parse(evidence.collectedAt))) throw new Error('Korean-name evidence collectedAt is invalid')
   const next = structuredClone(dataset)
@@ -19,7 +20,7 @@ export function applyKoreanNameEvidence(dataset, evidence) {
   }
   next.metadata ||= {}
   next.metadata.sources = [...new Set([...(next.metadata.sources || []), 'BDO Codex KR item-name evidence'])]
-  next.metadata.koreanNameEvidence = { provider: 'BDO Codex KR', collectedAt: evidence.collectedAt, count: seen.size }
+  next.metadata.koreanNameEvidence = { provider: 'BDO Codex KR', collectedAt: evidence.collectedAt, count: seen.size, ...(evidenceSha256 ? { sha256: evidenceSha256 } : {}) }
   next.metadata.koreanNamesVerified = Object.values(next.items || {}).every((item) => item?.nameKo && !/^아이템\s*#\d+$/.test(item.nameKo))
   delete next.metadata.fingerprint
   return next
@@ -30,6 +31,8 @@ if (process.argv[1] && process.argv[1].endsWith('apply-korean-name-evidence.mjs'
   if (args.length !== 3 || args.some((value) => !value || value.startsWith('--'))) throw new Error('usage: node scripts/apply-korean-name-evidence.mjs <dataset.json> <evidence.json> <out.json>')
   const [datasetPath, evidencePath, outPath] = args
   const dataset = JSON.parse(fs.readFileSync(datasetPath, 'utf8'))
-  const evidence = JSON.parse(fs.readFileSync(evidencePath, 'utf8'))
-  fs.writeFileSync(outPath, JSON.stringify(applyKoreanNameEvidence(dataset, evidence), null, 2) + '\n')
+  const evidenceBytes = fs.readFileSync(evidencePath)
+  const evidence = JSON.parse(evidenceBytes.toString('utf8'))
+  const evidenceSha256 = crypto.createHash('sha256').update(evidenceBytes).digest('hex')
+  fs.writeFileSync(outPath, JSON.stringify(applyKoreanNameEvidence(dataset, evidence, evidenceSha256), null, 2) + '\n')
 }

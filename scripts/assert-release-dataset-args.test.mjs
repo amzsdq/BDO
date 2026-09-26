@@ -12,12 +12,12 @@ describe('release dataset gate CLI contract', () => {
     expect(result.stderr).toContain('usage: node scripts/assert-release-dataset.mjs')
   })
   it('rejects trailing artifacts', () => {
-    const result = run(['dataset.json', 'report.json', 'catalog.json', 'ignored'])
+    const result = run(['dataset.json', 'report.json', 'catalog.json', 'details.json', 'ignored'])
     expect(result.status).toBe(1)
     expect(result.stderr).toContain('usage: node scripts/assert-release-dataset.mjs')
   })
   it('rejects option-like positional artifacts', () => {
-    const result = run(['dataset.json', 'report.json', '--catalog'])
+    const result = run(['dataset.json', 'report.json', '--catalog', 'details.json'])
     expect(result.status).toBe(1)
     expect(result.stderr).toContain('usage: node scripts/assert-release-dataset.mjs')
   })

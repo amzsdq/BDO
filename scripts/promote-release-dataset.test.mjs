@@ -3,12 +3,13 @@ import { spawnSync } from 'node:child_process'
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
+import crypto from 'node:crypto'
 import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.mjs'
 
 function fixture() {
   return {
-    metadata: { generatedAt: '2026-09-23T00:00:00Z', supportedRegion: 'KR', sources: ['client', 'codex'], sourceRevision: 'client-sha-abc123', counts: { cooking: 1, alchemy: 1 } },
-    items: { '10': { id: 10, nameKo: '요리', iconPath: 'icons/10.webp', iconUrl: 'https://example.invalid/10.png' }, '11': { id: 11, nameKo: '연금', iconPath: 'icons/11.webp', iconUrl: 'https://example.invalid/11.png' }, '20': { id: 20, nameKo: '재료', iconPath: 'icons/20.webp', iconUrl: 'https://example.invalid/20.png' } },
+    metadata: { generatedAt: '2026-09-23T00:00:00Z', supportedRegion: 'KR', sources: ['client', 'codex'], sourceRevision: 'iDevelopThings/bdo-data-extractor@5bf11bd7bc60dcbb6126be34bf3d76633abdd8b2', clientFingerprint: 'sha256:' + 'a'.repeat(64), counts: { cooking: 1, alchemy: 1 } },
+    items: { '10': { id: 10, nameKo: '요리', iconPath: 'icons/10.webp', iconUrl: 'https://example.invalid/10.png' }, '11': { id: 11, nameKo: '연금', iconPath: 'icons/11.webp', iconUrl: 'https://example.invalid/11.png' }, '20': { id: 20, nameKo: '재료', weightLT: 0.2, iconPath: 'icons/20.webp', iconUrl: 'https://example.invalid/20.png' } },
     recipes: {
       cook: { id: 'cook', skill: 'cooking', outputItemId: 10, yield: { min: 1, max: 1 }, variants: [{ id: 'v1', inputs: [{ itemId: 20, count: 1 }] }] },
       alch: { id: 'alch', skill: 'alchemy', outputItemId: 11, yield: { min: 1, max: 1 }, variants: [{ id: 'v1', inputs: [{ itemId: 20, count: 1 }] }] },
@@ -16,24 +17,42 @@ function fixture() {
     recipesByOutput: { '10': ['cook'], '11': ['alch'] },
   }
 }
-function reportFor(dataset, overrides = {}) { return { status: 'ZERO_UNEXPLAINED_DIFF', unresolved: [], clientRecipeGroups: 2, clientRecipes: Object.keys(dataset.recipes || {}).length, codexLivePages: 2, codexLiveRecipeIds: [101, 201], datasetFingerprint: reconciliationDatasetFingerprint(dataset), ...overrides } }
+const RETIRED_EVIDENCE = { schemaVersion: 1, scope: 'kr-pc-crafting-route-live-state', reviewedAt: '2026-09-26', source: { url: 'https://www.kr.playblackdesert.com/ko-KR/News/Detail?groupContentNo=16141', effectiveDate: '2026-09-02' }, routes: [{ recipeId: 99999, skill: 'alchemy', status: 'retired' }], retiredCraftingOutputItemIds: [99999], retiredCraftingIngredientItemIds: [99998] }
+const CODEX_DETAILS = JSON.stringify({ schemaVersion: 2, source: 'BDO Codex KR', complete: true, unresolvedCount: 0, recipes: [], routeStateEvidence: RETIRED_EVIDENCE, retiredCraftingOutputItemIds: [99999] })
+const CODEX_DETAILS_SHA256 = crypto.createHash('sha256').update(CODEX_DETAILS).digest('hex')
+function reportFor(dataset, overrides = {}) { return { codexManifestSha256: CODEX_DETAILS_SHA256, status: 'ZERO_UNEXPLAINED_DIFF', unresolved: [], clientRecipeGroups: 2, clientRecipes: Object.keys(dataset.recipes || {}).length, codexAccountedPages: 2, codexAccountedRecipeIds: [101, 201], codexAccountedRoutes: ['alchemy:201', 'cooking:101'], codexLivePages: 2, codexLiveRecipeIds: [101, 201], datasetFingerprint: reconciliationDatasetFingerprint(dataset), ...overrides } }
 function catalog(overrides = {}) { return { source: 'BDO Codex KR', collectedAt: '2026-09-23T00:00:00.000Z', complete: true, catalogs: [{ skill: 'cooking', complete: true, recipeCount: 1, recipeIds: [101], endpointUsed: 'https://bdocodex.com/query.php?a=recipes&type=culinary&l=kr', endpointFinalUrl: 'https://bdocodex.com/query.php?a=recipes&type=culinary&l=kr', endpointEvidence: { recordsReported: 1 }, countMatchesExpected: null }, { skill: 'alchemy', complete: true, recipeCount: 1, recipeIds: [201], endpointUsed: 'https://bdocodex.com/query.php?a=recipes&type=alchemy&l=kr', endpointFinalUrl: 'https://bdocodex.com/query.php?a=recipes&type=alchemy&l=kr', endpointEvidence: { recordsReported: 1 }, countMatchesExpected: null }], ...overrides } }
 function run(dataset, reconciliation, catalogEvidence = catalog(), missingIconId = null) {
   const root = mkdtempSync(join(tmpdir(), 'bdo-promote-')), dir = join(root, 'data'), iconDir = join(root, 'icons'); mkdirSync(dir); mkdirSync(iconDir)
-  const datasetFile = join(dir, 'dataset.json'), reportFile = join(dir, 'report.json'), catalogFile = join(dir, 'catalog.json'), outFile = join(dir, 'promoted.json')
+  const datasetFile = join(dir, 'dataset.json'), reportFile = join(dir, 'report.json'), catalogFile = join(dir, 'catalog.json'), detailsFile = join(dir, 'details.json'), outFile = join(dir, 'promoted.json')
   for (const id of [10, 11, 20]) writeFileSync(join(iconDir, `${id}.webp`), 'fixture'); if (missingIconId != null) rmSync(join(iconDir, `${missingIconId}.webp`), { force: true })
-  writeFileSync(datasetFile, JSON.stringify(dataset)); writeFileSync(reportFile, JSON.stringify(reconciliation)); writeFileSync(catalogFile, JSON.stringify(catalogEvidence)); const result = spawnSync(process.execPath, ['scripts/promote-release-dataset.mjs', datasetFile, reportFile, catalogFile, outFile], { cwd: process.cwd(), encoding: 'utf8' }); return { result, promoted: result.status === 0 ? JSON.parse(readFileSync(outFile, 'utf8')) : null }
+  writeFileSync(datasetFile, JSON.stringify(dataset)); writeFileSync(reportFile, JSON.stringify(reconciliation)); writeFileSync(catalogFile, JSON.stringify(catalogEvidence)); writeFileSync(detailsFile, CODEX_DETAILS); const result = spawnSync(process.execPath, ['scripts/promote-release-dataset.mjs', datasetFile, reportFile, catalogFile, detailsFile, outFile], { cwd: process.cwd(), encoding: 'utf8' }); return { result, promoted: result.status === 0 ? JSON.parse(readFileSync(outFile, 'utf8')) : null }
 }
 
 describe('release dataset promotion', () => {
   it('promotes only reconciled, resolved Cooking+Alchemy data with complete catalog evidence', () => {
-    const dataset = fixture(); const { result, promoted } = run(dataset, reportFor(dataset)); expect(result.status).toBe(0); expect(promoted.metadata.status).toBe('COMPLETE_VERIFIED'); expect(promoted.metadata.reconciliationStatus).toBe('ZERO_UNEXPLAINED_DIFF'); expect(promoted.metadata.codexCatalogPages).toBe(2); expect(promoted.metadata.fingerprint).toMatch(/^[0-9a-f]{64}$/)
+    const dataset = fixture(); const { result, promoted } = run(dataset, reportFor(dataset)); expect(result.status).toBe(0); expect(promoted.metadata.status).toBe('COMPLETE_VERIFIED'); expect(promoted.metadata.reconciliationStatus).toBe('ZERO_UNEXPLAINED_DIFF'); expect(promoted.metadata.codexCatalogPages).toBe(2); expect(promoted.metadata.codexManifestSha256).toBe(CODEX_DETAILS_SHA256); expect(promoted.metadata.fingerprint).toMatch(/^[0-9a-f]{64}$/)
+  })
+  it('blocks promotion when a reviewed retired crafting route survives in the candidate dataset', () => {
+    const dataset = fixture(); dataset.recipes.alch.outputItemId = 99999; const attempt = run(dataset, reportFor(dataset)); expect(attempt.result.status).toBe(1); expect(attempt.result.stderr).toContain('dataset contains retired crafting routes')
+  })
+  it('blocks promotion when a reviewed deleted crafting ingredient survives in a candidate variant', () => {
+    const dataset = fixture(); dataset.recipes.alch.variants[0].inputs = [{ itemId: 99998, count: 1 }]; const attempt = run(dataset, reportFor(dataset)); expect(attempt.result.status).toBe(1); expect(attempt.result.stderr).toContain('dataset contains retired crafting routes')
+  })
+  it('blocks promotion when reconciliation Codex detail hash is missing or stale', () => {
+    const dataset = fixture(); const attempt = run(dataset, reportFor(dataset, { codexManifestSha256: '0'.repeat(64) })); expect(attempt.result.status).toBe(1); expect(attempt.result.stderr).toContain('manifest hash does not match')
   })
   it('blocks promotion when reconciliation omits a client recipe even if output-group count looks plausible', () => {
     const dataset = fixture(); const result = run(dataset, reportFor(dataset, { clientRecipeGroups: 2, clientRecipes: 1 })); expect(result.result.status).toBe(1); expect(result.result.stderr).toContain('client recipe count does not match dataset')
   })
-  it('blocks promotion when canonical client source revision is missing or unrecorded', () => {
-    for (const sourceRevision of [undefined, '', '  ', 'unrecorded', 'UNRECORDED']) { const dataset = fixture(); dataset.metadata.sourceRevision = sourceRevision; const attempt = run(dataset, reportFor(dataset)); expect(attempt.result.status).toBe(1); expect(attempt.result.stderr).toContain('sourceRevision') }
+  it('blocks promotion when canonical client source revision is missing, unrecorded, or unreviewed', () => {
+    for (const sourceRevision of [undefined, '', '  ', 'unrecorded', 'UNRECORDED', 'iDevelopThings/bdo-data-extractor@' + '0'.repeat(40)]) { const dataset = fixture(); dataset.metadata.sourceRevision = sourceRevision; const attempt = run(dataset, reportFor(dataset)); expect(attempt.result.status).toBe(1); expect(attempt.result.stderr).toMatch(/sourceRevision|unreviewed bdo-data-extractor revision/) }
+  })
+  it('blocks promotion when client fingerprint is missing', () => {
+    const dataset = fixture(); delete dataset.metadata.clientFingerprint; const attempt = run(dataset, reportFor(dataset)); expect(attempt.result.status).toBe(1); expect(attempt.result.stderr).toContain('clientFingerprint')
+  })
+  it('preserves the exact client fingerprint through promotion', () => {
+    const dataset = fixture(); const { result, promoted } = run(dataset, reportFor(dataset)); expect(result.status).toBe(0); expect(promoted.metadata.clientFingerprint).toBe(dataset.metadata.clientFingerprint)
   })
   it('blocks promotion when a local icon path is not canonical for its item id', () => {
     const dataset = fixture(); dataset.items['20'].iconPath = '../../package.json'; const attempt = run(dataset, reportFor(dataset)); expect(attempt.result.status).toBe(1); expect(attempt.result.stderr).toContain('lack canonical local icon paths')
@@ -60,9 +79,9 @@ describe('release dataset promotion', () => {
     const dataset = fixture(); const evidence = catalog(); evidence.catalogs[0].endpointUsed = 'https://bdocodex.com/query.php?a=recipes&type=alchemy&l=kr'; const result = run(dataset, reportFor(dataset), evidence); expect(result.result.status).toBe(1); expect(result.result.stderr).toContain('endpoint scope is invalid')
   })
   it('blocks promotion when reconciliation covers fewer pages than the complete catalog', () => {
-    const dataset = fixture(); const result = run(dataset, reportFor(dataset, { codexLivePages: 1 })); expect(result.result.status).toBe(1); expect(result.result.stderr).toContain('does not match independently complete catalog count')
+    const dataset = fixture(); const result = run(dataset, reportFor(dataset, { codexAccountedPages: 1 })); expect(result.result.status).toBe(1); expect(result.result.stderr).toContain('does not match independently complete catalog count')
   })
   it('blocks a same-sized reconciliation built from different Codex recipe ids', () => {
-    const dataset = fixture(); const result = run(dataset, reportFor(dataset, { codexLiveRecipeIds: [102, 201] })); expect(result.result.status).toBe(1); expect(result.result.stderr).toContain('recipe-id set does not match')
+    const dataset = fixture(); const result = run(dataset, reportFor(dataset, { codexAccountedRoutes: ['alchemy:201', 'cooking:102'] })); expect(result.result.status).toBe(1); expect(result.result.stderr).toContain('route set does not match')
   })
 })

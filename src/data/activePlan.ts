@@ -19,12 +19,12 @@ export function buildActivePlan(
   dataset: RecipeDataset,
   input: ActivePlanTargetInput,
   inventory: Readonly<Record<string, number>>,
-  profile: Pick<CharacterProfileState, 'cookingMastery'>,
+  profile: Pick<CharacterProfileState, 'cookingMastery' | 'alchemyMastery'>,
   options: Partial<ActivePlanOptions> = {},
 ): BuiltActivePlan {
   try {
     const persisted = activePlanTarget(input)
-    const resolved = resolvePlanTarget(dataset, persisted, { cookingMastery: profile.cookingMastery })
+    const resolved = resolvePlanTarget(dataset, persisted, { cookingMastery: profile.cookingMastery, alchemyMastery: profile.alchemyMastery })
     if (resolved.error || !resolved.target) return { error: resolved.error ?? 'target resolution failed', estimatedPreparation: resolved.estimatedPreparation === true }
     const rawPlan = buildPlan(dataset, [resolved.target], {
       craftIntermediateItemIds: options.craftIntermediateItemIds ?? new Set(),

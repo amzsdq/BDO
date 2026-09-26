@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "scope": "kr-pc-crafting-route-live-state",
+  "reviewedAt": "2026-09-26",
+  "source": {
+    "publisher": "Pearl Abyss",
+    "url": "https://www.kr.playblackdesert.com/ko-KR/News/Detail?groupContentNo=16141",
+    "effectiveDate": "2026-09-02",
+    "authority": "official-kr-pc-update"
+  },
+  "routes": [
+    {
+      "recipeId": 342,
+      "skill": "alchemy",
+      "status": "retired"
+    },
+    {
+      "recipeId": 343,
+      "skill": "alchemy",
+      "status": "retired"
+    },
+    {
+      "recipeId": 344,
+      "skill": "alchemy",
+      "status": "retired"
+    },
+    {
+      "recipeId": 345,
+      "skill": "alchemy",
+      "status": "retired"
+    },
+    {
+      "recipeId": 346,
+      "skill": "alchemy",
+      "status": "retired"
+    }
+  ],
+  "retiredCraftingOutputItemIds": [
+    5303,
+    5304,
+    5305,
+    45334,
+    45335,
+    45336,
+    45337,
+    45338,
+    45339,
+    45340,
+    45341,
+    45342,
+    45343,
+    45344,
+    45345
+  ],
+  "rationale": "Official KR PC update removed spirit-stone crafting recipes and the listed spirit-stone crafting materials; Codex gap pages 342-346 are retained historical detail and must not restore routes that use deleted ingredients.",
+  "retiredCraftingIngredientItemIds": [
+    4924,
+    5303,
+    5304,
+    5305,
+    5306
+  ]
+}

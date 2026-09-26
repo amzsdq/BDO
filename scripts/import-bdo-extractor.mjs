@@ -3,7 +3,7 @@ import path from 'node:path'
 import crypto from 'node:crypto'
 
 function fail(message) { throw new Error(message) }
-const IMPORTER_FLAGS = new Set(['items', 'recipes', 'out', 'source-revision'])
+const IMPORTER_FLAGS = new Set(['items', 'recipes', 'out', 'source-revision', 'client-fingerprint'])
 function parseArgs(argv) {
   if (argv.length % 2 !== 0) fail('usage: --items <items.json> --recipes <recipes.json> --out <dataset.json> --source-revision <exact-extractor-commit>')
   const out = {}
@@ -55,6 +55,8 @@ function normalizeSourceRevision(value) {
 const args = parseArgs(process.argv.slice(2))
 if (!args.items || !args.recipes || !args.out || !args['source-revision']) fail('required: --items --recipes --out --source-revision <exact-extractor-commit>')
 const sourceRevision = normalizeSourceRevision(args['source-revision'])
+const clientFingerprint = String(args['client-fingerprint'] || '').trim()
+if (clientFingerprint && !/^sha256:[a-f0-9]{64}$/.test(clientFingerprint)) fail('client-fingerprint must be sha256:<64hex>')
 const itemsRaw = JSON.parse(fs.readFileSync(args.items, 'utf8'))
 const recipesRaw = JSON.parse(fs.readFileSync(args.recipes, 'utf8'))
 if (!Array.isArray(itemsRaw) || !Array.isArray(recipesRaw)) fail('extractor inputs must be JSON arrays')
@@ -135,6 +137,7 @@ const payloadWithoutHash = {
     generatedAt: new Date().toISOString(), supportedRegion: 'KR', status: 'CLIENT_IMPORTED_UNRECONCILED',
     sources: ['bdo-data-extractor:items.json', 'bdo-data-extractor:recipes.json'],
     sourceRevision,
+    ...(clientFingerprint ? { clientFingerprint } : {}),
     extractorContract: 'items.json + recipes.json; repeated producing blocks are alternative recipes; no separate source recipe id; EntityRef serialized as URN text; decoded icons resolved as icons/<itemId>.webp; Korean names not supplied by extractor',
     koreanNamesVerified: false,
     counts,

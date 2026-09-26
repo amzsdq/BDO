@@ -116,9 +116,17 @@ export function importPlannerState(value: unknown, storage: Pick<Storage, 'getIt
   return { version: 2, exportedAt: bundle.exportedAt, checklist: checklist.value, inventory: inventory.value, characterProfile: characterProfile.value, planSession: planSession.session }
 }
 
-export function resetPlannerState(storage: Pick<Storage, 'removeItem'> = localStorage): void {
-  clearChecklist(storage)
-  clearInventory(storage)
-  clearCharacterProfile(storage)
-  clearPlanSession(storage)
+export function resetPlannerState(storage: Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> = localStorage): void {
+  const keys = [CHECKLIST_KEY, INVENTORY_KEY, CHARACTER_PROFILE_KEY, PLAN_SESSION_KEY]
+  const previous = new Map(keys.map((key) => [key, storage.getItem(key)]))
+  try {
+    for (const key of keys) storage.removeItem(key)
+  } catch (error) {
+    try {
+      for (const key of keys) restoreRawStorage(storage, key, previous.get(key) ?? null)
+    } catch {
+      throw new Error('저장 데이터 초기화 중 저장소 오류가 발생했고 이전 상태 복구에도 실패했습니다. 페이지를 새로고침하기 전에 현재 저장 상태를 확인하세요.')
+    }
+    throw error
+  }
 }

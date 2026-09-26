@@ -4,7 +4,7 @@ These scenarios are the minimum real-user flows required before `PROGRAM_COMPLET
 
 ## Global preconditions
 
-- production dataset passes `data:release-gate` with `ZERO_UNEXPLAINED_DIFF`;
+- production dataset has passed validation, complete Codex reconciliation with `ZERO_UNEXPLAINED_DIFF`, and promotion to `COMPLETE_VERIFIED`; the final seven-artifact `data:release-gate` runs only after the E2E evidence manifest exists;
 - the exact production `mastery.json` passes the release mastery-evidence gate: its SHA-256 matches the evidence envelope, semantic rate mapping is `VERIFIED`, and both Cooking and Alchemy runtime/client cross-checks pass;
 - every referenced local icon asset is installed and resolvable;
 - fresh browser profile starts with no planner local state;
@@ -48,8 +48,9 @@ Pass: Cooking and Alchemy mastery semantics remain separate through the full UI 
 3. Verify available LT, LT per serving, maximum loadable servings, exact per-item carry quantities and total starting ingredient LT.
 4. Request more than capacity and verify a clear warning without silently clipping the requested plan.
 5. Use a fixture with unknown ingredient weight and verify capacity math fails closed.
+6. On a source-verified single-base variant with verified output-item weight, verify the UI shows the base-output LT range for the resolved attempts. Verify random/higher-grade outputs are explicitly excluded without proc-probability evidence, and a random-only route shows no deterministic output-weight range.
 
-Pass: exact input-load math is never mixed with probabilistic output/peak estimates.
+Pass: exact input-load math and verified base-output range remain distinct; probabilistic outputs are never promoted into guaranteed weight.
 
 ## E2E-05 Intermediate acquire vs craft
 
@@ -57,8 +58,9 @@ Pass: exact input-load math is never mixed with probabilistic output/peak estima
 2. Leave the intermediate as externally acquired and record totals.
 3. Switch it to craft; verify recursive base materials replace only the missing intermediate quantity after owned stock is consumed.
 4. Where multiple producer recipes or variants exist, explicitly choose each and verify totals change accordingly.
+5. For a source-verified substitution group, explicitly select a non-canonical member and verify its sourced ratio changes both checklist quantity and LT carry math; reload and verify the selection persists.
 
-Pass: no alternative producer/variant is silently flattened or lost.
+Pass: no alternative producer/variant or source-verified substitution choice is silently flattened or lost.
 
 ## E2E-06 Multiple simultaneous targets
 
@@ -98,4 +100,4 @@ Pass: completeness and provenance failures are visible and fail closed.
 
 ## Completion evidence
 
-For release acceptance, record the exact main commit, dataset fingerprint, reconciliation report fingerprint/timestamp, exact production `mastery.json` SHA-256 plus mastery-evidence fingerprint/provenance, browser(s), viewport(s), and pass/fail result for every scenario. Any failed scenario keeps the program in `CONTINUE`.
+For release acceptance, record the exact main commit, dataset fingerprint, reconciliation artifact SHA-256/timestamp, exact production `mastery.json` SHA-256 plus mastery-evidence artifact SHA-256/provenance, browser(s), viewport(s), and pass/fail result for every scenario. Preserve the scenario evidence in the fail-closed manifest described by `docs/RELEASE-E2E-EVIDENCE.md`, then run the final seven-artifact `data:release-gate`. Any failed scenario or final-gate failure keeps the program in `CONTINUE`.

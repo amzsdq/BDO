@@ -26,6 +26,15 @@ describe('Korean recipe search', () => {
     expect(searchRecipes(dataset, '발레')[0].item.nameKo).toBe('발레노스 정식')
   })
 
+  it('tolerates a one-syllable Korean typo without outranking exact matches', () => {
+    expect(searchRecipes(dataset, '발레노즈')[0].item.id).toBe(1)
+    expect(searchRecipes(dataset, '발레노스 정식')[0].score).toBeGreaterThan(searchRecipes(dataset, '발레노즈정식')[0].score)
+  })
+
+  it('does not fuzzy-match very short unrelated queries', () => {
+    expect(searchRecipes(dataset, '액정')).toHaveLength(0)
+  })
+
   it('supports choseong search', () => {
     expect(searchRecipes(dataset, 'ㅁㅇㅇㅊㅅㅇ')[0].item.nameKo).toBe('맑은 액체 시약')
   })

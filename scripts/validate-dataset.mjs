@@ -25,7 +25,7 @@ for (const [itemKey, item] of Object.entries(items)) {
 for (const [groupId, group] of Object.entries(substitutionGroups)) {
   if (!group || typeof group !== 'object') { errors.push(`${groupId}: invalid substitution group`); continue }
   if (group.id !== groupId) errors.push(`${groupId}: substitution group key/id mismatch (${group.id})`)
-  if (!Array.isArray(group.memberItemIds) || group.memberItemIds.length < 2) errors.push(`${groupId}: substitution group requires at least two members`)
+  if (!Array.isArray(group.memberItemIds) || group.memberItemIds.length < 1) errors.push(`${groupId}: substitution group requires at least one source-backed member`)
   const seenMembers = new Set()
   for (const itemId of group.memberItemIds || []) {
     if (!Number.isInteger(itemId) || itemId <= 0) errors.push(`${groupId}: invalid member item id ${itemId}`)
@@ -36,9 +36,9 @@ for (const [groupId, group] of Object.entries(substitutionGroups)) {
   if (!['BDO Codex KR', 'BDO client'].includes(group.source?.provider)) errors.push(`${groupId}: unsupported substitution evidence provider`)
   if (typeof group.source?.sourceId !== 'string' || !group.source.sourceId.trim()) errors.push(`${groupId}: substitution sourceId missing`)
   if (!group.source?.verifiedAt || Number.isNaN(Date.parse(group.source.verifiedAt))) errors.push(`${groupId}: substitution verifiedAt invalid`)
-  if (group.source?.provider === 'BDO Codex KR') {
+  {
     const values = group.memberValueByItemId
-    if (!values || typeof values !== 'object' || Array.isArray(values)) errors.push(`${groupId}: Codex substitution Worth map missing`)
+    if (!values || typeof values !== 'object' || Array.isArray(values)) errors.push(`${groupId}: verified substitution value map missing`)
     else {
       const valueKeys = Object.keys(values).sort()
       const memberKeys = [...seenMembers].map(String).sort()
@@ -53,7 +53,8 @@ for (const [recipeId, recipe] of Object.entries(recipes)) {
   if (!['cooking', 'alchemy'].includes(recipe.skill)) errors.push(`${recipeId}: invalid skill`)
   if (!items[String(recipe.outputItemId)]) errors.push(`${recipeId}: missing output item ${recipe.outputItemId}`)
   if (!Array.isArray(recipe.variants) || !recipe.variants.length) errors.push(`${recipeId}: no variants`)
-  if (!recipe.yield || !Number.isFinite(recipe.yield.min) || !Number.isFinite(recipe.yield.max) || recipe.yield.min <= 0 || recipe.yield.max < recipe.yield.min) errors.push(`${recipeId}: invalid yield range`)
+  const requiresLegacyYield = (recipe.variants || []).some((variant) => !variant.outputEvidence)
+  if (requiresLegacyYield && (!recipe.yield || !Number.isFinite(recipe.yield.min) || !Number.isFinite(recipe.yield.max) || recipe.yield.min <= 0 || recipe.yield.max < recipe.yield.min)) errors.push(`${recipeId}: invalid yield range`)
   if (recipe.yield?.expected != null && (!Number.isFinite(recipe.yield.expected) || recipe.yield.expected < recipe.yield.min || recipe.yield.expected > recipe.yield.max)) errors.push(`${recipeId}: expected yield outside min/max`)
   for (const variant of recipe.variants || []) {
     const variantKey = `${recipeId}:${variant.id}`
@@ -61,6 +62,25 @@ for (const [recipeId, recipe] of Object.entries(recipes)) {
     if (seenVariantIds.has(variantKey)) errors.push(`${recipeId}: duplicate variant id ${variant.id}`)
     seenVariantIds.add(variantKey)
     if (!Array.isArray(variant.inputs) || !variant.inputs.length) errors.push(`${recipeId}/${variant.id}: no inputs`)
+    if (variant.outputEvidence) {
+      const allowedStatuses = new Set(['single-base', 'random-only', 'multiple-base', 'no-output', 'unavailable', 'unresolved'])
+      if (!allowedStatuses.has(variant.outputEvidence.status)) errors.push(`${recipeId}/${variant.id}: invalid output evidence status`)
+      if (variant.outputEvidence.status === 'single-base' && (!variant.yield || !Number.isFinite(variant.yield.min) || variant.yield.min <= 0 || !Number.isFinite(variant.yield.max) || variant.yield.max < variant.yield.min)) errors.push(`${recipeId}/${variant.id}: single-base output evidence requires positive variant yield`)
+      if (variant.outputEvidence.status === 'single-base') {
+        const base = variant.outputEvidence.baseOutputs || []
+        if (base.length !== 1 || Number(base[0]?.itemId) !== Number(recipe.outputItemId)) errors.push(`${recipeId}/${variant.id}: single-base evidence must identify exactly the recipe output item`)
+        else if (variant.yield && (Number(base[0].min) !== Number(variant.yield.min) || Number(base[0].max) !== Number(variant.yield.max))) errors.push(`${recipeId}/${variant.id}: single-base output range must match variant yield`)
+      }
+      if (variant.outputEvidence.status === 'random-only' && !(variant.outputEvidence.randomOutputs || []).length) errors.push(`${recipeId}/${variant.id}: random-only output evidence requires random outputs`)
+      if (variant.outputEvidence.status === 'random-only' && (variant.outputEvidence.baseOutputs || []).length) errors.push(`${recipeId}/${variant.id}: random-only output evidence cannot contain base outputs`)
+      if (variant.outputEvidence.status === 'no-output' && ((variant.outputEvidence.baseOutputs || []).length || (variant.outputEvidence.randomOutputs || []).length)) errors.push(`${recipeId}/${variant.id}: no-output evidence cannot contain outputs`)
+      for (const [kind, outputs] of [['base', variant.outputEvidence.baseOutputs || []], ['random', variant.outputEvidence.randomOutputs || []]]) {
+        for (const output of outputs) {
+          if (!items[String(output.itemId)]) errors.push(`${recipeId}/${variant.id}: unknown ${kind} output item ${output.itemId}`)
+          if (!Number.isFinite(output.min) || output.min <= 0 || !Number.isFinite(output.max) || output.max < output.min) errors.push(`${recipeId}/${variant.id}: invalid ${kind} output range for ${output.itemId}`)
+        }
+      }
+    }
     const signature = `${recipe.skill}:${recipe.outputItemId}:` + (variant.inputs || []).map((input) => `${input.itemId}:${input.count}:${input.substitutionGroupId || ''}`).sort().join('|')
     if (seenSignatures.has(signature)) errors.push(`${recipeId}/${variant.id}: duplicate variant signature`)
     seenSignatures.add(signature)
@@ -70,6 +90,13 @@ for (const [recipeId, recipe] of Object.entries(recipes)) {
       if (!Number.isFinite(input.count) || input.count <= 0) errors.push(`${recipeId}/${variant.id}: invalid count for ${input.itemId}`)
       if (inputIds.has(String(input.itemId))) errors.push(`${recipeId}/${variant.id}: duplicate input item ${input.itemId}; aggregate canonical counts instead`)
       inputIds.add(String(input.itemId))
+      const requiredWeightItemIds = input.substitutionGroupId != null
+        ? (substitutionGroups[input.substitutionGroupId]?.memberItemIds || [input.itemId])
+        : [input.itemId]
+      for (const weightItemId of requiredWeightItemIds) {
+        const weight = items[String(weightItemId)]?.weightLT
+        if (!Number.isFinite(weight) || weight < 0) errors.push(`${recipeId}/${variant.id}: missing or invalid weightLT for recipe material ${weightItemId}`)
+      }
       if (input.substitutionGroupId != null) {
         const group = substitutionGroups[input.substitutionGroupId]
         if (!group) errors.push(`${recipeId}/${variant.id}: unknown substitution group ${input.substitutionGroupId}`)

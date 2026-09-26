@@ -2,6 +2,7 @@ import crypto from 'node:crypto'
 import fs from 'node:fs'
 import { assertMasteryCurvesMatch } from './mastery-crosscheck.mjs'
 import { loadRuntimeMasteryRows } from './load-runtime-mastery.mjs'
+import { assertReviewedExtractorRevision } from './production-source-contract.mjs'
 
 function fail(message) { throw new Error(message) }
 function parseArgs(args) {
@@ -29,6 +30,7 @@ if (!masteryPath || !outPath || !sourceRevision || !clientFingerprint || !extrac
   fail('required: --mastery <mastery.json> --out <evidence.json> --source-revision <tag-or-sha> --client-fingerprint <fingerprint> --extracted-at <timestamp>')
 }
 if (sourceRevision.toLowerCase() === 'unrecorded') fail('source revision must identify the extractor/client snapshot')
+assertReviewedExtractorRevision(sourceRevision)
 if (!Number.isFinite(Date.parse(extractedAt))) fail('extracted-at must be an ISO-compatible timestamp')
 
 const raw = fs.readFileSync(masteryPath)

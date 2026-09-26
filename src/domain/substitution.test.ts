@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveIngredientChoice } from './substitution'
+import { resolveIngredientChoice, resolveOwnedMixedIngredientAllocation } from './substitution'
 import type { IngredientSubstitutionGroup } from './types'
 
 const groups: Record<string, IngredientSubstitutionGroup> = {
@@ -42,6 +42,15 @@ describe('ingredient substitutions', () => {
       groups,
       { ownedByItemId: { '20': 4, '21': 3, '22': 1 } },
     )).toEqual({ itemId: 21, count: 3, usedSubstitution: true })
+  })
+
+  it('finds repeatable all-owned mixed Worth and rejects unsupported precision', () => {
+    expect(resolveOwnedMixedIngredientAllocation({ itemId: 20, count: 5, substitutionGroupId: 'codex:3001' }, groups, { '20': 1, '21': 2 }, 1))
+      .toEqual(expect.arrayContaining([{ itemId: 20, count: 1 }, { itemId: 21, count: 2 }]))
+    expect(resolveOwnedMixedIngredientAllocation({ itemId: 21, count: 2, substitutionGroupId: 'codex:3001' }, groups, { '20': 4, '21': 1 }, 1)).toBeUndefined()
+    const unsupported = structuredClone(groups)
+    unsupported['codex:3001'].memberValueByItemId!['21'] = 1.25
+    expect(resolveOwnedMixedIngredientAllocation({ itemId: 20, count: 5, substitutionGroupId: 'codex:3001' }, unsupported, { '20': 1, '21': 4 }, 1)).toBeUndefined()
   })
 
   it('fails closed for invalid sourced values', () => {
