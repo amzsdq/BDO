@@ -27,6 +27,13 @@ export function applySubstitutionEvidence(dataset, evidence) {
       if (memberItemIds.includes(itemId)) throw new Error(`${id}: duplicate member ${itemId}`)
       memberItemIds.push(itemId); memberValueByItemId[String(itemId)] = value
     }
+    const reviewed = SUBSTITUTION_BINDING_POLICY.reviewedGroups?.[id]
+    if (reviewed?.expectedMemberWorthByItemId) {
+      const expected = reviewed.expectedMemberWorthByItemId
+      const expectedEntries = Object.entries(expected).sort(([a], [b]) => Number(a) - Number(b))
+      const actualEntries = Object.entries(memberValueByItemId).sort(([a], [b]) => Number(a) - Number(b))
+      if (JSON.stringify(actualEntries) !== JSON.stringify(expectedEntries)) throw new Error(`${id}: reviewed member Worth evidence drifted from policy`)
+    }
     next.substitutionGroups[id] = { id, memberItemIds, memberValueByItemId, source: { provider: 'BDO Codex KR', sourceId, sourceUrl, verifiedAt: collectedAt } }
   }
   const groups = Object.values(next.substitutionGroups)
