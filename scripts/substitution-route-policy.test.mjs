@@ -50,6 +50,11 @@ describe('reviewed substitution route policy', () => {
     expect(result.recipes.r.variants[0].inputs[0].substitutionGroupId).toBe('codex:6009')
   })
 
+  it('keeps historical-only generic vegetable route 113 exact until fresh route evidence is reviewed', () => {
+    const result = applySubstitutionEvidence(dataset(113), evidence)
+    expect(result.recipes.r.variants[0].inputs[0].substitutionGroupId).toBeUndefined()
+  })
+
   it.each([354, 360, 210])('keeps literal-ingredient route %s exact', (sourceRecipeId) => {
     const result = applySubstitutionEvidence(dataset(sourceRecipeId, sourceRecipeId === 210 ? 7312 : 7318), evidence)
     expect(result.recipes.r.variants[0].inputs[0].substitutionGroupId).toBeUndefined()
