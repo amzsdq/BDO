@@ -17,7 +17,7 @@ export const SUBSTITUTION_BINDING_POLICY = Object.freeze({
         '7328': 6, '7331': 6, '7333': 6, '7334': 6,
         '7340': 36, '7343': 36, '7345': 36, '7346': 36,
       }),
-      sourceRecipeIds: Object.freeze([112,113,123,125,127,136,144,154,159,168,195,477,478,491,510,513,570,586,606]),
+      sourceRecipeIds: Object.freeze([112]),
     }),
   }),
 })
