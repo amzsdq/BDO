@@ -1,11 +1,13 @@
 .plan-target-list { display: grid; gap: .65rem; }
 .target-chips { display: flex; flex-wrap: wrap; gap: .5rem; align-items: center; }
 .target-chip { display: inline-flex; align-items: stretch; border: 1px solid currentColor; border-radius: .65rem; overflow: hidden; }
-.target-chip > button { border: 0; border-radius: 0; min-height: 2.25rem; }
+.target-chip > button { border: 0; border-radius: 0; min-height: 2.25rem; background: #101315; color: #f5f7f8; cursor: pointer; }
 .target-chip > button:first-child { display: inline-flex; align-items: center; gap: .45rem; }
 .target-chip .item-icon { width: 1.5rem; height: 1.5rem; flex: 0 0 1.5rem; }
 .target-chip-label { display: grid; gap: .1rem; text-align: left; }
 .target-chip-label small { opacity: .65; font-size: .7em; font-weight: 500; }
 .target-chip > button[aria-pressed='true'] { font-weight: 700; text-decoration: underline; text-underline-offset: .2em; }
 .target-chip > button:last-child:not(:first-child) { min-width: 2.25rem; }
+.target-chips > button { border: 1px solid #30353a; border-radius: .65rem; min-height: 2.25rem; padding: 0 .75rem; background: #101315; color: #f5f7f8; cursor: pointer; }
+.target-chip > button:hover, .target-chips > button:hover { background: #24282c; }
 .target-chips button:focus-visible { outline: 2px solid currentColor; outline-offset: 2px; }
