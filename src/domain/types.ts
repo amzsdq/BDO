@@ -15,12 +15,20 @@ export interface Item {
   sourceUrl?: string
 }
 
-export interface Ingredient { itemId: ItemId; count: number; substitutionGroupId?: string }
+export interface Ingredient {
+  itemId: ItemId
+  count: number
+  substitutionGroupId?: string
+  /** Reviewed base-Worth requirement for this exact recipe slot. */
+  requiredBaseWorth?: number
+}
 export interface IngredientSubstitutionGroup {
   id: string
   memberItemIds: ItemId[]
   /** Source-backed replacement value per member. Omit until independently verified. */
   memberValueByItemId?: Record<string, number>
+  /** Reviewed planner semantics. Kept separate from source-reported member Worth. */
+  planningValueByItemId?: Record<string, number>
   source: {
     provider: 'BDO Codex KR' | 'BDO client'
     sourceId: string

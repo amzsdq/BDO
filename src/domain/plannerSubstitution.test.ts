@@ -115,4 +115,30 @@ describe('planner substitution resolution', () => {
     ]))
   })
 
+  it('uses reviewed planning values and explicit slot Worth instead of source-reported Worth', () => {
+    const semanticDataset: RecipeDataset = {
+      ...dataset,
+      recipes: {
+        ...dataset.recipes,
+        r1: {
+          ...dataset.recipes.r1,
+          variants: [{ id: 'v1', inputs: [{ itemId: 10, count: 6, substitutionGroupId: 'codex:6003', requiredBaseWorth: 6 }] }],
+        },
+      },
+      substitutionGroups: {
+        'codex:6003': {
+          id: 'codex:6003',
+          memberItemIds: [10, 11],
+          memberValueByItemId: { '10': 1, '11': 4 },
+          planningValueByItemId: { '10': 1, '11': 2 },
+          source: { provider: 'BDO Codex KR', sourceId: '6003', verifiedAt: '2026-09-26' },
+        },
+      },
+    }
+    const plan = buildPlan(semanticDataset, [{ recipeId: 'r1', mode: 'attempts', amount: 1 }], {
+      craftIntermediateItemIds: new Set(),
+      selectedSubstitutionItemIdByGroupId: { 'codex:6003': 11 },
+    })
+    expect(plan.materials).toEqual([expect.objectContaining({ itemId: 11, required: 3 })])
+  })
 })
