@@ -30,6 +30,10 @@ if (fs.existsSync(ads)) fingerprintParts.push(fs.readFileSync(ads))
 const clientHash = sha256Bytes(fingerprintParts)
 if (manifest.gameFingerprint !== clientHash.slice(0, 16)) fail('viewer manifest gameFingerprint does not match installed client bytes')
 for (const name of ['items.json', 'recipes.json', 'mastery.json', 'asset_redirects.json']) if (!fs.existsSync(path.join(viewerDir, name))) fail(`viewer extraction artifact missing: ${name}`)
+const iconProvenance = path.join(viewerDir, '.icon_provenance')
+if (!fs.existsSync(iconProvenance)) fail('viewer icon provenance is missing')
+const expectedIconKey = sha256Bytes([Buffer.from(`${manifest.gameFingerprint}|icons|3`)]).slice(0, 16)
+if (fs.readFileSync(iconProvenance, 'utf8').trim() !== expectedIconKey) fail('viewer icon provenance does not match game fingerprint and reviewed icon codec')
 const viewerIcons = path.join(viewerDir, 'icons')
 if (!fs.existsSync(viewerIcons) || !fs.statSync(viewerIcons).isDirectory()) fail('viewer extraction icons directory is missing')
 fs.mkdirSync(outDir, { recursive: true })
@@ -37,7 +41,8 @@ for (const name of ['items.json', 'recipes.json', 'mastery.json', 'asset_redirec
 fs.cpSync(viewerIcons, path.join(outDir, 'icons'), { recursive: true })
 fs.copyFileSync(serviceIni, path.join(outDir, 'service.ini'))
 fs.copyFileSync(manifestPath, path.join(outDir, 'viewer-manifest.json'))
-const artifactSha256 = Object.fromEntries(['items.json','recipes.json','mastery.json','asset_redirects.json','service.ini','viewer-manifest.json'].map(name => [name, sha256File(path.join(outDir, name))]))
+fs.copyFileSync(iconProvenance, path.join(outDir, '.icon_provenance'))
+const artifactSha256 = Object.fromEntries(['items.json','recipes.json','mastery.json','asset_redirects.json','service.ini','viewer-manifest.json','.icon_provenance'].map(name => [name, sha256File(path.join(outDir, name))]))
 const provenance = {
   schemaVersion: 1,
   source: 'installed Black Desert client via reviewed bdo-viewer',
