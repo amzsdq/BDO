@@ -36,7 +36,7 @@ export function parseCodexMaterialGroupHtml(html, groupId) {
     }
     seen.set(itemId, value); members.push({ itemId, value })
   }
-  if (members.length < 2) throw new Error(`material group ${groupId}: could not prove at least two row-local item/Worth pairs from Codex HTML`)
+  if (members.length < 1) throw new Error(`material group ${groupId}: could not prove any row-local item/Worth pairs from Codex HTML`)
   return members
 }
 

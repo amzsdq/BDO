@@ -28,6 +28,11 @@ describe('Codex substitution evidence collector', () => {
     expect(() => parseCodexMaterialGroupHtml(conflicting, '3001')).toThrow(/conflicting Worth evidence/)
   })
 
+  it('preserves a singleton material group instead of inventing an equivalence', () => {
+    const singleton = '<table><tr><th>목</th><th>가치</th></tr><tr><td><a href="/kr/item/7021/">프리카</a></td><td>1</td></tr></table>'
+    expect(parseCodexMaterialGroupHtml(singleton, '6026')).toEqual([{ itemId: 7021, value: 1 }])
+  })
+
   it('records the exact KR material-group source URL and collection time', async () => {
     const fetchImpl = vi.fn(async (url) => ({ ok: true, status: 200, statusText: 'OK', url, text: async () => html }))
     const result = await collectCodexSubstitutionGroups(['3001'], fetchImpl, '2026-09-23T00:00:00.000Z')
