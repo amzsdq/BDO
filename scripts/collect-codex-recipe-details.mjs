@@ -73,7 +73,65 @@ function itemRow(row) {
   return { itemId, ...(name ? { name } : {}), min, max }
 }
 
+function parseQuantityRange(raw) {
+  const match = String(raw || '').trim().match(/^([0-9]+(?:\.[0-9]+)?)(?:\s*[~～-]\s*([0-9]+(?:\.[0-9]+)?))?$/)
+  if (!match) return null
+  const min = Number(match[1]), max = Number(match[2] ?? match[1])
+  return min > 0 && max >= min ? { min, max } : null
+}
+
+function itemRows(fragment) {
+  const found = []
+  const pattern = /<div\b[^>]*class=["'][^"']*\biconset_wrapper_medium\b[^"']*["'][^>]*>[\s\S]*?<a\b[^>]*href=["'][^"']*\/kr\/item\/(\d+)\/?["'][^>]*>[\s\S]*?<div\b[^>]*class=["'][^"']*\bquantity_small\b[^"']*["'][^>]*>([^<]+)<\/div>[\s\S]*?<\/a>\s*<\/div>\s*-\s*<a\b[^>]*href=["'][^"']*\/kr\/item\/(\d+)\/?["'][^>]*>([\s\S]*?)<\/a>/gi
+  for (const match of fragment.matchAll(pattern)) {
+    if (Number(match[1]) !== Number(match[3])) continue
+    const range = parseQuantityRange(decodeText(match[2]))
+    if (!range) continue
+    const name = decodeText(match[4])
+    found.push({ itemId: Number(match[1]), ...(name ? { name } : {}), ...range })
+  }
+  if (found.length) return found
+  const parsed = itemRow(fragment)
+  return parsed ? [parsed] : []
+}
+
+const SECTION_LABELS = ['제작 재료', 'Ingredients', '제작 결과', '기본 제품', 'Base product', '랜덤 제품', '추가 (무작위) 제품', 'Random product', 'Additional (random) products', '참고', 'Note']
+
+function findLabelIndex(html, label, from = 0) {
+  return html.toLocaleLowerCase('en-US').indexOf(label.toLocaleLowerCase('en-US'), from)
+}
+
+function sectionFragment(card, labels) {
+  const starts = labels.map((label) => ({ label, index: findLabelIndex(card, label) })).filter((entry) => entry.index >= 0)
+  if (!starts.length) return null
+  starts.sort((a, b) => a.index - b.index)
+  const start = starts[0].index
+  let end = card.length
+  for (const boundary of SECTION_LABELS) {
+    if (labels.some((label) => label.toLocaleLowerCase('en-US') === boundary.toLocaleLowerCase('en-US'))) continue
+    const index = findLabelIndex(card, boundary, start + starts[0].label.length)
+    if (index >= 0 && index < end) end = index
+  }
+  return card.slice(start, end)
+}
+
 function rowsAfterLabel(card, labels, { rejectOpaqueQuantities = false } = {}) {
+  const section = sectionFragment(card, labels)
+  if (section) {
+    const found = itemRows(section)
+    if (rejectOpaqueQuantities) {
+      const quantityWidgets = [...section.matchAll(/class=["'][^"']*\bquantity_small\b[^"']*["'][^>]*>/gi)].length
+      if (quantityWidgets > found.length) throw new Error('ingredient section contains a quantified row without an exact item identity')
+      for (const cell of section.matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)) {
+        const text = decodeText(cell[1])
+        if (!/\/kr\/item\/\d+\//i.test(cell[1]) && /(?:^|\s)(?:x|×)\s*\d+(?:\.\d+)?\b|^\s*\d+(?:\.\d+)?\s*[-–]\s*/i.test(text)) {
+          throw new Error('ingredient section contains a quantified row without an exact item identity')
+        }
+      }
+    }
+    if (found.length) return found
+  }
+
   const rows = logicalRows(card)
   let active = false
   const found = []
@@ -81,11 +139,11 @@ function rowsAfterLabel(card, labels, { rejectOpaqueQuantities = false } = {}) {
     const text = decodeText(row)
     const isTarget = labels.some((label) => text.includes(label))
     const isAnySection = /(?:재료|Ingredients|기본 제품|Base product|랜덤 제품|추가\s*\(무작위\)\s*제품|Random product|Additional\s*\(random\)\s*products?)/i.test(text)
-    if (isTarget) { active = true; const parsed = itemRow(row); if (parsed) found.push(parsed); continue }
+    if (isTarget) { active = true; found.push(...itemRows(row)); continue }
     if (active && isAnySection) break
     if (active) {
-      const parsed = itemRow(row)
-      if (parsed) found.push(parsed)
+      const parsed = itemRows(row)
+      if (parsed.length) found.push(...parsed)
       else if (rejectOpaqueQuantities && /(?:^|\s)(?:x|×)\s*\d+(?:\.\d+)?\b|^\s*\d+(?:\.\d+)?\s*[-–]\s*/i.test(text)) {
         throw new Error('ingredient section contains a quantified row without an exact item identity')
       }
