@@ -102,7 +102,7 @@ export function resolveOwnedMixedIngredientAllocation(
   const canonicalValue = sourcedValue(group, ingredient.itemId)
   if (canonicalValue == null) throw new Error(`missing substitution value in sourced group ${group.id}`)
   const minimumValue = Math.min(...members.map((itemId) => sourcedValue(group, itemId) ?? Number.POSITIVE_INFINITY))
-  if (canonicalValue !== minimumValue) return undefined
+  if (canonicalValue !== minimumValue && ingredient.requiredBaseWorth == null) return undefined
   const target = ingredient.requiredBaseWorth ?? ingredient.count * canonicalValue
   if (!Number.isFinite(target) || target <= 0) return undefined
 

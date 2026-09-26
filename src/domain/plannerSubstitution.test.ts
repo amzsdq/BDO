@@ -115,6 +115,24 @@ describe('planner substitution resolution', () => {
     ]))
   })
 
+  it('allows reviewed route-slot Worth to mix a non-minimum canonical member', async () => {
+    const { resolveOwnedMixedIngredientAllocation } = await import('./substitution')
+    const ingredient = { itemId: 10, count: 3, substitutionGroupId: 'reviewed-slot', requiredBaseWorth: 6 }
+    const groups = {
+      'reviewed-slot': {
+        id: 'reviewed-slot',
+        memberItemIds: [10, 11],
+        memberValueByItemId: { '10': 4, '11': 1 },
+        planningValueByItemId: { '10': 2, '11': 1 },
+        source: { provider: 'BDO Codex KR' as const, sourceId: 'fixture', verifiedAt: '2026-09-26' },
+      },
+    }
+    expect(resolveOwnedMixedIngredientAllocation(ingredient, groups, { '10': 1, '11': 4 }, 1)).toEqual(expect.arrayContaining([
+      { itemId: 10, count: 1 },
+      { itemId: 11, count: 4 },
+    ]))
+  })
+
   it('uses reviewed planning values and explicit slot Worth instead of source-reported Worth', () => {
     const semanticDataset: RecipeDataset = {
       ...dataset,

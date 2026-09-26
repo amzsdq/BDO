@@ -23,12 +23,14 @@ describe('buildActivePlanView', () => {
     const canonicalId = variant.inputs[0]!.itemId
     const substituteId = 990001
     variant.inputs[0]!.substitutionGroupId = 'weight-substitution'
+    variant.inputs[0]!.requiredBaseWorth = variant.inputs[0]!.count
     dataset.items[String(canonicalId)]!.weightLT = 1
     dataset.items[String(substituteId)] = { id: substituteId, nameKo: '대체 재료', weightLT: 0.25 }
     dataset.substitutionGroups = {
       'weight-substitution': {
         id: 'weight-substitution', memberItemIds: [canonicalId, substituteId],
-        memberValueByItemId: { [String(canonicalId)]: 1, [String(substituteId)]: 2 },
+        memberValueByItemId: { [String(canonicalId)]: 1, [String(substituteId)]: 4 },
+        planningValueByItemId: { [String(canonicalId)]: 1, [String(substituteId)]: 2 },
         source: { provider: 'BDO client', sourceId: 'fixture', verifiedAt: '2026-09-25T00:00:00Z' },
       },
     }
