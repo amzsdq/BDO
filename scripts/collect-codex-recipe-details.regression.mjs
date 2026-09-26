@@ -132,6 +132,18 @@ assert(supplemental.status === 'unavailable' && supplemental.skill === 'alchemy'
 assert(gapArtifact.recipes.filter((row) => row.catalogListed).length === 2, 'catalog accounting excludes supplemental route')
 
 
+const emptyCodexShell = `<!DOCTYPE html><html lang="ko"><head><title> - BDO Codex</title><meta property="og:title" content=" - BDO Codex"></head><body><nav>데이터 베이스</nav></body></html>`
+const emptyShellFetch = async (url) => {
+  const id = Number(url.match(/\/recipe\/(\d+)\//)[1])
+  if (id === 2) return { ok: true, status: 200, statusText: 'OK', url, text: async () => emptyCodexShell }
+  if (id === 1 || id === 3) return { ok: true, status: 200, statusText: 'OK', url, text: async () => cookingPage(id) }
+  return { ok: false, status: 404, statusText: 'Not Found', url, text: async () => '' }
+}
+const emptyShellArtifact = await collectCodexRecipeDetails(gapCatalog, { fetchImpl: emptyShellFetch, retries: 0, probeGaps: true, collectedAt: '2026-09-26T00:00:00Z' })
+assert(emptyShellArtifact.complete && emptyShellArtifact.unresolvedCount === 0, 'BDO Codex HTTP-200 empty entity shell is an expected absent supplemental id')
+assert(emptyShellArtifact.supplementalRouteCount === 0 && !emptyShellArtifact.recipes.some((row) => row.recipeId === 2), 'empty supplemental shell does not fabricate a route identity')
+
+
 const identifiedIncompleteAlchemy = `<div class="card item_info"><a href="/kr/recipe/2/"><span class="item_title">과거 연금식</span></a> 연금 스킬 레벨: 숙련 Lv. 1<table>
 <tr><th>재료</th></tr><tr><th>기본 제품:</th></tr><tr><th>랜덤 제품:</th></tr></table></div>`
 const identifiedGapFetch = async (url) => {
