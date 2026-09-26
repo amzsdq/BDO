@@ -6,7 +6,7 @@ import { collectCodexRecipeDetails } from './collect-codex-recipe-details.mjs'
 import { applyRetiredRouteStateToDetails } from './reviewed-retired-route-state.mjs'
 
 function args(argv) {
-  const out = { concurrency: 2, timeoutMs: 20000, retries: 2, requestDelayMs: 200, probeGaps: true }
+  const out = { concurrency: 6, timeoutMs: 20000, retries: 2, requestDelayMs: 0, probeGaps: true }
   for (let i = 0; i < argv.length; i += 2) {
     const key = argv[i], value = argv[i + 1]
     if (!value) throw new Error(`missing value for ${key}`)
