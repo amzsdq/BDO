@@ -36,7 +36,7 @@ export const SUBSTITUTION_BINDING_POLICY = Object.freeze({
       ]),
       expectedMemberWorthByItemId: Object.freeze({ '7001': 1, '7002': 2, '7003': 2, '7004': 2, '7005': 2, '7006': 6, '7007': 6, '7008': 6, '7009': 6, '7010': 6, '7011': 36, '7012': 36, '7013': 36, '7014': 36, '7015': 36 }),
       planningValueByItemId: Object.freeze({ '7001': 1, '7002': 1, '7003': 1, '7004': 1, '7005': 1, '7006': 3, '7007': 3, '7008': 3, '7009': 3, '7010': 3, '7011': 18, '7012': 18, '7013': 18, '7014': 18, '7015': 18 }),
-      requiredBaseWorthByRouteSlot: Object.freeze({ '549|7001': 1 }), sourceRecipeIds: Object.freeze([549]),
+      requiredBaseWorthByRouteSlot: Object.freeze({ '110|7005': 1, '549|7001': 1 }), sourceRecipeIds: Object.freeze([110, 549]),
     }),
     'codex:6002': Object.freeze({
       semantics: 'generic-flour-worth', reviewedAt: '2026-09-26',
@@ -46,7 +46,7 @@ export const SUBSTITUTION_BINDING_POLICY = Object.freeze({
       ]),
       expectedMemberWorthByItemId: Object.freeze({ '7101': 1, '7102': 2, '7103': 2, '7104': 2, '7105': 2 }),
       planningValueByItemId: Object.freeze({ '7101': 1, '7102': 1, '7103': 1, '7104': 1, '7105': 1 }),
-      requiredBaseWorthByRouteSlot: Object.freeze({ '548|7101': 1 }), sourceRecipeIds: Object.freeze([548]),
+      requiredBaseWorthByRouteSlot: Object.freeze({ '109|7105': 1, '548|7101': 1 }), sourceRecipeIds: Object.freeze([109, 548]),
     }),
     'codex:6003': Object.freeze({
       semantics: 'generic-dough-worth', reviewedAt: '2026-09-26',
@@ -66,7 +66,7 @@ export const SUBSTITUTION_BINDING_POLICY = Object.freeze({
       ]),
       expectedMemberWorthByItemId: Object.freeze({ '7304': 2, '7307': 2, '7313': 1, '7314': 2, '7315': 2, '7316': 2, '7317': 2, '7321': 12, '7322': 72, '7329': 12, '7341': 72 }),
       planningValueByItemId: Object.freeze({ '7304': 1, '7307': 1, '7313': 1, '7314': 1, '7315': 1, '7316': 1, '7317': 1, '7321': 6, '7322': 36, '7329': 6, '7341': 36 }),
-      requiredBaseWorthByRouteSlot: Object.freeze({ '548|7313': 1, '549|7313': 1 }), sourceRecipeIds: Object.freeze([548, 549]),
+      requiredBaseWorthByRouteSlot: Object.freeze({ '109|7313': 1, '110|7313': 1, '548|7313': 1, '549|7313': 1 }), sourceRecipeIds: Object.freeze([109, 110, 548, 549]),
     }),
     'codex:6009': Object.freeze({
       semantics: 'generic-vegetable-worth',
