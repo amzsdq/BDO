@@ -1,5 +1,17 @@
 #!/usr/bin/env node
 import fs from 'node:fs'
+
+const REVIEWED_GENERIC_RECIPE_GROUP_IDS = new Set([
+  // Cooking: source-documented raw categories (grain, flour/dough, crops, meats, fish/seafood).
+  'codex:6001', 'codex:6002', 'codex:6003', 'codex:6004', 'codex:6005', 'codex:6006', 'codex:6007', 'codex:6008', 'codex:6009',
+  'codex:5101', 'codex:5701', 'codex:6301', 'codex:6302', 'codex:6303', 'codex:7357',
+  // Alchemy: source-documented herb/mushroom quality ladders and interchangeable blood families.
+  'codex:3001', 'codex:3002', 'codex:3003', 'codex:3004', 'codex:3005', 'codex:3006',
+  'codex:3007', 'codex:3008', 'codex:3009', 'codex:3010', 'codex:3011', 'codex:3012', 'codex:3013', 'codex:3014',
+  'codex:3015', 'codex:3016', 'codex:3017', 'codex:3018', 'codex:3019', 'codex:3020',
+  'codex:801', 'codex:802', 'codex:803', 'codex:804', 'codex:805',
+])
+
 export function applySubstitutionEvidence(dataset, evidence) {
   if (!evidence || evidence.source !== 'BDO Codex KR' || !Array.isArray(evidence.groups)) throw new Error('invalid substitution evidence envelope')
   const collectedAt = evidence.collectedAt
@@ -32,6 +44,7 @@ export function applySubstitutionEvidence(dataset, evidence) {
   for (const recipe of Object.values(next.recipes || {})) for (const variant of recipe.variants || []) for (const input of variant.inputs || []) {
     if (removedCodexIds.has(input.substitutionGroupId) || String(input.substitutionGroupId || '').startsWith('codex:')) delete input.substitutionGroupId
     const matches = groups.filter((group) => {
+      if (group.source?.provider === 'BDO Codex KR' && !REVIEWED_GENERIC_RECIPE_GROUP_IDS.has(group.id)) return false
       if (group.memberItemIds.length < 2 || !group.memberItemIds.includes(input.itemId)) return false
       const canonicalWorth = Number(group.memberValueByItemId?.[String(input.itemId)])
       const minimumWorth = Math.min(...group.memberItemIds.map((itemId) => Number(group.memberValueByItemId?.[String(itemId)])))

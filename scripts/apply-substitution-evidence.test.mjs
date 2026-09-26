@@ -6,6 +6,18 @@ describe('applySubstitutionEvidence', () => {
   it('installs source-backed membership/Worth and binds matching canonical recipe inputs', () => { const result = applySubstitutionEvidence(dataset, evidence); expect(result.substitutionGroups['codex:3001'].memberItemIds).toEqual([1, 2]); expect(result.substitutionGroups['codex:3001'].memberValueByItemId).toEqual({ '1': 1, '2': 6 }); expect(result.recipes['cooking:3'].variants[0].inputs[0].substitutionGroupId).toBe('codex:3001'); expect(dataset.recipes['cooking:3'].variants[0].inputs[0].substitutionGroupId).toBeUndefined() })
   it('replaces the prior Codex snapshot instead of retaining stale groups/bindings', () => { const stale = structuredClone(dataset); stale.substitutionGroups = { 'codex:9999': { id: 'codex:9999', memberItemIds: [1, 2], memberValueByItemId: { '1': 1, '2': 2 }, source: { provider: 'BDO Codex KR', sourceId: '9999', sourceUrl: 'https://bdocodex.com/kr/materialgroup/9999/', verifiedAt: '2026-01-01T00:00:00Z' } } }; stale.recipes['cooking:3'].variants[0].inputs[0].substitutionGroupId = 'codex:9999'; const result = applySubstitutionEvidence(stale, evidence); expect(result.substitutionGroups['codex:9999']).toBeUndefined(); expect(result.recipes['cooking:3'].variants[0].inputs[0].substitutionGroupId).toBe('codex:3001') })
   it('leaves higher-Worth exact inputs unbound', () => { const exact = structuredClone(dataset); exact.recipes['cooking:3'].variants[0].inputs[0] = { itemId: 2, count: 2 }; const result = applySubstitutionEvidence(exact, evidence); expect(result.recipes['cooking:3'].variants[0].inputs[0].substitutionGroupId).toBeUndefined() })
+  it('does not infer route substitution from unrelated Codex material groups', () => {
+    const crystalGroup = { id: 'codex:3514', sourceId: '3514', sourceUrl: 'https://bdocodex.com/kr/materialgroup/3514/', members: [{ itemId: 1, value: 1 }, { itemId: 2, value: 2 }] }
+    const result = applySubstitutionEvidence(dataset, { ...evidence, groups: [crystalGroup] })
+    expect(result.substitutionGroups['codex:3514'].memberItemIds).toEqual([1, 2])
+    expect(result.recipes['cooking:3'].variants[0].inputs[0].substitutionGroupId).toBeUndefined()
+  })
+  it('does not infer rare-proc dish replacement from group membership alone', () => {
+    const dishGroup = { id: 'codex:6581', sourceId: '6581', sourceUrl: 'https://bdocodex.com/kr/materialgroup/6581/', members: [{ itemId: 1, value: 1 }, { itemId: 2, value: 2 }] }
+    const result = applySubstitutionEvidence(dataset, { ...evidence, groups: [dishGroup] })
+    expect(result.substitutionGroups['codex:6581'].memberItemIds).toEqual([1, 2])
+    expect(result.recipes['cooking:3'].variants[0].inputs[0].substitutionGroupId).toBeUndefined()
+  })
   it('preserves singleton source groups without inventing substitution semantics', () => { const singleton = { id: 'codex:6026', sourceId: '6026', sourceUrl: 'https://bdocodex.com/kr/materialgroup/6026/', members: [{ itemId: 1, value: 1 }] }; const result = applySubstitutionEvidence(dataset, { ...evidence, groups: [singleton] }); expect(result.substitutionGroups['codex:6026'].memberItemIds).toEqual([1]); expect(result.recipes['cooking:3'].variants[0].inputs[0].substitutionGroupId).toBeUndefined() })
   it('rejects empty material groups', () => { expect(() => applySubstitutionEvidence(dataset, { ...evidence, groups: [{ ...evidence.groups[0], members: [] }] })).toThrow(/invalid substitution group/) })
   it('rejects partial or non-positive Worth evidence', () => { expect(() => applySubstitutionEvidence(dataset, { ...evidence, groups: [{ ...evidence.groups[0], members: [{ itemId: 1, value: 0 }, { itemId: 2, value: 6 }] }] })).toThrow(/invalid Worth/) })
