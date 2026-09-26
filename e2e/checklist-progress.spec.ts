@@ -13,7 +13,7 @@ test('checklist progress is visible and updates with preparation state', async (
   const progress = page.locator('.checklist-progress')
   await expect(progress).toContainText('0 / 2 준비 완료')
   await expect(progress).toContainText('0%')
-  await page.locator('.material-row input[type="checkbox"]').check()
+  await page.locator('.material-row input[type="checkbox"]').first().check()
   const complete = page.locator('.checklist-progress')
   await expect(complete).toContainText('1 / 2 준비 완료')
   await expect(complete).toContainText('50%')
