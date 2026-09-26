@@ -32,7 +32,7 @@ npm run build
 
 ## production dataset 파이프라인
 
-자동 획득 스크립트 `scripts/bootstrap-production-data.ps1`는 현재 검토된 extractor revision이 요구하는 Go 1.26 이상과 Node/npm을 필요로 합니다. `--source-revision`에는 임의 tag나 다른 commit이 아니라 저장소의 `production-source-contract.mjs`에 명시된 reviewed exact revision만 사용할 수 있습니다. Client fingerprint는 임의 실행 파일 해시가 아니라 extractor와 동일한 `Paz/pad00000.meta` + 존재할 경우 `ads_version` byte stream의 SHA-256입니다.
+자동 획득 스크립트 `scripts/bootstrap-production-data.ps1`는 현재 검토된 extractor revision이 요구하는 Go 1.26 이상과 Node/npm을 필요로 합니다. `--source-revision`에는 임의 tag나 다른 commit이 아니라 저장소의 `production-source-contract.mjs`에 명시된 reviewed exact revision만 사용할 수 있습니다. Client fingerprint는 임의 실행 파일 해시가 아니라 extractor와 동일한 `Paz/pad00000.meta` + 존재할 경우 `ads_version` byte stream의 SHA-256입니다. Direct bootstrap 완료 후에는 `node scripts/seal-snapshot-icon-provenance.mjs <snapshot-dir>`를 실행해 같은 snapshot의 `asset_redirects.json` 기록 해시를 재검증하고 전체 `icons/` tree SHA-256을 provenance에 결속해야 합니다. 이 seal이 없는 client-fingerprinted snapshot의 icon install은 fail closed 합니다.
 
 라이브 클라이언트 추출물 `items.json`, `recipes.json`, `mastery.json`, 그리고 `bdo-data-extractor icons`가 `<extractor-data>/asset_redirects.json`에 기록한 `urn::item:<id> -> icons/<shared-asset>.webp` redirect 및 그 redirect가 가리키는 decoded WebP 자산을 준비합니다. runtime이 실제로 읽는 dataset과 브라우저가 실제로 제공하는 icon asset을 함께 설치합니다. Codex reconciliation 전에 Cooking/Alchemy 카탈로그 전체를 독립적으로 수집하고 completeness가 증명된 `<codex-catalog.json>` artifact를 보존해야 합니다. 부분 manifest끼리 서로 일치하는 것만으로는 release gate를 통과할 수 없습니다.
 
