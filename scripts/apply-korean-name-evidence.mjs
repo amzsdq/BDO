@@ -1,7 +1,7 @@
 #!/usr/bin/env node
-import fs from 'node:fs'
+import fs from 'node:fs'\nimport crypto from 'node:crypto'
 
-export function applyKoreanNameEvidence(dataset, evidence) {
+export function applyKoreanNameEvidence(dataset, evidence, evidenceSha256) {
   if (!evidence || evidence.source !== 'BDO Codex KR' || !Array.isArray(evidence.items)) throw new Error('invalid Korean-name evidence envelope')
   if (!evidence.collectedAt || Number.isNaN(Date.parse(evidence.collectedAt))) throw new Error('Korean-name evidence collectedAt is invalid')
   const next = structuredClone(dataset)
@@ -19,7 +19,7 @@ export function applyKoreanNameEvidence(dataset, evidence) {
   }
   next.metadata ||= {}
   next.metadata.sources = [...new Set([...(next.metadata.sources || []), 'BDO Codex KR item-name evidence'])]
-  next.metadata.koreanNameEvidence = { provider: 'BDO Codex KR', collectedAt: evidence.collectedAt, count: seen.size }
+  next.metadata.koreanNameEvidence = { provider: 'BDO Codex KR', collectedAt: evidence.collectedAt, count: seen.size, ...(evidenceSha256 ? { sha256: evidenceSha256 } : {}) }
   next.metadata.koreanNamesVerified = Object.values(next.items || {}).every((item) => item?.nameKo && !/^아이템\s*#\d+$/.test(item.nameKo))
   delete next.metadata.fingerprint
   return next

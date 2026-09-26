@@ -1,9 +1,9 @@
 #!/usr/bin/env node
-import fs from 'node:fs'
+import fs from 'node:fs'\nimport crypto from 'node:crypto'
 import { applySubstitutionEvidence } from './apply-substitution-evidence.mjs'
 import { pruneItemsToPlannerScope } from './planner-item-scope.mjs'
 
-export function finalizePlannerScope(dataset, substitutionEvidence) {
+export function finalizePlannerScope(dataset, substitutionEvidence, substitutionEvidenceSha256) {
   let result = structuredClone(dataset)
   const before = Object.keys(result.items || {}).length
   if (substitutionEvidence) result = applySubstitutionEvidence(result, substitutionEvidence)
@@ -13,7 +13,7 @@ export function finalizePlannerScope(dataset, substitutionEvidence) {
   result.metadata.itemScope = 'planner-referenced-cooking-alchemy-v2'
   result.metadata.importedItemCount = before
   result.metadata.scopedItemCount = Object.keys(result.items).length
-  result.metadata.substitutionEvidenceApplied = Boolean(substitutionEvidence)
+  result.metadata.substitutionEvidenceApplied = Boolean(substitutionEvidence)\n  if (substitutionEvidenceSha256) result.metadata.substitutionEvidenceSha256 = substitutionEvidenceSha256
   return result
 }
 if (process.argv[1]?.endsWith('finalize-planner-scope.mjs')) {
