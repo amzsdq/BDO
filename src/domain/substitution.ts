@@ -4,6 +4,7 @@ export interface IngredientChoice {
   itemId: ItemId
   count: number
   substitutionGroupId?: string
+  requiredBaseWorth?: number
 }
 
 export interface ResolveIngredientChoiceOptions {
