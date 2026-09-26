@@ -14,6 +14,12 @@ const evidence = {
     id: 'codex:6003', sourceId: '6003', sourceUrl: 'https://bdocodex.com/kr/materialgroup/6003/',
     members: [[7201,1],[7203,4],[7204,4],[7202,4],[7205,4]].map(([itemId,value]) => ({ itemId, value })),
   }, {
+    id: 'codex:6004', sourceId: '6004', sourceUrl: 'https://bdocodex.com/kr/materialgroup/6004/',
+    members: [[7301,1],[7323,6],[7335,36]].map(([itemId,value]) => ({ itemId, value })),
+  }, {
+    id: 'codex:6006', sourceId: '6006', sourceUrl: 'https://bdocodex.com/kr/materialgroup/6006/',
+    members: [[7303,1],[7325,6],[7337,36]].map(([itemId,value]) => ({ itemId, value })),
+  }, {
     id: 'codex:6007', sourceId: '6007', sourceUrl: 'https://bdocodex.com/kr/materialgroup/6007/',
     members: [[7313,1],[7304,2],[7316,2],[7315,2],[7314,2],[7317,2],[7307,2],[7321,12],[7329,12],[7322,72],[7341,72]].map(([itemId,value]) => ({ itemId, value })),
   }, {
@@ -52,7 +58,7 @@ function dataset(sourceRecipeId, itemId = 7318) {
       '7311': { id: 7311 }, '7312': { id: 7312, nameKo: '파프리카' }, '7306': { id: 7306 },
       '7328': { id: 7328 }, '7331': { id: 7331, nameKo: '고급 양배추' }, '7333': { id: 7333 }, '7334': { id: 7334 },
       '7340': { id: 7340 }, '7343': { id: 7343, nameKo: '특상품 양배추' }, '7345': { id: 7345 }, '7346': { id: 7346 },
-      ...Object.fromEntries([7001,7002,7003,7004,7005,7006,7007,7008,7009,7010,7011,7012,7013,7014,7015,7101,7102,7103,7104,7105,7201,7202,7203,7204,7205,7304,7307,7313,7314,7315,7316,7317,7321,7322,7329,7341].map((id) => [String(id), { id }])),
+      ...Object.fromEntries([7001,7002,7003,7004,7005,7006,7007,7008,7009,7010,7011,7012,7013,7014,7015,7101,7102,7103,7104,7105,7201,7202,7203,7204,7205,7301,7303,7304,7307,7313,7314,7315,7316,7317,7321,7322,7323,7325,7329,7335,7337,7341].map((id) => [String(id), { id }])),
       '5408': { id: 5408 }, '5427': { id: 5427 }, '5451': { id: 5451 }, '5471': { id: 5471 },
       '6204': { id: 6204 }, '6214': { id: 6214 }, '6216': { id: 6216 }, '6218': { id: 6218 },
       '900001': { id: 900001, nameKo: '결과물' },
@@ -107,6 +113,17 @@ describe('reviewed substitution route policy', () => {
     [549, 7313, 'codex:6007', 1, 7304, 1],
   ])('binds current Cooking Guide route %s with reviewed planning semantics', (sourceRecipeId, itemId, groupId, requiredBaseWorth, semanticItemId, semanticValue) => {
     const result = applySubstitutionEvidence(dataset(sourceRecipeId, itemId), evidence)
+    const input = result.recipes.r.variants[0].inputs[0]
+    expect(input.substitutionGroupId).toBe(groupId)
+    expect(input.requiredBaseWorth).toBe(requiredBaseWorth)
+    expect(result.substitutionGroups[groupId].planningValueByItemId[String(semanticItemId)]).toBe(semanticValue)
+  })
+
+  it.each([
+    [7301, 'codex:6004', 2, 7323, 3],
+    [7303, 'codex:6006', 1, 7325, 3],
+  ])('binds current Grilled Sausage route 166 seasoning slot %s with reviewed planning semantics', (itemId, groupId, requiredBaseWorth, semanticItemId, semanticValue) => {
+    const result = applySubstitutionEvidence(dataset(166, itemId), evidence)
     const input = result.recipes.r.variants[0].inputs[0]
     expect(input.substitutionGroupId).toBe(groupId)
     expect(input.requiredBaseWorth).toBe(requiredBaseWorth)
