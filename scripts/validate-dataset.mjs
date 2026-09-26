@@ -25,7 +25,7 @@ for (const [itemKey, item] of Object.entries(items)) {
 for (const [groupId, group] of Object.entries(substitutionGroups)) {
   if (!group || typeof group !== 'object') { errors.push(`${groupId}: invalid substitution group`); continue }
   if (group.id !== groupId) errors.push(`${groupId}: substitution group key/id mismatch (${group.id})`)
-  if (!Array.isArray(group.memberItemIds) || group.memberItemIds.length < 2) errors.push(`${groupId}: substitution group requires at least two members`)
+  if (!Array.isArray(group.memberItemIds) || group.memberItemIds.length < 1) errors.push(`${groupId}: substitution group requires at least one source-backed member`)
   const seenMembers = new Set()
   for (const itemId of group.memberItemIds || []) {
     if (!Number.isInteger(itemId) || itemId <= 0) errors.push(`${groupId}: invalid member item id ${itemId}`)
