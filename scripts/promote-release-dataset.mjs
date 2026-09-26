@@ -4,6 +4,7 @@ import crypto from 'node:crypto'
 import { reconciliationDatasetFingerprint } from './reconciliation-fingerprint.mjs'
 import { validateCatalogEntryEvidence } from './catalog-release-evidence.mjs'
 import { assertNoRetiredCraftingRoutes } from './reviewed-retired-route-state.mjs'
+import { assertClientFingerprint, assertReviewedExtractorRevision } from './production-source-contract.mjs'
 
 function fail(message) { console.error(`promotion blocked: ${message}`); process.exit(1) }
 function fingerprint(value) { return crypto.createHash('sha256').update(JSON.stringify(value)).digest('hex') }
@@ -47,8 +48,10 @@ const items = dataset.items || {}, recipes = dataset.recipes || {}
 try { assertNoRetiredCraftingRoutes(dataset, codexManifest) } catch (error) { fail(error instanceof Error ? error.message : String(error)) }
 if (dataset.metadata?.supportedRegion !== 'KR') fail('supportedRegion must be KR')
 if (!Array.isArray(dataset.metadata?.sources) || dataset.metadata.sources.length < 2) fail('source provenance incomplete')
-if (!hasRecordedSourceRevision(dataset.metadata?.sourceRevision)) fail('sourceRevision must identify the canonical client snapshot; unrecorded provenance cannot be promoted')
-if (!String(dataset.metadata?.clientFingerprint || '').trim()) fail('clientFingerprint must identify the installed client snapshot')
+try {
+  assertReviewedExtractorRevision(dataset.metadata?.sourceRevision)
+  assertClientFingerprint(dataset.metadata?.clientFingerprint)
+} catch (error) { fail(error instanceof Error ? error.message : String(error)) }
 if (!dataset.metadata?.generatedAt) fail('generatedAt missing')
 if (reconciliation.status !== 'ZERO_UNEXPLAINED_DIFF' || (reconciliation.unresolved || []).length) fail('reconciliation is not ZERO_UNEXPLAINED_DIFF')
 const datasetRecipeCount = Object.keys(recipes).length
