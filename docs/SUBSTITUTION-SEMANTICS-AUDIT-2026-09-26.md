@@ -48,3 +48,14 @@ References:
 - https://bdocodex.com/kr/materialgroup/6009/
 - https://bdocodex.com/kr/materialgroup/5101/
 - https://bdocodex.com/kr/recipe/112/
+
+
+## Turn 93 freshness correction
+
+The BDFoundry all-recipes page is useful as an independent route-rendering reference, but the page itself reports **Last Updated: 28 February 2021**. It must not be labelled a current source merely because it was fetched in 2026. The reviewed policy now fingerprints that source date explicitly.
+
+Current cross-checks strengthen the need for fail-closed semantics outside reviewed group 6009. BDOlytics pages crawled in September 2026 still render live cooking graphs such as Pickled Vegetables with Pumpkin x8, Vinegar x4, Leavening Agent x2 and Sugar x2, while its rare-proc planner represents Pepper/Onion substitutions differently from both the current BDFoundry guide ratios and Codex Worth. That disagreement is evidence **against** globally promoting Codex Worth into recipe semantics.
+
+For group 6009, the policy now fingerprints the exact 13-member itemId-to-Worth map from the production Codex evidence. apply-substitution-evidence must reject reviewed group 6009 when membership or Worth drifts from that reviewed map; a matching policy hash alone is not enough to bless changed source evidence.
+
+Next source-expansion work should prefer route-level current evidence (or installed-client evidence when available) and retain the 2021 all-recipes page only as corroboration. Do not expand groups 6001..6008/5101 from Codex membership alone.
