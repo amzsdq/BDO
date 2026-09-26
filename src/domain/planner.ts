@@ -93,7 +93,8 @@ export function buildPlan(dataset: RecipeDataset, targets: readonly PlanTarget[]
 
       for (const input of variant.inputs) {
         const selectedSubstitute = input.substitutionGroupId ? options.selectedSubstitutionItemIdByGroupId?.[input.substitutionGroupId] : undefined
-        const resolvedInput = resolveIngredientChoice(input, dataset.substitutionGroups ?? {}, { selectedItemId: selectedSubstitute, ownedByItemId: options.haveByItemId, requiredMultiplier: attempts })
+        const remainingOwned = options.haveByItemId ? Object.fromEntries(Object.entries(options.haveByItemId).map(([id, have]) => [id, Math.max(0, nonNegativeFinite(have, `inventory item ${id}`) - (materialMap.get(Number(id))?.required ?? 0))])) : undefined
+        const resolvedInput = resolveIngredientChoice(input, dataset.substitutionGroups ?? {}, { selectedItemId: selectedSubstitute, ownedByItemId: remainingOwned, requiredMultiplier: attempts })
         if (resolvedInput.usedSubstitution && input.substitutionGroupId) warnings.push(`대체품목 그룹 ${input.substitutionGroupId}: item ${input.itemId} 대신 item ${resolvedInput.itemId}을 사용합니다.`)
         const inputItemId = resolvedInput.itemId
         const total = positive(resolvedInput.count, 'ingredient count') * attempts

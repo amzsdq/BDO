@@ -47,6 +47,17 @@ describe('planner substitution resolution', () => {
     })
     expect(fullBatch.materials[0]?.itemId).toBe(10)
     expect(fullBatch.materials[0]?.missing).toBe(0)
+    const sharedInventory = buildPlan(dataset, [
+      { recipeId: 'r1', mode: 'attempts', amount: 2 },
+      { recipeId: 'r1', mode: 'attempts', amount: 2 },
+    ], {
+      craftIntermediateItemIds: new Set(),
+      haveByItemId: { '10': 100, '11': 7 },
+    })
+    expect(sharedInventory.materials).toEqual(expect.arrayContaining([
+      expect.objectContaining({ itemId: 11, required: 6, missing: 0 }),
+      expect.objectContaining({ itemId: 10, required: 6, missing: 0 }),
+    ]))
     expect(() => buildPlan(dataset, [{ recipeId: 'r1', mode: 'attempts', amount: 1 }], {
       craftIntermediateItemIds: new Set(),
       selectedSubstitutionItemIdByGroupId: { 'codex:6502': 99 },
