@@ -58,6 +58,26 @@ export const SUBSTITUTION_BINDING_POLICY = Object.freeze({
       planningValueByItemId: Object.freeze({ '7201': 1, '7202': 2, '7203': 2, '7204': 2, '7205': 2 }),
       requiredBaseWorthByRouteSlot: Object.freeze({ '129|7205': 6 }), sourceRecipeIds: Object.freeze([129]),
     }),
+    'codex:6004': Object.freeze({
+      semantics: 'generic-pepper-worth', reviewedAt: '2026-09-26',
+      sourceEvidence: Object.freeze([
+        Object.freeze({ role: 'current-substitution-semantics-and-route', url: 'https://www.blackdesertfoundry.com/cooking-guide/', sourceUpdatedAt: '2026-01-30', observedAt: '2026-09-26' }),
+        Object.freeze({ role: 'current-group-membership-worth', url: 'https://bdocodex.com/kr/materialgroup/6004/', observedAt: '2026-09-26' }),
+      ]),
+      expectedMemberWorthByItemId: Object.freeze({ '7301': 1, '7323': 6, '7335': 36 }),
+      planningValueByItemId: Object.freeze({ '7301': 1, '7323': 3, '7335': 18 }),
+      requiredBaseWorthByRouteSlot: Object.freeze({ '166|7301': 2 }), sourceRecipeIds: Object.freeze([166]),
+    }),
+    'codex:6006': Object.freeze({
+      semantics: 'generic-onion-worth', reviewedAt: '2026-09-26',
+      sourceEvidence: Object.freeze([
+        Object.freeze({ role: 'current-substitution-semantics-and-route', url: 'https://www.blackdesertfoundry.com/cooking-guide/', sourceUpdatedAt: '2026-01-30', observedAt: '2026-09-26' }),
+        Object.freeze({ role: 'current-group-membership-worth', url: 'https://bdocodex.com/kr/materialgroup/6006/', observedAt: '2026-09-26' }),
+      ]),
+      expectedMemberWorthByItemId: Object.freeze({ '7303': 1, '7325': 6, '7337': 36 }),
+      planningValueByItemId: Object.freeze({ '7303': 1, '7325': 3, '7337': 18 }),
+      requiredBaseWorthByRouteSlot: Object.freeze({ '166|7303': 1 }), sourceRecipeIds: Object.freeze([166]),
+    }),
     'codex:6007': Object.freeze({
       semantics: 'generic-fruit-worth', reviewedAt: '2026-09-26',
       sourceEvidence: Object.freeze([
