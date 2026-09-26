@@ -13,7 +13,7 @@ Do not mix snapshots. The reviewed extractor revision is pinned in `scripts/boot
 
 ## Evidence-first processing order
 
-1. Extract client data/icons and provenance.
+1. Extract client data/icons and provenance. For direct bootstrap snapshots, immediately run `node scripts/seal-snapshot-icon-provenance.mjs <snapshot-dir>` before downstream prepare or icon installation.
 2. Broad-import all Cooking/Alchemy routes with `data:import:broad` into `client-broad.json`. Do not scope-prune yet.
 3. Capture independently complete KR Codex Cooking/Alchemy catalogs.
 4. Capture schema-v2 details with bounded catalog-gap discovery and reviewed route-state evidence. Current reviewed evidence retires historical spirit-stone crafting routes 342–346 per the official KR PC 2026-09-02 update; stale Codex detail pages must not restore them.
@@ -31,6 +31,7 @@ The exact Codex detail artifact bytes are SHA-256 bound through reconciliation a
 ## Core commands
 
 ```text
+node scripts/seal-snapshot-icon-provenance.mjs <bootstrap-snapshot-dir>
 node scripts/prepare-client-broad-from-snapshot.mjs <bootstrap-snapshot-dir> <client-broad.json>
 # Equivalent manual primitive when starting from separately verified raw files:
 npm run data:import:broad -- --items <items.json> --recipes <recipes.json> --out <client-broad.json> --source-revision <exact-extractor-sha> --client-fingerprint <sha256:...>
