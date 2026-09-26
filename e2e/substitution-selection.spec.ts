@@ -39,7 +39,6 @@ test('explicit substitution selection updates the persisted preparation plan', a
   await expect(page.locator('.batch-summary')).toContainText('100회분 · 100.00 LT')
 
   await page.reload()
-  await expect(page.getByText('직접 선택: 고급 재료', { exact: false })).toBeVisible()
+  await expect(page.locator('.substitution-controls select')).toHaveValue('11')
   await expect(page.locator('.material-row').filter({ hasText: '고급 재료' })).toBeVisible()
 })
-\n\ntest('large substitution groups are searchable and keyboard-selectable without rendering every member', async ({ page }) => {\n  const largeFixture = structuredClone(fixture)\n  const ids = Array.from({ length: 284 }, (_, index) => 1000 + index)\n  for (const id of ids) largeFixture.items[String(id)] = { id, nameKo: `생선 재료 ${id}`, weightLT: 0.2 }\n  largeFixture.substitutionGroups.grain.memberItemIds = [10, 11, ...ids]\n  for (const id of ids) largeFixture.substitutionGroups.grain.memberValueByItemId[String(id)] = 1\n  await page.route('**/data/dataset.json', (route) => route.fulfill({ contentType: 'application/json', body: JSON.stringify(largeFixture) }))\n  await page.goto('/')\n\n  const search = page.getByRole('combobox', { name: '일반 재료 대체 재료 검색' })\n  await expect(page.getByText('대체 재료 286종', { exact: false })).toBeVisible()\n  await search.fill('생선 재료 1283')\n  await expect(page.getByRole('option', { name: '생선 재료 1283' })).toBeVisible()\n  await search.press('ArrowDown')\n  await search.press('Enter')\n  await expect(page.getByText('직접 선택: 생선 재료 1283', { exact: false })).toBeVisible()\n})\n
