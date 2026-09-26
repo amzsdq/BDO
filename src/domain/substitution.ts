@@ -20,6 +20,18 @@ function sourcedValue(group: IngredientSubstitutionGroup, itemId: ItemId): numbe
   return value
 }
 
+function eligibleMembers(group: IngredientSubstitutionGroup, canonicalItemId: ItemId): ItemId[] {
+  const members = [...new Set(group.memberItemIds)]
+  if (!group.memberValueByItemId) return members
+  const canonicalValue = sourcedValue(group, canonicalItemId)
+  if (canonicalValue == null) throw new Error(`missing substitution value in sourced group ${group.id}`)
+  return members.filter((itemId) => {
+    const value = sourcedValue(group, itemId)
+    if (value == null) throw new Error(`missing substitution value in sourced group ${group.id}`)
+    return value >= canonicalValue
+  })
+}
+
 function requiredCount(group: IngredientSubstitutionGroup, canonicalItemId: ItemId, selectedItemId: ItemId, canonicalCount: number): number {
   if (!group.memberValueByItemId) return canonicalCount
   const canonicalValue = sourcedValue(group, canonicalItemId)
@@ -45,15 +57,18 @@ export function resolveIngredientChoice(
 
   const group = groups[ingredient.substitutionGroupId]
   if (!group) throw new Error(`unknown substitution group: ${ingredient.substitutionGroupId}`)
-  const members = [...new Set(group.memberItemIds)]
-  if (!members.includes(ingredient.itemId)) {
+  const allMembers = [...new Set(group.memberItemIds)]
+  if (!allMembers.includes(ingredient.itemId)) {
     throw new Error(`canonical item ${ingredient.itemId} is not a member of substitution group ${group.id}`)
   }
 
+  const members = eligibleMembers(group, ingredient.itemId)
+
   if (options.selectedItemId != null) {
-    if (!members.includes(options.selectedItemId)) {
+    if (!allMembers.includes(options.selectedItemId)) {
       throw new Error(`item ${options.selectedItemId} is not a member of substitution group ${group.id}`)
     }
+    if (!members.includes(options.selectedItemId)) throw new Error(`item ${options.selectedItemId} has insufficient Worth to replace canonical item ${ingredient.itemId} in group ${group.id}`)
     return {
       itemId: options.selectedItemId,
       count: requiredCount(group, ingredient.itemId, options.selectedItemId, ingredient.count),
@@ -93,8 +108,9 @@ export function resolveOwnedMixedIngredientAllocation(
   if (!ingredient.substitutionGroupId || !Number.isInteger(attempts) || attempts <= 0) return undefined
   const group = groups[ingredient.substitutionGroupId]
   if (!group?.memberValueByItemId) return undefined
-  const members = [...new Set(group.memberItemIds)]
-  if (!members.includes(ingredient.itemId)) throw new Error(`canonical item ${ingredient.itemId} is not a member of substitution group ${group.id}`)
+  const allMembers = [...new Set(group.memberItemIds)]
+  if (!allMembers.includes(ingredient.itemId)) throw new Error(`canonical item ${ingredient.itemId} is not a member of substitution group ${group.id}`)
+  const members = eligibleMembers(group, ingredient.itemId)
   const canonicalValue = sourcedValue(group, ingredient.itemId)
   if (canonicalValue == null) throw new Error(`missing substitution value in sourced group ${group.id}`)
   const target = ingredient.count * canonicalValue
