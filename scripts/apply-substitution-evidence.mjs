@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import fs from 'node:fs'
 
-const REVIEWED_GENERIC_RECIPE_GROUP_IDS = new Set(['codex:6009', 'codex:801', 'codex:802', 'codex:803', 'codex:804', 'codex:805'])
+const REVIEWED_GENERIC_RECIPE_GROUP_IDS = new Set(['codex:6009'])
 export function applySubstitutionEvidence(dataset, evidence) {
   if (!evidence || evidence.source !== 'BDO Codex KR' || !Array.isArray(evidence.groups)) throw new Error('invalid substitution evidence envelope')
   const collectedAt = evidence.collectedAt
