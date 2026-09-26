@@ -10,17 +10,24 @@ export interface ActivePlanView extends BuiltActivePlan { batch?: BatchCapacity;
 
 function resolveBatchVariant(dataset: RecipeDataset, variant: RecipeVariant, inventory: Readonly<Record<string, number>>, attempts: number, options: Partial<ActivePlanOptions>): RecipeVariant {
   const countByItemId = new Map<number, number>()
+  const consumedByItemId = new Map<number, number>()
   for (const input of variant.inputs) {
     const selectedItemId = input.substitutionGroupId ? options.selectedSubstitutionItemIdByGroupId?.[input.substitutionGroupId] : undefined
+    const substitutionMembers = input.substitutionGroupId ? dataset.substitutionGroups?.[input.substitutionGroupId]?.memberItemIds ?? [] : []
+    const remainingInventory = Object.fromEntries(substitutionMembers.map((itemId) => [String(itemId), Math.max(0, (Number(inventory[String(itemId)]) || 0) - (consumedByItemId.get(itemId) ?? 0))]))
     const mixed = !selectedItemId && input.substitutionGroupId
-      ? resolveOwnedMixedIngredientAllocation(input, dataset.substitutionGroups ?? {}, inventory, attempts)
+      ? resolveOwnedMixedIngredientAllocation(input, dataset.substitutionGroups ?? {}, remainingInventory, attempts)
       : undefined
     if (mixed?.length) {
-      for (const allocation of mixed) countByItemId.set(allocation.itemId, (countByItemId.get(allocation.itemId) ?? 0) + allocation.count)
+      for (const allocation of mixed) {
+        countByItemId.set(allocation.itemId, (countByItemId.get(allocation.itemId) ?? 0) + allocation.count)
+        consumedByItemId.set(allocation.itemId, (consumedByItemId.get(allocation.itemId) ?? 0) + allocation.count * attempts)
+      }
       continue
     }
-    const resolved = resolveIngredientChoice(input, dataset.substitutionGroups ?? {}, { selectedItemId, ownedByItemId: inventory, requiredMultiplier: attempts })
+    const resolved = resolveIngredientChoice(input, dataset.substitutionGroups ?? {}, { selectedItemId, ownedByItemId: remainingInventory, requiredMultiplier: attempts })
     countByItemId.set(resolved.itemId, (countByItemId.get(resolved.itemId) ?? 0) + resolved.count)
+    consumedByItemId.set(resolved.itemId, (consumedByItemId.get(resolved.itemId) ?? 0) + resolved.count * attempts)
   }
   return {
     ...variant,
