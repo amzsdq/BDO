@@ -46,6 +46,16 @@ describe('persisted plan target resolution', () => {
     expect(resolvePlanTarget(dataset, { recipeId: 'sample-cooking', mode: 'durability', amount: 100 }, {}).target).toMatchObject({ mode: 'attempts', amount: 100 })
   })
 
+  it('enforces exact selected-variant mastery requirements without treating them as proc probability', () => {
+    const dataset = structuredClone(sampleDataset)
+    dataset.recipes['sample-cooking'].skill = 'alchemy'
+    dataset.recipes['sample-cooking'].variants[0].skillRequirement = { skill: 'alchemy', minimumMastery: 500 }
+    const target = { recipeId: 'sample-cooking', mode: 'servings' as const, amount: 25 }
+    expect(resolvePlanTarget(dataset, target, {}).error).toContain('Alchemy mastery 500+')
+    expect(resolvePlanTarget(dataset, target, { alchemyMastery: 499 }).error).toContain('current 499')
+    expect(resolvePlanTarget(dataset, target, { alchemyMastery: 500 }).target).toMatchObject({ mode: 'attempts', amount: 25 })
+  })
+
   it('fails a multi-target resolution atomically instead of dropping a bad target', () => {
     const result = resolvePlanTargets(sampleDataset, [
       { recipeId: 'sample-cooking', mode: 'servings', amount: 10 },

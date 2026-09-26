@@ -48,7 +48,12 @@ export function calculateBatchCapacity(
     warnings.push('1회분 재료 무게가 0 LT이므로 무게 기준 최대 회분을 계산할 수 없습니다.')
     return { availableWeightLT, ingredientWeightPerServingLT, lines: [], unknownWeightItemIds: [], warnings }
   }
-  const maxServings = Math.floor(availableWeightLT / ingredientWeightPerServingLT)
+  const rawCapacity = availableWeightLT / ingredientWeightPerServingLT
+  const nearestCapacity = Math.round(rawCapacity)
+  const roundingTolerance = Number.EPSILON * Math.max(1, Math.abs(rawCapacity)) * 8
+  const maxServings = Math.abs(rawCapacity - nearestCapacity) <= roundingTolerance
+    ? nearestCapacity
+    : Math.floor(rawCapacity)
   const requested = requestedServings == null ? maxServings : finiteFloorNonNegative(requestedServings)
   const loadServings = Math.min(requested, maxServings)
   if (requestedServings != null && !Number.isFinite(requestedServings)) warnings.push('요청 회분이 유효한 유한 숫자가 아니어서 0회분으로 처리했습니다.')

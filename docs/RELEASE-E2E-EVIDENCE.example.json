@@ -6,6 +6,7 @@
   "reconciliationTimestamp": "2026-01-01T00:00:00Z",
   "masterySha256": "0000000000000000000000000000000000000000000000000000000000000000",
   "masteryEvidenceFingerprint": "REPLACE_WITH_MASTERY_EVIDENCE_SHA256",
+  "iconManifestSha256": "REPLACE_WITH_ICON_MANIFEST_SHA256",
   "browsers": ["chromium"],
   "viewports": [
     {"label":"desktop","width":1440,"height":900},

@@ -112,6 +112,25 @@ describe('bdo extractor importer icon contract', () => {
     expect(result.stderr).toContain(expectedError)
   })
 
+  it('records a supplied client fingerprint in dataset metadata', () => {
+    const dir = mkdtempSync(join(tmpdir(), 'bdo-import-fingerprint-'))
+    const itemsPath = join(dir, 'items.json')
+    const recipesPath = join(dir, 'recipes.json')
+    const outPath = join(dir, 'dataset.json')
+    writeFileSync(itemsPath, JSON.stringify([
+      { id: 100, name: 'Cooking Output', weight: 0.1 },
+      { id: 101, name: 'Alchemy Output', weight: 0.1 },
+      { id: 200, name: 'Ingredient', weight: 0.2 },
+    ]))
+    writeFileSync(recipesPath, JSON.stringify([
+      { output: 100, type: 'COOK', inputs: [{ item: 200, count: 1 }] },
+      { output: 101, type: 'ALCHEMY', inputs: [{ item: 200, count: 2 }] },
+    ]))
+    const fingerprint = 'sha256:' + 'a'.repeat(64)
+    execFileSync(process.execPath, [resolve('scripts/import-bdo-extractor.mjs'), '--items', itemsPath, '--recipes', recipesPath, '--out', outPath, '--source-revision', TEST_EXTRACTOR_SHA, '--client-fingerprint', fingerprint])
+    expect(JSON.parse(readFileSync(outPath, 'utf8')).metadata.clientFingerprint).toBe(fingerprint)
+  })
+
   it('rejects floating or missing extractor revisions', () => {
     const base = [resolve('scripts/import-bdo-extractor.mjs'), '--items', 'missing-items.json', '--recipes', 'missing-recipes.json', '--out', 'missing-out.json']
     const missing = spawnSync(process.execPath, base, { encoding: 'utf8' })

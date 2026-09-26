@@ -12,10 +12,11 @@ const base = {
   schemaVersion: 1,
   mainCommit: 'a'.repeat(40),
   datasetFingerprint: 'dataset-fp',
-  reconciliationFingerprint: 'reconcile-fp',
+  reconciliationFingerprint: 'd'.repeat(64),
   reconciliationTimestamp: '2026-09-24T00:00:00Z',
   masterySha256: 'b'.repeat(64),
-  masteryEvidenceFingerprint: 'mastery-fp',
+  masteryEvidenceFingerprint: 'e'.repeat(64),
+  iconManifestSha256: 'f'.repeat(64),
   browsers: ['chromium'],
   viewports: [{ label: 'desktop', width: 1440, height: 900 }, { label: 'narrow', width: 390, height: 844 }],
   keyboardOnlyPrimaryControls: true,
@@ -32,6 +33,8 @@ const local = structuredClone(base);
 local.scenarios[0].evidence = 'e2e-01.zip';
 local.scenarios[0].evidenceSha256 = 'f16d05ec6b29248d2c61adb1e9263f78e4f7bace1b955014a2d17872cfe4064d';
 assert.match(run(local), /9\/9 scenarios/);
+const outsideEvidence = path.resolve(tmp, '..', 'outside-evidence.zip');
+fs.writeFileSync(outsideEvidence, 'outside');
 for (const mutate of [
   (m) => { m.scenarios[4].status = 'FAIL'; },
   (m) => { m.scenarios.pop(); },
@@ -41,11 +44,16 @@ for (const mutate of [
   (m) => { m.keyboardOnlyPrimaryControls = false; },
   (m) => { m.scenarios[0].viewports = ['desktop']; },
   (m) => { m.scenarios[0].keyboardOnly = false; },
+  (m) => { m.reconciliationFingerprint = 'not-a-sha'; },
+  (m) => { m.masteryEvidenceFingerprint = 'not-a-sha'; },
   (m) => { m.masterySha256 = 'not-a-sha'; },
+  (m) => { m.iconManifestSha256 = 'not-a-sha'; },
   (m) => { m.mainCommit = '0'.repeat(40); },
   (m) => { m.datasetFingerprint = 'REPLACE_WITH_DATASET'; },
   (m) => { m.scenarios[0].evidence = 'TODO'; },
   (m) => { m.scenarios[0].evidence = 'missing-artifact.zip'; },
+  (m) => { m.scenarios[0].evidence = path.resolve(tmp, 'e2e-01.zip'); m.scenarios[0].evidenceSha256 = 'f16d05ec6b29248d2c61adb1e9263f78e4f7bace1b955014a2d17872cfe4064d'; },
+  (m) => { m.scenarios[0].evidence = '../outside-evidence.zip'; m.scenarios[0].evidenceSha256 = '31207a2065f46a5b948fce6fe5c13e85abaf5631e2f894b47dcd4fce14f6c57b'; },
   (m) => { m.scenarios[0].evidence = 'http://insecure.invalid/evidence'; },
   (m) => { m.scenarios[0].evidenceSha256 = 'bad'; },
 ]) {
@@ -54,6 +62,7 @@ for (const mutate of [
   fs.writeFileSync(file, JSON.stringify(candidate));
   assert.throws(() => execFileSync(process.execPath, [script, file], { stdio: 'pipe' }));
 }
+
 const wrongLocalHash = structuredClone(local);
 wrongLocalHash.scenarios[0].evidenceSha256 = 'd'.repeat(64);
 fs.writeFileSync(file, JSON.stringify(wrongLocalHash));

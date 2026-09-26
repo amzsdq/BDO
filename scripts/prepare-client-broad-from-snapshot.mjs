@@ -1,0 +1,76 @@
+#!/usr/bin/env node
+import fs from 'node:fs'
+import path from 'node:path'
+import crypto from 'node:crypto'
+import { spawnSync } from 'node:child_process'
+import { assertReviewedExtractorRevision } from './production-source-contract.mjs'
+
+function sha256(file) { return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex') }
+const snapshotDir = process.argv[2]
+const outArg = process.argv[3]
+if (!snapshotDir || process.argv.length > 4) throw new Error('usage: node scripts/prepare-client-broad-from-snapshot.mjs <snapshot-dir> [out.json]')
+const root = path.resolve(snapshotDir)
+const provenancePath = path.join(root, 'provenance.json')
+if (!fs.existsSync(provenancePath)) throw new Error(`snapshot provenance missing: ${provenancePath}`)
+const provenanceText = fs.readFileSync(provenancePath, 'utf8')
+const provenance = JSON.parse(provenanceText.charCodeAt(0) === 0xfeff ? provenanceText.slice(1) : provenanceText)
+if (provenance?.schemaVersion !== 1 || provenance?.supportedRegion !== 'KR') throw new Error('KR same-snapshot provenance is required')
+const revision = String(provenance.extractorRevision || '').trim()
+const clientFingerprint = String(provenance.clientFingerprint || '').trim()
+if (!/^[0-9a-f]{40}$/i.test(revision)) throw new Error('snapshot extractorRevision must be an exact 40-character commit SHA')
+assertReviewedExtractorRevision(`iDevelopThings/bdo-data-extractor@${revision}`)
+if (!/^sha256:[0-9a-f]{64}$/i.test(clientFingerprint)) throw new Error('snapshot clientFingerprint is invalid')
+const regionEvidence = provenance?.regionEvidence
+if (regionEvidence?.file !== 'service.ini' || regionEvidence?.type !== 'KR' || !/^[0-9a-f]{64}$/i.test(String(regionEvidence?.sha256 || ''))) {
+  throw new Error('KR service.ini regionEvidence is required')
+}
+const serviceIni = path.join(root, 'service.ini')
+if (!fs.existsSync(serviceIni)) throw new Error(`snapshot region evidence missing: ${serviceIni}`)
+const serviceIniSha = sha256(serviceIni)
+const recordedServiceIniSha = String(provenance?.artifactSha256?.['service.ini'] || '').toLowerCase()
+if (!recordedServiceIniSha || recordedServiceIniSha !== serviceIniSha || String(regionEvidence.sha256).toLowerCase() !== serviceIniSha) {
+  throw new Error('service.ini SHA-256 does not match same-snapshot provenance')
+}
+const serviceIniText = fs.readFileSync(serviceIni, 'utf8').replace(/^\uFEFF/, '')
+const serviceType = serviceIniText.match(/^\s*TYPE\s*=\s*([^\r\n;#]+)/im)?.[1]?.trim().toUpperCase()
+if (serviceType !== 'KR') throw new Error('snapshot service.ini must verify TYPE=KR')
+const requiredArtifactNames = ['items.json', 'recipes.json', 'mastery.json', 'service.ini']
+const artifactSha256 = provenance?.artifactSha256
+if (!artifactSha256 || typeof artifactSha256 !== 'object' || Array.isArray(artifactSha256)) throw new Error('snapshot artifactSha256 map is required')
+for (const name of requiredArtifactNames) {
+  if (!Object.hasOwn(artifactSha256, name)) throw new Error(`snapshot provenance is missing required artifact hash: ${name}`)
+}
+for (const [name, recordedValue] of Object.entries(artifactSha256)) {
+  if (path.basename(name) !== name || name === '.' || name === '..') throw new Error(`unsafe snapshot artifact name in provenance: ${name}`)
+  const file = path.join(root, name)
+  if (!fs.existsSync(file) || !fs.statSync(file).isFile()) throw new Error(`snapshot artifact missing: ${file}`)
+  const recorded = String(recordedValue || '').toLowerCase()
+  if (!/^[0-9a-f]{64}$/.test(recorded)) throw new Error(`snapshot artifact hash is invalid: ${name}`)
+  if (recorded !== sha256(file)) throw new Error(`${name} SHA-256 does not match same-snapshot provenance`)
+}
+if (provenance.source === 'installed Black Desert client via reviewed bdo-viewer') {
+  const iconRoot = path.join(root, 'icons')
+  const recordedIcons = String(provenance.iconsSnapshotSha256 || '').toLowerCase()
+  if (!/^[0-9a-f]{64}$/.test(recordedIcons)) throw new Error('viewer snapshot iconsSnapshotSha256 is required')
+  if (!fs.existsSync(iconRoot) || !fs.statSync(iconRoot).isDirectory()) throw new Error('viewer snapshot icons directory is missing')
+  const files = []
+  const walk = (dir) => { for (const entry of fs.readdirSync(dir, { withFileTypes: true })) { const full = path.join(dir, entry.name); if (entry.isDirectory()) walk(full); else if (entry.isFile()) files.push(full); else throw new Error(`unsupported viewer icon snapshot entry: ${full}`) } }
+  walk(iconRoot)
+  files.sort((a, b) => path.relative(iconRoot, a).split(path.sep).join('/').localeCompare(path.relative(iconRoot, b).split(path.sep).join('/')))
+  const h = crypto.createHash('sha256')
+  for (const file of files) { h.update(path.relative(iconRoot, file).split(path.sep).join('/')); h.update('\0'); h.update(fs.readFileSync(file)); h.update('\0') }
+  if (h.digest('hex') !== recordedIcons) throw new Error('viewer icons snapshot SHA-256 does not match same-snapshot provenance')
+}
+const items = path.join(root, 'items.json'), recipes = path.join(root, 'recipes.json')
+const out = path.resolve(outArg || path.join(root, 'client-broad.json'))
+const result = spawnSync(process.execPath, [
+  'scripts/import-bdo-extractor.mjs',
+  '--items', items,
+  '--recipes', recipes,
+  '--out', out,
+  '--source-revision', revision,
+  '--client-fingerprint', clientFingerprint,
+], { cwd: process.cwd(), encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+if (result.status !== 0) throw new Error(`broad client import failed (exit ${result.status}):\n${(result.stderr || result.stdout || '').trim()}`)
+if (result.stdout) process.stdout.write(result.stdout)
+console.log(JSON.stringify({ ok: true, snapshot: root, out, sourceRevision: revision, clientFingerprint }))

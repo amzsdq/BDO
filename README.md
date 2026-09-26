@@ -14,14 +14,14 @@
 
 ## 로컬 실행
 
-Node.js 22 기준입니다.
+Node.js 22.12 이상이 필요합니다 (`package.json`의 `engines.node >=22.12.0`).
 
 ```bash
 npm install
 npm run dev
 ```
 
-프로덕션 번들 검증:
+프로덕션 번들 검증 (main 및 relay 개발 브랜치는 GitHub CI에서도 동일 검증을 실행합니다):
 
 ```bash
 npm test
@@ -32,13 +32,18 @@ npm run build
 
 ## production dataset 파이프라인
 
-라이브 클라이언트 추출물 `items.json`, `recipes.json`, `mastery.json`, 그리고 `bdo-data-extractor icons`가 만든 `<extractor-data>/icons/<itemId>.webp`를 준비합니다. runtime이 실제로 읽는 dataset과 브라우저가 실제로 제공하는 icon asset을 함께 설치합니다. Codex reconciliation 전에 Cooking/Alchemy 카탈로그 전체를 독립적으로 수집하고 completeness가 증명된 `<codex-catalog.json>` artifact를 보존해야 합니다. 부분 manifest끼리 서로 일치하는 것만으로는 release gate를 통과할 수 없습니다.
+자동 획득 스크립트 `scripts/bootstrap-production-data.ps1`는 현재 검토된 extractor revision이 요구하는 Go 1.26 이상과 Node/npm을 필요로 합니다. `--source-revision`에는 임의 tag나 다른 commit이 아니라 저장소의 `production-source-contract.mjs`에 명시된 reviewed exact revision만 사용할 수 있습니다. Client fingerprint는 임의 실행 파일 해시가 아니라 extractor와 동일한 `Paz/pad00000.meta` + 존재할 경우 `ads_version` byte stream의 SHA-256입니다. Direct bootstrap 완료 후에는 `node scripts/seal-snapshot-icon-provenance.mjs <snapshot-dir>`를 실행해 같은 snapshot의 `asset_redirects.json` 기록 해시를 재검증하고 전체 `icons/` tree SHA-256을 provenance에 결속해야 합니다. 이 seal이 없는 client-fingerprinted snapshot의 icon install은 fail closed 합니다.
+
+라이브 클라이언트 추출물 `items.json`, `recipes.json`, `mastery.json`, 그리고 `bdo-data-extractor icons`가 `<extractor-data>/asset_redirects.json`에 기록한 `urn::item:<id> -> icons/<shared-asset>.webp` redirect 및 그 redirect가 가리키는 decoded WebP 자산을 준비합니다. runtime이 실제로 읽는 dataset과 브라우저가 실제로 제공하는 icon asset을 함께 설치합니다. Codex reconciliation 전에 Cooking/Alchemy 카탈로그 전체를 독립적으로 수집하고 completeness가 증명된 `<codex-catalog.json>` artifact를 보존해야 합니다. 부분 manifest끼리 서로 일치하는 것만으로는 release gate를 통과할 수 없습니다.
+
+Go toolchain 없이 reviewed `bdo-viewer` 경로를 사용할 때는 v0.1.12 Windows amd64 실행 파일의 로컬 SHA-256이 `ad18f56eb4e27da6d313bdc3bba6cf8f6ca9948ccd9eb1026dacd12fc678ef3e`와 일치하는지 **실행 전에 별도로 검증**하고, UI extraction region을 `kr`로 지정합니다. 추출 완료 후 `node scripts/adopt-viewer-client-snapshot.mjs <viewer-data-dir> <game-dir> <snapshot-out-dir>`로 snapshot을 채택합니다. Adopter는 appVersion/region/extractedAt, installed-client short fingerprint, raw `service.ini` TYPE=KR, `asset_redirects.json`, icons와 `.icon_provenance`를 다시 검증하지만 실행 파일 자체의 로컬 SHA 검증을 대신하지 않습니다.
 
 기본 구조 import는 extractor가 한국어를 제공하지 않으므로 의도적으로 `아이템 #<id>` placeholder를 만듭니다. 따라서 import 직후 BDO Codex KR item-id 증거를 적용하는 단계가 필수입니다. 이 단계를 생략한 dataset은 promotion이 거부됩니다.
 
 ```bash
-npm run data:import -- --items <items.json> --recipes <recipes.json> --out <client-dataset.json> --source-revision <extractor-tag-or-sha>
-node scripts/apply-korean-name-evidence.mjs <client-dataset.json> <korean-name-evidence.json> public/data/dataset.json
+node scripts/prepare-client-broad-from-snapshot.mjs <bootstrap-snapshot-dir> <client-broad.json>
+# Or, from separately verified raw files:
+npm run data:import:broad -- --items <items.json> --recipes <recipes.json> --out <client-broad.json> --source-revision <reviewed-extractor-sha> --client-fingerprint <client-fingerprint>
 ```
 
 `<korean-name-evidence.json>`은 canonical item id별 한국어 이름과 `https://bdocodex.com/kr/item/<id>/` 증거 URL을 포함해야 하며, 중복 item id·알 수 없는 item id·placeholder 이름·item id와 맞지 않는 URL은 fail closed 합니다. 모든 planner-scoped item의 이름이 해소되어야 `metadata.koreanNamesVerified=true`가 됩니다. 부분 증거는 중간 작업에는 사용할 수 있지만 production promotion은 통과하지 못합니다.
@@ -54,7 +59,7 @@ node scripts/apply-substitution-evidence.mjs public/data/dataset.json <codex-sub
 숙련도 증거는 production client의 `mastery.json`에 extractor revision, client fingerprint, extraction timestamp를 결합해 보존합니다. 구조만 맞는 raw mastery 파일은 릴리스 증거가 아닙니다. Cooking/Alchemy raw columns가 검증된 semantic mapping을 거쳐 현재 runtime mastery curve와 모두 일치한 cross-check PASS artifact만 최종 gate에 사용할 수 있습니다.
 
 ```bash
-npm run data:mastery-evidence -- --mastery <mastery.json> --out <mastery-evidence.json> --source-revision <extractor-tag-or-sha> --client-fingerprint <client-fingerprint> --extracted-at <iso-timestamp>
+npm run data:mastery-evidence -- --mastery <mastery.json> --out <mastery-evidence.json> --source-revision <reviewed-extractor-sha> --client-fingerprint <client-fingerprint> --extracted-at <iso-timestamp>
 ```
 
 현재 evidence generator는 raw client mastery의 검증된 semantic channel mapping을 적용한 뒤, checked-in Cooking/Alchemy runtime curve와 deterministic cross-check를 수행합니다. 두 skill의 의미 매핑과 curve가 모두 일치할 때만 `releaseReady=true`를 출력하며, 불일치·미확인 channel·구조 오류는 fail closed 합니다. 최종 gate는 evidence에 기록된 SHA-256을 전달된 원본 `mastery.json` 바이트와 다시 계산·대조하여 다른 client snapshot의 evidence 재사용도 거부합니다.
@@ -62,21 +67,35 @@ npm run data:mastery-evidence -- --mastery <mastery.json> --out <mastery-evidenc
 이후 release gate:
 
 ```bash
-npm run data:icons -- public/data/dataset.json <extractor-data>/icons public/icons
+npm run data:codex:browser -- --out <codex-catalog.json>
+npm run data:codex:details:reviewed -- --catalog <codex-catalog.json> --route-state-evidence data/evidence/retired-crafting-routes.kr.json --out <codex-details.json>
+npm run data:retired:prune -- <client-broad.json> data/evidence/retired-crafting-routes.kr.json <client-live.json>
+npm run data:codex:items -- --details <codex-details.json> --out <codex-initial-item-evidence.json> --concurrency 6 --retries 2
+node scripts/codex-material-group-ids.mjs <codex-initial-item-evidence.json>
+npm run data:codex:groups -- --groups <discovered-group-ids> --out <codex-substitutions.json>
+npm run data:codex:normalize-random -- <client-live.json> <codex-details.json> <client-normalized.json>
+npm run data:codex:bind -- <client-normalized.json> <codex-details.json> <bound-yield-evidence.json> <codex-initial-item-evidence.json>
+npm run data:yields -- <client-normalized.json> <bound-yield-evidence.json> <client-enriched.json>
+npm run data:scope:finalize -- <client-enriched.json> <client-scoped.json> <codex-substitutions.json>
+npm run data:codex:items -- --dataset <client-scoped.json> --out <codex-final-item-evidence.json> --concurrency 6 --retries 2
+node scripts/apply-korean-name-evidence.mjs <client-scoped.json> <codex-final-item-evidence.json> public/data/dataset.json
+npm run data:icons -- public/data/dataset.json <extractor-data> public/icons
+npm run data:icons:verify -- public/data/dataset.json public/icons/icon-manifest.json public/icons
 npm run data:validate -- public/data/dataset.json
-node scripts/collect-codex-catalog.mjs --endpoint '<complete-catalog-endpoint-template-with-{skill}>' --out <codex-catalog.json>
-npm run data:reconcile -- --dataset public/data/dataset.json --codex <codex-manifest.json> --out <reconciliation-report.json>
-npm run data:promote -- public/data/dataset.json <reconciliation-report.json> <codex-catalog.json>
-npm run data:release-gate -- public/data/dataset.json <reconciliation-report.json> <codex-catalog.json> <mastery-evidence.json> <mastery.json> <release-e2e-evidence.json>
+npm run data:reconcile -- --dataset public/data/dataset.json --codex <codex-details.json> --out <reconciliation-report.json>
+npm run data:promote -- public/data/dataset.json <reconciliation-report.json> <codex-catalog.json> <codex-details.json>
+npm run data:release-gate -- public/data/dataset.json <reconciliation-report.json> <codex-catalog.json> <codex-details.json> <mastery-evidence.json> <mastery.json> <release-e2e-evidence.json>
 ```
 
 `release-e2e-evidence.json`은 `docs/E2E-ACCEPTANCE.md`의 E2E-01~09 전체 PASS를 exact release commit과 production dataset/reconciliation/mastery fingerprints에 묶는 fail-closed 증거입니다. 작성 형식과 검증 명령은 `docs/RELEASE-E2E-EVIDENCE.md`를 참고하세요. placeholder/TODO 값이나 현재 checkout과 다른 `mainCommit`은 최종 gate에서 거부됩니다.
 
-`collect-codex-catalog.mjs`는 Cooking과 Alchemy 각각에 대해 구성된 endpoint에서 recipe-specific ID를 추출합니다. endpoint의 `recordsTotal`이 unique recipe-id 수와 일치하거나 별도의 `--expected-counts` 증거가 일치해야 해당 skill을 `complete=true`로 표시합니다. product-scoped/부분 endpoint나 단순 non-empty 응답은 complete catalog 증거가 아닙니다. promotion과 최종 release gate는 complete catalog의 총 recipe page 수와 정확한 recipe-id set이 reconciliation report와 일치하는지 다시 검증합니다.
+`<codex-catalog.json>`은 completeness/count/recipe-id 증거이고, `data:reconcile`의 `<codex-manifest.json>`은 recipe별 output/ingredient 상세 증거입니다. 두 artifact는 역할이 다르므로 catalog ID 목록을 상세 reconciliation manifest처럼 재사용하면 안 됩니다.
 
-`data:icons`는 dataset이 참조하는 canonical `icons/<itemId>.webp`만 설치하며, extractor output에서 필요한 icon 하나라도 빠져 있으면 실패합니다. source DDS 경로를 브라우저 asset 경로로 취급하지 않습니다.
+`data:codex:browser`는 실제 KR Cooking/Alchemy catalog 페이지를 열고 skill-scoped recipe XHR을 캡처합니다. 서버가 total을 제공하면 같은 transport를 끝까지 paginate하고, total이 없는 unpaginated full-array 응답은 렌더링된 recipe-id 집합과 교차검증합니다. product-scoped/부분 endpoint나 단순 non-empty 응답은 complete catalog 증거가 아닙니다. promotion과 최종 release gate는 complete catalog의 총 recipe page 수와 정확한 recipe-id set이 reconciliation report와 일치하는지 다시 검증합니다.
 
-`data:promote`는 `ZERO_UNEXPLAINED_DIFF`, 독립 Codex catalog completeness, Cooking/Alchemy count 일치, 한국어 이름과 아이콘 해소를 확인한 뒤에만 `COMPLETE_VERIFIED` 상태와 새 fingerprint를 기록합니다. 그 다음 `data:release-gate`가 결과와 catalog evidence를 독립적으로 다시 검증하고 production mastery evidence의 semantic cross-check PASS, exact snapshot binding, E2E-01~09의 exact-commit evidence까지 요구합니다. 어느 하나라도 통과하지 않은 dataset은 릴리스 데이터가 아닙니다.
+`data:icons`는 extractor의 `asset_redirects.json`에서 `urn::item:<itemId>` redirect를 해석해 dataset이 참조하는 canonical `icons/<itemId>.webp`로 설치합니다. 필요한 redirect나 decoded WebP 하나라도 빠져 있으면 실패하며, source DDS 경로를 브라우저 asset 경로로 취급하지 않습니다.
+
+`data:promote`는 `ZERO_UNEXPLAINED_DIFF`, 독립 Codex catalog completeness, Cooking/Alchemy count 일치, 한국어 이름 해소뿐 아니라 icon manifest의 실제 WebP bytes/SHA-256 및 dataset client fingerprint와 결속된 redirect/icon-tree source provenance까지 다시 확인한 뒤에만 `COMPLETE_VERIFIED` 상태와 새 fingerprint를 기록합니다. promotion은 reconciliation에 기록된 exact Codex detail manifest SHA-256도 dataset metadata에 결속합니다. 그 다음 `data:release-gate`가 결과와 catalog/detail evidence를 독립적으로 다시 검증하고, dataset 옆 `public/icons/icon-manifest.json`의 전체 item set과 실제 WebP bytes/SHA-256을 다시 대조하며, production mastery evidence의 semantic cross-check PASS, exact snapshot binding, E2E-01~09의 exact-commit evidence까지 요구합니다. 어느 하나라도 통과하지 않은 dataset은 릴리스 데이터가 아닙니다.
 
 현재 검토한 extractor 계약과 획득 경로는 `docs/EXTRACTOR-CONTRACT.md`, 전체 completeness 규칙은 `docs/DATA-COMPLETENESS.md`, 숙련도 증거 규칙은 `docs/MASTERY_DATA_POLICY.md`를 참고하세요.
 

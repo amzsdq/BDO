@@ -15,12 +15,20 @@ export interface Item {
   sourceUrl?: string
 }
 
-export interface Ingredient { itemId: ItemId; count: number; substitutionGroupId?: string }
+export interface Ingredient {
+  itemId: ItemId
+  count: number
+  substitutionGroupId?: string
+  /** Reviewed base-Worth requirement for this exact recipe slot. */
+  requiredBaseWorth?: number
+}
 export interface IngredientSubstitutionGroup {
   id: string
   memberItemIds: ItemId[]
   /** Source-backed replacement value per member. Omit until independently verified. */
   memberValueByItemId?: Record<string, number>
+  /** Reviewed planner semantics. Kept separate from source-reported member Worth. */
+  planningValueByItemId?: Record<string, number>
   source: {
     provider: 'BDO Codex KR' | 'BDO client'
     sourceId: string
@@ -28,7 +36,14 @@ export interface IngredientSubstitutionGroup {
     verifiedAt: string
   }
 }
-export interface RecipeVariant { id: string; inputs: Ingredient[] }
+export type RecipeOutputStatus = 'single-base' | 'random-only' | 'multiple-base' | 'no-output' | 'unavailable' | 'unresolved'
+export interface RecipeVariantOutputEvidence {
+  status: RecipeOutputStatus
+  sourceUrl?: string
+  baseOutputs?: Array<{ itemId: ItemId; min: number; max: number }>
+  randomOutputs?: Array<{ itemId: ItemId; min: number; max: number }>
+}
+export interface RecipeVariant { id: string; inputs: Ingredient[]; sourceRecipeId?: number; yield?: RecipeYield; outputEvidence?: RecipeVariantOutputEvidence; skillRequirement?: { skill: LifeSkill; level?: string; minimumMastery?: number } }
 export interface RecipeYield {
   min: number
   max: number
@@ -42,7 +57,7 @@ export interface Recipe {
   skill: LifeSkill
   outputItemId: ItemId
   skillLevel?: string
-  yield: RecipeYield
+  yield?: RecipeYield
   variants: RecipeVariant[]
   sourceUrl?: string
 }

@@ -25,6 +25,9 @@ export function materialGroupIdsFromCodexRecipeEvidence(value) {
       if (key === 'material_group' || key === 'materialGroup' || key === 'material_group_id') {
         const id = normalizeGroupId(entry); if (id) ids.add(id)
       }
+      if (key === 'materialGroupIds' && Array.isArray(entry)) {
+        for (const value of entry) { const id = normalizeGroupId(value); if (id) ids.add(id) }
+      }
       visit(entry)
     }
   }

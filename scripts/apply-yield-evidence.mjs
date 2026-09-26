@@ -2,6 +2,28 @@ import fs from 'node:fs'
 
 function fail(message) { throw new Error(message) }
 function finitePositive(value, field) { const number = Number(value); if (!Number.isFinite(number) || number <= 0) fail(`${field} must be a positive finite number`); return number }
+function outputRows(value, field) {
+  if (value == null) return undefined
+  if (!Array.isArray(value)) fail(`${field} must be an array`)
+  return value.map((row, index) => {
+    const itemId = Number(row?.itemId), min = finitePositive(row?.min, `${field}[${index}].min`), max = finitePositive(row?.max, `${field}[${index}].max`)
+    if (!Number.isSafeInteger(itemId) || itemId <= 0) fail(`${field}[${index}].itemId must be a positive integer`)
+    if (min > max) fail(`${field}[${index}]: min exceeds max`)
+    return { itemId, min, max }
+  })
+}
+function codexRecipeId(value) { const match = String(value ?? '').trim().match(/^https:\/\/(?:www\.)?bdocodex\.com\/kr\/recipe\/(\d+)\/?$/i); return match ? Number(match[1]) : null }
+
+function skillRequirement(entry) {
+  const skill = String(entry?.skillRequirement?.skill ?? '').trim().toLowerCase()
+  const level = String(entry?.skillRequirement?.level ?? '').trim()
+  const rawMastery = entry?.skillRequirement?.minimumMastery
+  const minimumMastery = rawMastery == null ? undefined : Number(rawMastery)
+  if (!skill && !level && minimumMastery == null) return undefined
+  if (skill !== 'cooking' && skill !== 'alchemy') fail('skillRequirement.skill must be cooking or alchemy')
+  if (rawMastery != null && (!Number.isSafeInteger(minimumMastery) || minimumMastery < 0)) fail('skillRequirement.minimumMastery must be a non-negative integer')
+  return { skill, ...(level ? { level } : {}), ...(rawMastery == null ? {} : { minimumMastery }) }
+}
 
 export function applyYieldEvidence(dataset, evidence) {
   if (!dataset?.recipes || !dataset?.metadata) fail('dataset recipes/metadata required')
@@ -10,18 +32,47 @@ export function applyYieldEvidence(dataset, evidence) {
   const recipes = { ...dataset.recipes }
   for (const entry of evidence.entries) {
     const recipeId = String(entry?.recipeId ?? '').trim()
-    if (!recipeId || seen.has(recipeId)) fail(`duplicate or empty recipeId: ${recipeId || '<empty>'}`)
-    seen.add(recipeId)
+    const variantId = String(entry?.variantId ?? '').trim()
+    const evidenceKey = variantId ? `${recipeId}:${variantId}` : recipeId
+    if (!recipeId || seen.has(evidenceKey)) fail(`duplicate or empty evidence key: ${evidenceKey || '<empty>'}`)
+    seen.add(evidenceKey)
     const recipe = recipes[recipeId]
     if (!recipe) fail(`yield evidence references unknown recipe: ${recipeId}`)
-    const min = finitePositive(entry.min, `${recipeId}.min`)
-    const max = finitePositive(entry.max, `${recipeId}.max`)
-    const expected = entry.expected == null ? undefined : finitePositive(entry.expected, `${recipeId}.expected`)
-    if (min > max) fail(`${recipeId}: min exceeds max`)
-    if (expected != null && (expected < min || expected > max)) fail(`${recipeId}: expected must be between min and max`)
     const sourceUrl = String(entry.sourceUrl ?? '').trim()
-    if (!/^https:\/\//.test(sourceUrl)) fail(`${recipeId}: sourceUrl must be an https URL`)
-    recipes[recipeId] = { ...recipe, yield: { min, ...(expected == null ? {} : { expected }), max, provenance: sourceUrl } }
+    const sourceRecipeId = Number(entry.sourceRecipeId)
+    if (!Number.isSafeInteger(sourceRecipeId) || sourceRecipeId <= 0 || codexRecipeId(sourceUrl) !== sourceRecipeId) fail(`${recipeId}: sourceUrl/sourceRecipeId must identify the same BDO Codex KR recipe`)
+    const outputStatus = String(entry.outputStatus ?? '').trim()
+    const requirement = skillRequirement(entry)
+    if (requirement && requirement.skill !== String(recipe.skill).toLowerCase()) fail(`${recipeId}: skillRequirement.skill must match recipe skill`)
+    const classified = Boolean(outputStatus)
+    if (classified && !variantId) fail(`${recipeId}: classified output evidence requires variantId`)
+    const allowed = new Set(['single-base', 'random-only', 'multiple-base', 'no-output', 'unavailable', 'unresolved'])
+    if (classified && !allowed.has(outputStatus)) fail(`${recipeId}: invalid outputStatus ${outputStatus}`)
+    const baseOutputs = classified ? outputRows(entry.baseOutputs, `${recipeId}.baseOutputs`) : undefined
+    const randomOutputs = classified ? outputRows(entry.randomOutputs, `${recipeId}.randomOutputs`) : undefined
+    if (outputStatus === 'random-only' && (!randomOutputs?.length || baseOutputs?.length)) fail(`${recipeId}: random-only evidence requires random outputs and no base outputs`)
+    if (outputStatus === 'no-output' && (baseOutputs?.length || randomOutputs?.length)) fail(`${recipeId}: no-output evidence cannot contain outputs`)
+    const needsYield = !classified || outputStatus === 'single-base'
+    const min = needsYield ? finitePositive(entry.min, `${recipeId}.min`) : undefined
+    const max = needsYield ? finitePositive(entry.max, `${recipeId}.max`) : undefined
+    const expected = needsYield && entry.expected != null ? finitePositive(entry.expected, `${recipeId}.expected`) : undefined
+    if (needsYield && min > max) fail(`${recipeId}: min exceeds max`)
+    if (needsYield && expected != null && (expected < min || expected > max)) fail(`${recipeId}: expected must be between min and max`)
+    if (outputStatus === 'single-base') {
+      if (baseOutputs?.length !== 1 || Number(baseOutputs[0].itemId) !== Number(recipe.outputItemId)) fail(`${recipeId}: single-base evidence must identify exactly the recipe output item`)
+      if (Number(baseOutputs[0].min) !== min || Number(baseOutputs[0].max) !== max) fail(`${recipeId}: single-base output range must match deterministic yield`)
+    }
+    if (variantId) {
+      let matched = false
+      const variants = (recipe.variants ?? []).map((variant) => {
+        if (variant.id !== variantId) return variant
+        matched = true
+        const outputEvidence = classified ? { status: outputStatus, sourceUrl, ...(baseOutputs ? { baseOutputs } : {}), ...(randomOutputs ? { randomOutputs } : {}) } : variant.outputEvidence
+        return { ...variant, sourceRecipeId, ...(needsYield ? { yield: { min, ...(expected == null ? {} : { expected }), max, provenance: sourceUrl } } : { yield: undefined }), ...(outputEvidence ? { outputEvidence } : {}), ...(requirement ? { skillRequirement: requirement } : {}) }
+      })
+      if (!matched) fail(`${recipeId}: unknown variantId ${variantId}`)
+      recipes[recipeId] = { ...recipe, variants }
+    } else recipes[recipeId] = { ...recipe, yield: { min, ...(expected == null ? {} : { expected }), max, provenance: sourceUrl, sourceRecipeId } }
   }
   const metadata = { ...dataset.metadata, yieldEvidenceApplied: true, yieldEvidenceCount: seen.size, yieldEvidenceSource: String(evidence.source ?? '').trim() || undefined }
   delete metadata.fingerprint

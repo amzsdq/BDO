@@ -3,53 +3,30 @@ import { existsSync, mkdirSync, mkdtempSync, readFileSync, writeFileSync } from 
 import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { describe, expect, it } from 'vitest'
+import crypto from 'node:crypto'
 
-function fixtureDir() {
-  const dir = mkdtempSync(join(tmpdir(), 'bdo-icons-'))
-  const source = join(dir, 'source')
-  const out = join(dir, 'public-icons')
-  const dataset = join(dir, 'dataset.json')
-  mkdirSync(source)
-  return { dir, source, out, dataset }
-}
+function fixtureDir(){const dir=mkdtempSync(join(tmpdir(),'bdo-icons-'));const source=join(dir,'source');const out=join(dir,'public-icons');const dataset=join(dir,'dataset.json');mkdirSync(source);return{source,out,dataset}}
+function webp(payload='x'){const body=Buffer.from(payload);const pad=body.length%2;const riffSize=4+8+body.length+pad;const b=Buffer.alloc(8+riffSize);b.write('RIFF',0);b.writeUInt32LE(riffSize,4);b.write('WEBP',8);b.write('VP8 ',12);b.writeUInt32LE(body.length,16);body.copy(b,20);return b}
+function run(dataset,source,out){return execFileSync(process.execPath,[resolve('scripts/install-icon-assets.mjs'),dataset,source,out])}
 
-describe('canonical icon asset installer', () => {
-  it('copies every dataset-declared canonical item-id WebP asset and nothing else', () => {
-    const { source, out, dataset } = fixtureDir()
-    writeFileSync(join(source, '100.webp'), 'icon-100')
-    writeFileSync(join(source, '200.webp'), 'icon-200')
-    writeFileSync(join(source, '999.webp'), 'unreferenced')
-    writeFileSync(dataset, JSON.stringify({ items: {
-      '100': { id: 100, iconPath: 'icons/100.webp' },
-      '200': { id: 200, iconPath: 'icons/200.webp' },
-    } }))
-    execFileSync(process.execPath, [resolve('scripts/install-icon-assets.mjs'), dataset, source, out])
-    expect(readFileSync(join(out, '100.webp'), 'utf8')).toBe('icon-100')
-    expect(readFileSync(join(out, '200.webp'), 'utf8')).toBe('icon-200')
-    expect(existsSync(join(out, '999.webp'))).toBe(false)
-  })
-
-  it.each([
-    { id: 300, iconUrl: 'https://example.invalid/300.webp' },
-    { id: 300, iconPath: 'icons/301.webp' },
-    { id: 300, iconPath: '../300.webp' },
-    { id: 300, iconPath: 'icons/300.png' },
-  ])('rejects a non-canonical production icon declaration %#', (item) => {
-    const { source, out, dataset } = fixtureDir()
-    writeFileSync(join(source, '300.webp'), 'icon-300')
-    writeFileSync(dataset, JSON.stringify({ items: { '300': item } }))
-    const result = spawnSync(process.execPath, [resolve('scripts/install-icon-assets.mjs'), dataset, source, out], { encoding: 'utf8' })
-    expect(result.status).toBe(1)
-    expect(result.stderr).toContain('canonical local icon path')
-  })
-
-  it.each([
-    [['dataset.json'], 'usage: node scripts/install-icon-assets.mjs'],
-    [['dataset.json', 'icons', 'out', 'ignored'], 'usage: node scripts/install-icon-assets.mjs'],
-    [['dataset.json', '--icons'], 'usage: node scripts/install-icon-assets.mjs'],
-  ])('fails closed on malformed positional arguments %#', (args, message) => {
-    const result = spawnSync(process.execPath, [resolve('scripts/install-icon-assets.mjs'), ...args], { encoding: 'utf8' })
-    expect(result.status).toBe(1)
-    expect(result.stderr).toContain(message)
-  })
+describe('canonical icon asset installer',()=>{
+ it('copies every declared valid WebP, excludes unreferenced assets, and writes deterministic manifest',()=>{
+  const {source,out,dataset}=fixtureDir();const a=webp('a'),b=webp('bb');writeFileSync(join(source,'shared-a.webp'),a);writeFileSync(join(source,'shared-b.webp'),b);writeFileSync(join(source,'unreferenced.webp'),webp('u'));writeFileSync(join(source,'asset_redirects.json'),JSON.stringify({'urn::item:100':'icons/shared-a.webp','urn::item:200':'icons/shared-b.webp','urn::item:999':'icons/unreferenced.webp'}));writeFileSync(dataset,JSON.stringify({items:{'200':{id:200,iconPath:'icons/200.webp'},'100':{id:100,iconPath:'icons/100.webp'}}}));run(dataset,source,out);expect(readFileSync(join(out,'100.webp'))).toEqual(a);expect(readFileSync(join(out,'200.webp'))).toEqual(b);expect(existsSync(join(out,'999.webp'))).toBe(false);const m=JSON.parse(readFileSync(join(out,'icon-manifest.json'),'utf8'));expect(m.items.map(x=>x.itemId)).toEqual([100,200]);expect(m.setHash).toMatch(/^[a-f0-9]{64}$/)
+ })
+ it('normalizes Windows-style redirect separators',()=>{const {source,out,dataset}=fixtureDir();mkdirSync(join(source,'nested'));const bytes=webp();writeFileSync(join(source,'nested','shared.webp'),bytes);writeFileSync(join(source,'asset_redirects.json'),JSON.stringify({'urn::item:100':'icons\\\\nested\\\\shared.webp'}));writeFileSync(dataset,JSON.stringify({items:{'100':{id:100,iconPath:'icons/100.webp'}}}));run(dataset,source,out);expect(readFileSync(join(out,'100.webp'))).toEqual(bytes)})
+ it('fails closed when redirect evidence is missing',()=>{const {source,out,dataset}=fixtureDir();writeFileSync(join(source,'asset_redirects.json'),'{}');writeFileSync(dataset,JSON.stringify({items:{'100':{id:100,iconPath:'icons/100.webp'}}}));const r=spawnSync(process.execPath,[resolve('scripts/install-icon-assets.mjs'),dataset,source,out],{encoding:'utf8'});expect(r.status).toBe(1);expect(r.stderr).toContain('extractor redirect output')})
+ it('rejects traversal and non-WebP redirect suffix',()=>{for(const redirect of ['../escape.webp','icons/a.png']){const {source,out,dataset}=fixtureDir();writeFileSync(join(source,'asset_redirects.json'),JSON.stringify({'urn::item:100':redirect}));writeFileSync(dataset,JSON.stringify({items:{'100':{id:100,iconPath:'icons/100.webp'}}}));expect(spawnSync(process.execPath,[resolve('scripts/install-icon-assets.mjs'),dataset,source,out]).status).toBe(1)}})
+ it.each([{id:300,iconUrl:'https://example.invalid/300.webp'},{id:300,iconPath:'icons/301.webp'},{id:300,iconPath:'../300.webp'},{id:300,iconPath:'icons/300.png'}])('rejects noncanonical production icon declaration %#',(item)=>{const {source,out,dataset}=fixtureDir();writeFileSync(join(source,'asset_redirects.json'),JSON.stringify({'urn::item:300':'icons/a.webp'}));writeFileSync(dataset,JSON.stringify({items:{'300':item}}));const r=spawnSync(process.execPath,[resolve('scripts/install-icon-assets.mjs'),dataset,source,out],{encoding:'utf8'});expect(r.status).toBe(1);expect(r.stderr).toContain('canonical local icon path')})
+ it.each([[['dataset.json'],'usage: node scripts/install-icon-assets.mjs'],[['dataset.json','icons','out','ignored'],'usage: node scripts/install-icon-assets.mjs'],[['dataset.json','--icons'],'usage: node scripts/install-icon-assets.mjs']])('fails closed on malformed arguments %#',(args,message)=>{const r=spawnSync(process.execPath,[resolve('scripts/install-icon-assets.mjs'),...args],{encoding:'utf8'});expect(r.status).toBe(1);expect(r.stderr).toContain(message)})
+ it('rejects fake extension-only bytes and corrupt RIFF size',()=>{for(const bytes of [Buffer.from('icon-100'),Buffer.from('RIFF0000WEBP')]){const {source,out,dataset}=fixtureDir();writeFileSync(join(source,'a.webp'),bytes);writeFileSync(join(source,'asset_redirects.json'),JSON.stringify({'urn::item:100':'icons/a.webp'}));writeFileSync(dataset,JSON.stringify({items:{'100':{id:100,iconPath:'icons/100.webp'}}}));const r=spawnSync(process.execPath,[resolve('scripts/install-icon-assets.mjs'),dataset,source,out],{encoding:'utf8'});expect(r.status).toBe(1)}})
+ it('requires provenance when the dataset declares a client fingerprint',()=>{const {source,out,dataset}=fixtureDir();const bytes=webp();writeFileSync(join(source,'a.webp'),bytes);writeFileSync(join(source,'asset_redirects.json'),JSON.stringify({'urn::item:100':'icons/a.webp'}));writeFileSync(dataset,JSON.stringify({metadata:{clientFingerprint:'sha256:'+'a'.repeat(64)},items:{'100':{id:100,iconPath:'icons/100.webp'}}}));const r=spawnSync(process.execPath,[resolve('scripts/install-icon-assets.mjs'),dataset,source,out],{encoding:'utf8'});expect(r.status).toBe(1);expect(r.stderr).toContain('requires same-snapshot icon provenance')})
+ it('binds provenance-backed icons to the exact dataset client snapshot',()=>{
+  const {source,out,dataset}=fixtureDir();const icons=join(source,'icons');mkdirSync(icons);const bytes=webp('bound');writeFileSync(join(icons,'a.webp'),bytes)
+  const redirects=Buffer.from(JSON.stringify({'urn::item:100':'icons/a.webp'}));writeFileSync(join(source,'asset_redirects.json'),redirects)
+  const fp='sha256:'+'a'.repeat(64);writeFileSync(dataset,JSON.stringify({metadata:{clientFingerprint:fp},items:{'100':{id:100,iconPath:'icons/100.webp'}}}))
+  const h=crypto.createHash('sha256');h.update('a.webp');h.update('\0');h.update(bytes);h.update('\0');const tree=h.digest('hex')
+  writeFileSync(join(source,'provenance.json'),JSON.stringify({clientFingerprint:fp,iconsSnapshotSha256:tree,artifactSha256:{'asset_redirects.json':crypto.createHash('sha256').update(redirects).digest('hex')}}))
+  run(dataset,source,out);const m=JSON.parse(readFileSync(join(out,'icon-manifest.json'),'utf8'));expect(m.sourceProvenance.clientFingerprint).toBe(fp);expect(m.sourceProvenance.iconsSnapshotSha256).toBe(tree)
+  writeFileSync(join(icons,'a.webp'),webp('tampered'));const r=spawnSync(process.execPath,[resolve('scripts/install-icon-assets.mjs'),dataset,source,out],{encoding:'utf8'});expect(r.status).toBe(1);expect(r.stderr).toContain('icon tree does not match same-snapshot provenance')
+ })
 })

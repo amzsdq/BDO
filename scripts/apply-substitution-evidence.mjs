@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 import fs from 'node:fs'
+import { REVIEWED_GENERIC_ROUTE_BINDINGS, SUBSTITUTION_BINDING_POLICY, SUBSTITUTION_BINDING_POLICY_SHA256 } from './substitution-binding-policy.mjs'
 export function applySubstitutionEvidence(dataset, evidence) {
   if (!evidence || evidence.source !== 'BDO Codex KR' || !Array.isArray(evidence.groups)) throw new Error('invalid substitution evidence envelope')
   const collectedAt = evidence.collectedAt
@@ -11,7 +12,7 @@ export function applySubstitutionEvidence(dataset, evidence) {
   const seenGroupIds = new Set()
   for (const group of evidence.groups) {
     const id = String(group.id || ''); const idMatch = id.match(/^codex:(\d+)$/)
-    if (!idMatch || !Array.isArray(group.members) || group.members.length < 2) throw new Error(`invalid substitution group ${id || '<missing>'}`)
+    if (!idMatch || !Array.isArray(group.members) || group.members.length < 1) throw new Error(`invalid substitution group ${id || '<missing>'}`)
     const sourceId = String(group.sourceId || '')
     if (sourceId !== idMatch[1]) throw new Error(`${id}: sourceId does not match canonical group id`)
     if (seenGroupIds.has(id)) throw new Error(`${id}: duplicate group evidence`)
@@ -26,16 +27,61 @@ export function applySubstitutionEvidence(dataset, evidence) {
       if (memberItemIds.includes(itemId)) throw new Error(`${id}: duplicate member ${itemId}`)
       memberItemIds.push(itemId); memberValueByItemId[String(itemId)] = value
     }
-    next.substitutionGroups[id] = { id, memberItemIds, memberValueByItemId, source: { provider: 'BDO Codex KR', sourceId, sourceUrl, verifiedAt: collectedAt } }
+    const reviewed = SUBSTITUTION_BINDING_POLICY.reviewedGroups?.[id]
+    if (reviewed?.expectedMemberWorthByItemId) {
+      const expected = reviewed.expectedMemberWorthByItemId
+      const expectedEntries = Object.entries(expected).sort(([a], [b]) => Number(a) - Number(b))
+      const actualEntries = Object.entries(memberValueByItemId).sort(([a], [b]) => Number(a) - Number(b))
+      if (JSON.stringify(actualEntries) !== JSON.stringify(expectedEntries)) throw new Error(`${id}: reviewed member Worth evidence drifted from policy`)
+      if (reviewed.planningValueByItemId) {
+        const planningEntries = Object.entries(reviewed.planningValueByItemId).sort(([a], [b]) => Number(a) - Number(b))
+        if (JSON.stringify(planningEntries.map(([itemId]) => itemId)) !== JSON.stringify(expectedEntries.map(([itemId]) => itemId))) {
+          throw new Error(`${id}: reviewed planning semantics must cover the exact reviewed member set`)
+        }
+        if (planningEntries.some(([, value]) => !Number.isFinite(Number(value)) || Number(value) <= 0)) {
+          throw new Error(`${id}: reviewed planning semantics contain invalid Worth`)
+        }
+      }
+    }
+    next.substitutionGroups[id] = {
+      id,
+      memberItemIds,
+      memberValueByItemId,
+      ...(reviewed?.planningValueByItemId ? { planningValueByItemId: structuredClone(reviewed.planningValueByItemId) } : {}),
+      source: { provider: 'BDO Codex KR', sourceId, sourceUrl, verifiedAt: collectedAt },
+    }
   }
   const groups = Object.values(next.substitutionGroups)
   for (const recipe of Object.values(next.recipes || {})) for (const variant of recipe.variants || []) for (const input of variant.inputs || []) {
-    if (removedCodexIds.has(input.substitutionGroupId) || String(input.substitutionGroupId || '').startsWith('codex:')) delete input.substitutionGroupId
-    const matches = groups.filter((group) => group.memberItemIds.includes(input.itemId))
+    if (removedCodexIds.has(input.substitutionGroupId) || String(input.substitutionGroupId || '').startsWith('codex:')) {
+      delete input.substitutionGroupId
+      delete input.requiredBaseWorth
+    }
+    const matches = groups.filter((group) => {
+      if (group.memberItemIds.length < 2 || !group.memberItemIds.includes(input.itemId)) return false
+      if (group.source?.provider === 'BDO Codex KR') {
+        if (!REVIEWED_GENERIC_ROUTE_BINDINGS.has(`${Number(variant.sourceRecipeId)}|${group.id}`)) return false
+        const reviewed = SUBSTITUTION_BINDING_POLICY.reviewedGroups?.[group.id]
+        const slotKey = `${Number(variant.sourceRecipeId)}|${input.itemId}`
+        const requiredBaseWorth = reviewed?.requiredBaseWorthByRouteSlot?.[slotKey]
+        return Number.isFinite(requiredBaseWorth) && requiredBaseWorth > 0
+      }
+      const canonicalWorth = Number(group.memberValueByItemId?.[String(input.itemId)])
+      const minimumWorth = Math.min(...group.memberItemIds.map((itemId) => Number(group.memberValueByItemId?.[String(itemId)])))
+      return Number.isFinite(canonicalWorth) && canonicalWorth === minimumWorth
+    })
     if (matches.length > 1) throw new Error(`${recipe.id}/${variant.id}: item ${input.itemId} belongs to multiple sourced substitution groups`)
-    if (matches.length === 1) input.substitutionGroupId = matches[0].id
+    if (matches.length === 1) {
+      input.substitutionGroupId = matches[0].id
+      const reviewed = SUBSTITUTION_BINDING_POLICY.reviewedGroups?.[matches[0].id]
+      const requiredBaseWorth = reviewed?.requiredBaseWorthByRouteSlot?.[`${Number(variant.sourceRecipeId)}|${input.itemId}`]
+      if (!Number.isFinite(requiredBaseWorth) || requiredBaseWorth <= 0) throw new Error(`${recipe.id}/${variant.id}: reviewed route lacks requiredBaseWorth`)
+      input.requiredBaseWorth = requiredBaseWorth
+    }
   }
   next.metadata ||= {}; next.metadata.sources = [...new Set([...(next.metadata.sources || []), 'BDO Codex KR material-group Worth evidence'])]
+  next.metadata.substitutionBindingPolicy = structuredClone(SUBSTITUTION_BINDING_POLICY)
+  next.metadata.substitutionBindingPolicySha256 = SUBSTITUTION_BINDING_POLICY_SHA256
   return next
 }
 if (process.argv[1] && process.argv[1].endsWith('apply-substitution-evidence.mjs')) {

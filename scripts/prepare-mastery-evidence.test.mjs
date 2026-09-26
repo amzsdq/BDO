@@ -13,7 +13,7 @@ function run(payload) {
   const mastery = path.join(dir, 'mastery.json')
   const out = path.join(dir, 'evidence.json')
   fs.writeFileSync(mastery, JSON.stringify(payload))
-  execFileSync(process.execPath, ['scripts/prepare-mastery-evidence.mjs', '--mastery', mastery, '--out', out, '--source-revision', 'v0.1.9@5bf11bd', '--client-fingerprint', 'client-abc', '--extracted-at', '2026-09-23T00:00:00Z'])
+  execFileSync(process.execPath, ['scripts/prepare-mastery-evidence.mjs', '--mastery', mastery, '--out', out, '--source-revision', 'iDevelopThings/bdo-data-extractor@5bf11bd7bc60dcbb6126be34bf3d76633abdd8b2', '--client-fingerprint', 'sha256:' + 'a'.repeat(64), '--extracted-at', '2026-09-23T00:00:00Z'])
   return JSON.parse(fs.readFileSync(out, 'utf8'))
 }
 function runArgs(args) {

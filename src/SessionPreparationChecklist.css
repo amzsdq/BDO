@@ -1,3 +1,7 @@
+.checklist-progress { display: grid; gap: 7px; margin: 0 0 12px; padding: 10px 12px; border: 1px solid #2d3236; border-radius: 12px; background: #101315; }
+.checklist-progress > div { display: flex; justify-content: space-between; gap: 12px; color: #c7cbce; font-size: 12px; }
+.checklist-progress span { color: #d6ad70; font-variant-numeric: tabular-nums; }
+.checklist-progress progress { width: 100%; height: 7px; accent-color: #b9935a; }
 .checklist-bulk-actions { display: flex; flex-wrap: wrap; gap: .5rem; margin: 0 0 12px; }
 .checklist-bulk-actions button { border: 1px solid #30353a; border-radius: 9px; background: #15191c; color: #c7cbce; padding: 8px 10px; cursor: pointer; }
 .checklist-bulk-actions button:hover { border-color: #4a5157; }
