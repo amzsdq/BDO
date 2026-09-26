@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 import fs from 'node:fs'
 
-const REVIEWED_GENERIC_RECIPE_GROUP_IDS = new Set(['codex:6009'])
+const REVIEWED_GENERIC_ROUTE_BINDINGS = new Set([
+  112, 113, 123, 125, 127, 136, 144, 154, 159, 168, 195, 477, 478, 491, 510, 513, 570, 586, 606,
+].map((sourceRecipeId) => `${sourceRecipeId}|codex:6009`))
 export function applySubstitutionEvidence(dataset, evidence) {
   if (!evidence || evidence.source !== 'BDO Codex KR' || !Array.isArray(evidence.groups)) throw new Error('invalid substitution evidence envelope')
   const collectedAt = evidence.collectedAt
@@ -34,7 +36,7 @@ export function applySubstitutionEvidence(dataset, evidence) {
   for (const recipe of Object.values(next.recipes || {})) for (const variant of recipe.variants || []) for (const input of variant.inputs || []) {
     if (removedCodexIds.has(input.substitutionGroupId) || String(input.substitutionGroupId || '').startsWith('codex:')) delete input.substitutionGroupId
     const matches = groups.filter((group) => {
-      if (group.source?.provider === 'BDO Codex KR' && !REVIEWED_GENERIC_RECIPE_GROUP_IDS.has(group.id)) return false
+      if (group.source?.provider === 'BDO Codex KR' && !REVIEWED_GENERIC_ROUTE_BINDINGS.has(`${Number(variant.sourceRecipeId)}|${group.id}`)) return false
       if (group.memberItemIds.length < 2 || !group.memberItemIds.includes(input.itemId)) return false
       const canonicalWorth = Number(group.memberValueByItemId?.[String(input.itemId)])
       const minimumWorth = Math.min(...group.memberItemIds.map((itemId) => Number(group.memberValueByItemId?.[String(itemId)])))
@@ -44,7 +46,7 @@ export function applySubstitutionEvidence(dataset, evidence) {
     if (matches.length === 1) input.substitutionGroupId = matches[0].id
   }
   next.metadata ||= {}; next.metadata.sources = [...new Set([...(next.metadata.sources || []), 'BDO Codex KR material-group Worth evidence'])]
-  next.metadata.substitutionBindingPolicy = { version: 1, policy: 'reviewed-generic-base-worth-only', reviewedGroupIds: [...REVIEWED_GENERIC_RECIPE_GROUP_IDS].sort() }
+  next.metadata.substitutionBindingPolicy = { version: 2, policy: 'reviewed-route-base-worth-only', reviewedRouteBindings: [...REVIEWED_GENERIC_ROUTE_BINDINGS].sort() }
   return next
 }
 if (process.argv[1] && process.argv[1].endsWith('apply-substitution-evidence.mjs')) {
