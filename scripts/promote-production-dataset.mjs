@@ -4,6 +4,7 @@ import { assertKoreanNameReleaseEvidence } from './korean-name-release-evidence.
 import { assertYieldReleaseEvidence } from './yield-release-evidence.mjs'
 import { assertClientFingerprint, assertReviewedExtractorRevision } from './production-source-contract.mjs'
 import { assertProductionWebEvidenceBindings } from './production-web-evidence-bindings.mjs'
+import { assertProductionIconReleaseEvidence } from './production-icon-release-evidence.mjs'
 
 function fail(message) { console.error(`promotion blocked: ${message}`); process.exit(1) }
 const args = process.argv.slice(2)
@@ -17,6 +18,7 @@ try {
   assertKoreanNameReleaseEvidence(dataset)
   assertYieldReleaseEvidence(dataset)
   assertProductionWebEvidenceBindings(dataset)
+  assertProductionIconReleaseEvidence(datasetFile, dataset)
 } catch (error) { fail(error instanceof Error ? error.message : String(error)) }
 const promotion = spawnSync(process.execPath, ['scripts/promote-release-dataset.mjs', ...args], { cwd: process.cwd(), encoding: 'utf8' })
 if (promotion.status !== 0) { process.stderr.write(promotion.stderr || promotion.stdout || 'promotion blocked: existing promotion gate failed\n'); process.exit(1) }
