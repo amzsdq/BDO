@@ -44,6 +44,19 @@ function logicalRows(card) {
   return starts.map((start, index) => card.slice(start, starts[index + 1] ?? card.length))
 }
 
+export function detectCodexRecipeIdentity(html, expectedRecipeId) {
+  const card = balancedDivByClass(html, ['card', 'item_info'])
+  if (!card) return null
+  const hrefIds = [...card.matchAll(/href=["'][^"']*\/kr\/recipe\/(\d+)\/?["']/gi)].map((m) => Number(m[1]))
+  if (hrefIds.length && !hrefIds.includes(Number(expectedRecipeId))) throw new Error(`recipe ${expectedRecipeId}: card recipe id mismatch`)
+  if (!hrefIds.length && !new RegExp(`\\b(?:ID|Recipe\\s*ID)\\s*:?\\s*${Number(expectedRecipeId)}\\b`, 'i').test(decodeText(card))) throw new Error(`recipe ${expectedRecipeId}: card recipe identity missing`)
+  const cardText = decodeText(card)
+  const pageSkillToken = cardText.match(/(?:요리|연금|Cooking|Alchemy)\s*(?:스킬\s*레벨|Skill\s*level)/i)?.[0] || ''
+  const skill = /(?:연금|Alchemy)/i.test(pageSkillToken) ? 'alchemy' : /(?:요리|Cooking)/i.test(pageSkillToken) ? 'cooking' : undefined
+  if (!skill) throw new Error(`recipe ${expectedRecipeId}: page skill identity missing`)
+  return { card, cardText, skill }
+}
+
 function itemRow(row) {
   const anchors = [...row.matchAll(/<a\b[^>]*href=["'][^"']*\/kr\/item\/(\d+)\/?["'][^>]*>([\s\S]*?)<\/a>/gi)]
   if (!anchors.length) return null
@@ -108,16 +121,12 @@ export function parseCodexRecipeDetailHtml(html, expectedRecipeId, expectedSkill
     throw new Error(`recipe ${expectedRecipeId}: item_info card missing`)
   }
 
-  const hrefIds = [...card.matchAll(/href=["'][^"']*\/kr\/recipe\/(\d+)\/?["']/gi)].map((m) => Number(m[1]))
-  if (hrefIds.length && !hrefIds.includes(Number(expectedRecipeId))) throw new Error(`recipe ${expectedRecipeId}: card recipe id mismatch`)
-  if (!hrefIds.length && !new RegExp(`\\b(?:ID|Recipe\\s*ID)\\s*:?\\s*${Number(expectedRecipeId)}\\b`, 'i').test(decodeText(card))) throw new Error(`recipe ${expectedRecipeId}: card recipe identity missing`)
-
+  const identity = detectCodexRecipeIdentity(html, expectedRecipeId)
+  if (!identity) throw new Error(`recipe ${expectedRecipeId}: item_info card missing`)
+  const { cardText, skill: pageSkill } = identity
+  if (pageSkill !== expectedSkill) throw new Error(`recipe ${expectedRecipeId}: page skill identity missing or mismatched`)
   const titleMatch = card.match(/<([a-z][\w:-]*)\b(?=[^>]*class=["'][^"']*(?:\bitem_title\b|\bcard-title\b)[^"']*["'])[^>]*>([\s\S]*?)<\/\1>/i)
   const titleKo = titleMatch ? decodeText(titleMatch[2]) : undefined
-  const cardText = decodeText(card)
-  const pageSkillToken = cardText.match(/(?:요리|연금|Cooking|Alchemy)\s*(?:스킬\s*레벨|Skill\s*level)/i)?.[0] || ''
-  const pageSkill = /(?:연금|Alchemy)/i.test(pageSkillToken) ? 'alchemy' : /(?:요리|Cooking)/i.test(pageSkillToken) ? 'cooking' : undefined
-  if (!pageSkill || pageSkill !== expectedSkill) throw new Error(`recipe ${expectedRecipeId}: page skill identity missing or mismatched`)
   if (/이\s*레시피는\s*게임에서\s*사용할\s*수\s*없습니다\s*!?/i.test(cardText)) return { recipeId: Number(expectedRecipeId), skill: expectedSkill, ...(titleKo ? { titleKo } : {}), status: 'unavailable', ingredients: [], baseOutputs: [], randomOutputs: [] }
   const skillText = cardText.match(/(?:초급|견습|숙련|전문|장인|명장|도인)\s*Lv\.?\s*\d+/i)?.[0]
 
@@ -222,11 +231,14 @@ export async function collectCodexRecipeDetails(catalogManifest, { fetchImpl = f
         if (route.catalogListed) {
           parsed = parseCodexRecipeDetailHtml(html, route.recipeId, route.skill)
         } else {
-          const attempts = []
-          for (const candidateSkill of ['cooking', 'alchemy']) {
-            try { parsed = parseCodexRecipeDetailHtml(html, route.recipeId, candidateSkill); break } catch (error) { attempts.push(error) }
+          const identity = detectCodexRecipeIdentity(html, route.recipeId)
+          if (!identity) throw new Error(`gap probe ${route.recipeId}: recipe identity missing`)
+          try {
+            parsed = parseCodexRecipeDetailHtml(html, route.recipeId, identity.skill)
+          } catch (error) {
+            results[index] = { recipeId: route.recipeId, skill: identity.skill, catalogListed: false, discovery: route.discovery, status: 'unresolved', ingredients: [], baseOutputs: [], randomOutputs: [], sourceUrl: response.url || sourceUrl, error: String(error?.message || error) }
+            continue
           }
-          if (!parsed) throw new Error(`gap probe ${route.recipeId}: no cooking/alchemy recipe identity: ${attempts.map((error) => error.message).join(' | ')}`)
         }
         results[index] = { ...parsed, catalogListed: route.catalogListed, discovery: route.discovery, sourceUrl: response.url || sourceUrl }
       } catch (error) {
