@@ -37,9 +37,9 @@ The currently documented extractor CLI localization flag is not Korean-first. St
 
 ## Completeness strategy
 
-1. Import live client extraction.
-2. Build canonical item-id / output-id recipe graph.
-3. Preserve every alternative recipe block.
+1. Import the same-snapshot live client extraction broadly, before planner scope pruning.
+2. Build canonical item-id / output-id recipe graph and prune only reviewed retired crafting routes/deleted-ingredient variants backed by current official KR evidence.
+3. Preserve every unrelated alternative recipe block.
 4. Generate normalized Korean-name/signature evidence for independent reconciliation.
 5. Build/refresh a Codex manifest with source-local page id, linked output/ingredient item IDs, skill, Korean title, availability, ingredient counts, and base output range.
 6. Compare primarily by canonical linked item IDs/signatures rather than Codex recipe page ID:
@@ -55,9 +55,9 @@ The currently documented extractor CLI localization flag is not Korean-first. St
 
 BDO Codex category pages currently render the table shell and report "Loading data from server"; the complete row set is not present in the static category HTML. A bulk collector must identify/use the site's data/query route or another controlled enumeration path. Search-engine discovery of individual pages is useful evidence but is not a completeness proof.
 
-Independent implementations confirm a JSON recipe transport of the form `https://bdocodex.com/query.php?a=recipes&type=product&item_id=<id>&l=<locale>`. That route is explicitly product/item scoped: it can retrieve recipes associated with one item, but its row count and ID set cannot establish the complete Cooking or Alchemy catalog. It must never be supplied to the completeness collector as catalog evidence. The complete skill-scoped transport/count remains unverified.
+Independent implementations confirm a JSON recipe transport of the form `https://bdocodex.com/query.php?a=recipes&type=product&item_id=<id>&l=<locale>`. That route is explicitly product/item scoped: it can retrieve recipes associated with one item, but its row count and ID set cannot establish the complete Cooking or Alchemy catalog. It must never be supplied to the completeness collector as catalog evidence. That product-scoped route is not completeness evidence. The repository instead verifies the skill-scoped transport at acquisition time.
 
-The repository now removes the manual endpoint-discovery step with `scripts/collect-codex-catalog-browser.mjs`: Playwright opens each KR skill catalog, captures the site's actual recipe XHR (including POST form parameters when used), validates that the request is skill-scoped rather than product/item-scoped, and replays its pagination until the unique recipe-id set equals the server-reported total. The captured request parameters and totals are retained as auditable completeness evidence.
+The repository removes the manual endpoint-discovery step with `scripts/collect-codex-catalog-browser.mjs`: Playwright opens each KR skill catalog, captures the site's actual recipe XHR (including POST form parameters when used), validates that the request is skill-scoped rather than product/item-scoped, and replays its pagination until the unique recipe-id set equals the server-reported total. The captured request parameters and totals are retained as auditable completeness evidence.
 
 Once recipe detail URLs are enumerated, their linked item IDs provide a deterministic bridge back to the client graph. The remaining non-cloud input is the installed-client structural snapshot itself; on Windows `scripts/bootstrap-production-data.ps1` reduces that to one command and records snapshot provenance automatically.
 
