@@ -34,14 +34,21 @@ if (!recordedServiceIniSha || recordedServiceIniSha !== serviceIniSha || String(
 const serviceIniText = fs.readFileSync(serviceIni, 'utf8').replace(/^\uFEFF/, '')
 const serviceType = serviceIniText.match(/^\s*TYPE\s*=\s*([^\r\n;#]+)/im)?.[1]?.trim().toUpperCase()
 if (serviceType !== 'KR') throw new Error('snapshot service.ini must verify TYPE=KR')
-const items = path.join(root, 'items.json'), recipes = path.join(root, 'recipes.json')
-for (const file of [items, recipes]) {
-  if (!fs.existsSync(file)) throw new Error(`snapshot artifact missing: ${file}`)
-  const name = path.basename(file)
-  const recorded = String(provenance?.artifactSha256?.[name] || '').toLowerCase()
-  const actual = sha256(file)
-  if (!recorded || recorded !== actual) throw new Error(`${name} SHA-256 does not match same-snapshot provenance`)
+const requiredArtifactNames = ['items.json', 'recipes.json', 'mastery.json', 'service.ini']
+const artifactSha256 = provenance?.artifactSha256
+if (!artifactSha256 || typeof artifactSha256 !== 'object' || Array.isArray(artifactSha256)) throw new Error('snapshot artifactSha256 map is required')
+for (const name of requiredArtifactNames) {
+  if (!Object.hasOwn(artifactSha256, name)) throw new Error(`snapshot provenance is missing required artifact hash: ${name}`)
 }
+for (const [name, recordedValue] of Object.entries(artifactSha256)) {
+  if (path.basename(name) !== name || name === '.' || name === '..') throw new Error(`unsafe snapshot artifact name in provenance: ${name}`)
+  const file = path.join(root, name)
+  if (!fs.existsSync(file) || !fs.statSync(file).isFile()) throw new Error(`snapshot artifact missing: ${file}`)
+  const recorded = String(recordedValue || '').toLowerCase()
+  if (!/^[0-9a-f]{64}$/.test(recorded)) throw new Error(`snapshot artifact hash is invalid: ${name}`)
+  if (recorded !== sha256(file)) throw new Error(`${name} SHA-256 does not match same-snapshot provenance`)
+}
+const items = path.join(root, 'items.json'), recipes = path.join(root, 'recipes.json')
 const out = path.resolve(outArg || path.join(root, 'client-broad.json'))
 const result = spawnSync(process.execPath, [
   'scripts/import-bdo-extractor.mjs',
